@@ -25,100 +25,11 @@
 #include <ctime>
 
 
-//for tag
-#include "ns3/tag.h"
-#include "ns3/packet.h"
-#include "ns3/uinteger.h"
-#include <iostream>
-#include <sstream>
-//for tag
+//for tags
+#include "ns3/tag-sender.h"
 
 
 using namespace ns3;
-
-
-// for tag //
-
-class MyTag : public Tag
-{
-public:
-  /**
-   * \brief Get the type ID.
-   * \return the object TypeId
-   */
-  static TypeId GetTypeId (void);
-  virtual TypeId GetInstanceTypeId (void) const;
-  virtual uint32_t GetSerializedSize (void) const;
-  virtual void Serialize (TagBuffer i) const;
-  virtual void Deserialize (TagBuffer i);
-  virtual void Print (std::ostream &os) const;
-
-  // these are our accessors to our tag structure
-  /**
-   * Set the tag value
-   * \param value The tag value.
-   */
-  void SetSimpleValue (uint8_t value);
-  /**
-   * Get the tag value
-   * \return the tag value.
-   */
-  uint8_t GetSimpleValue (void) const;
-private:
-  uint8_t m_simpleValue;  //!< tag value
-};
-
-TypeId
-MyTag::GetTypeId (void)
-{
-  static TypeId tid = TypeId ("ns3::MyTag")
-    .SetParent<Tag> ()
-    .AddConstructor<MyTag> ()
-    .AddAttribute ("SimpleValue",
-                   "A simple value",
-                   EmptyAttributeValue (),
-                   MakeUintegerAccessor (&MyTag::GetSimpleValue),
-                   MakeUintegerChecker<uint8_t> ())
-  ;
-  return tid;
-}
-TypeId
-MyTag::GetInstanceTypeId (void) const
-{
-  return GetTypeId ();
-}
-uint32_t
-MyTag::GetSerializedSize (void) const
-{
-  return 1;
-}
-void
-MyTag::Serialize (TagBuffer i) const
-{
-  i.WriteU8 (m_simpleValue);
-}
-void
-MyTag::Deserialize (TagBuffer i)
-{
-  m_simpleValue = i.ReadU8 ();
-}
-void
-MyTag::Print (std::ostream &os) const
-{
-  os<<(uint32_t)m_simpleValue;
-}
-void
-MyTag::SetSimpleValue (uint8_t value)
-{
-  m_simpleValue = value;
-}
-uint8_t
-MyTag::GetSimpleValue (void) const
-{
-  return m_simpleValue;
-}
-
-// For tag
 
 
 NS_LOG_COMPONENT_DEFINE ("ComplexLorawanNetworkExample");
@@ -131,7 +42,7 @@ double radius = 7500;
 double simulationTime = 600;
 int appPeriodSeconds = 5;
 int appPeriodJamSeconds = 10;
-std::vector<int> sfQuantity (6);
+//std::vector<int> sfQuantity (6);
 int noMoreReceivers = 0;
 int interfered = 0;
 int received = 0;
@@ -257,11 +168,8 @@ PacketReceptionCallback (Ptr<Packet const> packet, uint32_t systemId)
 	  Ptr<Packet> aCopy = packet->Copy ();
 
 	  // read the tag from the packet copy
-	  MyTag tagCopy;
-//	  aCopy->PeekPacketTag (tagCopy);
-	  //aCopy->Print (std::cout);
-//	  std::cout << std::endl;
-
+	  MyTag sender_tag;
+	  aCopy->PeekPacketTag (sender_tag);
 
 
   std::map<Ptr<Packet const>, PacketStatus>::iterator it = packetTracker.find (packet);
@@ -271,10 +179,12 @@ PacketReceptionCallback (Ptr<Packet const> packet, uint32_t systemId)
   CheckReceptionByAllGWsComplete (it);
 
   // Print
-  std::cout << "R " << systemId << " " << packet->GetSize () << " " << Simulator::Now ().GetSeconds () << " ";
+  std::cout << "R " << systemId << " " << packet->GetSize () << " " << Simulator::Now ().GetSeconds ()  << " ";
 
-  aCopy->PrintPacketTags(std::cout);
+  sender_tag.Print (std::cout);
   std::cout << std::endl;
+
+//  aCopy->PrintPacketTags (std::cout);
 
 }
 
@@ -644,8 +554,6 @@ int main (int argc, char *argv[])
   /****************
   *  Simulation  *
   ****************/
-
-
 
   Simulator::Stop (appJamStopTime + Hours (2));
 
