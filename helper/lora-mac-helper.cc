@@ -50,6 +50,9 @@ LoraMacHelper::SetDeviceType (enum DeviceType dt)
     case ED:
       m_mac.SetTypeId ("ns3::EndDeviceLoraMac");
       break;
+    case JM:
+      m_mac.SetTypeId ("ns3::EndDeviceLoraMac");
+      break;
     }
   m_deviceType = dt;
 }
@@ -81,6 +84,12 @@ LoraMacHelper::Create (Ptr<Node> node, Ptr<NetDevice> device) const
         (m_addrGen->NextAddress ());
     }
 
+  if (m_deviceType == JM && m_addrGen != 0)
+    {
+      mac->GetObject<EndDeviceLoraMac> ()->SetDeviceAddress
+        (m_addrGen->NextAddress ());
+    }
+
   // Add a basic list of channels based on the region where the device is
   // operating
   if (m_deviceType == ED)
@@ -100,7 +109,27 @@ LoraMacHelper::Create (Ptr<Node> node, Ptr<NetDevice> device) const
           }
         }
     }
-  else
+
+  if (m_deviceType == JM)
+  	{
+      Ptr<EndDeviceLoraMac> jmMac = mac->GetObject<EndDeviceLoraMac> ();
+      switch (m_region)
+        {
+        case LoraMacHelper::EU:
+          {
+            ConfigureForEuRegionJm (jmMac);
+            break;
+          }
+        default:
+          {
+            NS_LOG_ERROR ("This region isn't supported yet!");
+            break;
+          }
+        }
+  	}
+
+
+  if (m_deviceType == GW)
     {
       Ptr<GatewayLoraMac> gwMac = mac->GetObject<GatewayLoraMac> ();
       switch (m_region)
@@ -117,8 +146,11 @@ LoraMacHelper::Create (Ptr<Node> node, Ptr<NetDevice> device) const
           }
         }
     }
+
   return mac;
 }
+
+
 
 void
 LoraMacHelper::ConfigureForEuRegion (Ptr<EndDeviceLoraMac> edMac) const
@@ -155,6 +187,44 @@ LoraMacHelper::ConfigureForEuRegion (Ptr<EndDeviceLoraMac> edMac) const
   //////////////////////////////////////
   edMac->SetSecondReceiveWindowDataRate (0);
   edMac->SetSecondReceiveWindowFrequency (869.525);
+}
+
+
+void
+LoraMacHelper::ConfigureForEuRegionJm (Ptr<EndDeviceLoraMac> jmMac) const
+{
+  NS_LOG_FUNCTION_NOARGS ();
+
+  ApplyCommonEuConfigurationsJm (jmMac);
+
+  /////////////////////////////////////////////////////
+  // TxPower -> Transmission power in dBm conversion //
+  /////////////////////////////////////////////////////
+  jmMac->SetTxDbmForTxPower (std::vector<double> {16, 14, 12, 10, 8, 6, 4, 2});
+
+  ////////////////////////////////////////////////////////////
+  // Matrix to know which DataRate the GW will respond with //
+  ////////////////////////////////////////////////////////////
+  LoraMac::ReplyDataRateMatrix matrix = {{{{0,0,0,0,0,0}},
+                                          {{1,0,0,0,0,0}},
+                                          {{2,1,0,0,0,0}},
+                                          {{3,2,1,0,0,0}},
+                                          {{4,3,2,1,0,0}},
+                                          {{5,4,3,2,1,0}},
+                                          {{6,5,4,3,2,1}},
+                                          {{7,6,5,4,3,2}}}};
+  jmMac->SetReplyDataRateMatrix (matrix);
+
+  /////////////////////
+  // Preamble length //
+  /////////////////////
+  jmMac->SetNPreambleSymbols (8);
+
+  //////////////////////////////////////
+  // Second receive window parameters //
+  //////////////////////////////////////
+  jmMac->SetSecondReceiveWindowDataRate (0);
+  jmMac->SetSecondReceiveWindowFrequency (869.525);
 }
 
 void
@@ -232,6 +302,48 @@ LoraMacHelper::ApplyCommonEuConfigurations (Ptr<LoraMac> loraMac) const
                                         {59,59,59,123,230,230,230,230});
 
 }
+
+// HERE WE CAN CHANGE THE DUTY CYCLE FOR THE JAMMING NODES
+
+void
+LoraMacHelper::ApplyCommonEuConfigurationsJm (Ptr<LoraMac> loraMac) const
+{
+  NS_LOG_FUNCTION_NOARGS ();
+
+  //////////////
+  // SubBands //
+  //////////////
+
+  LogicalLoraChannelHelper channelHelper;
+  channelHelper.AddSubBand (868, 868.6, 1, 14);
+  channelHelper.AddSubBand (868.7, 869.2, 1, 14);
+  channelHelper.AddSubBand (869.4, 869.65, 1, 27);
+
+  //////////////////////
+  // Default channels //
+  //////////////////////
+  Ptr<LogicalLoraChannel> lc1 = CreateObject<LogicalLoraChannel> (868.1, 0, 5);
+  Ptr<LogicalLoraChannel> lc2 = CreateObject<LogicalLoraChannel> (868.3, 0, 5);
+  Ptr<LogicalLoraChannel> lc3 = CreateObject<LogicalLoraChannel> (868.5, 0, 5);
+  channelHelper.AddChannel (lc1);
+  channelHelper.AddChannel (lc2);
+  channelHelper.AddChannel (lc3);
+
+  loraMac->SetLogicalLoraChannelHelper (channelHelper);
+
+  ///////////////////////////////////////////////
+  // DataRate -> SF, DataRate -> Bandwidth     //
+  // and DataRate -> MaxAppPayload conversions //
+  ///////////////////////////////////////////////
+  loraMac->SetSfForDataRate (std::vector<uint8_t> {12,11,10,9,8,7,7});
+  loraMac->SetBandwidthForDataRate (std::vector<double>
+                                    {125000,125000,125000,125000,125000,125000,250000});
+  loraMac->SetMaxAppPayloadForDataRate (std::vector<uint32_t>
+                                        {59,59,59,123,230,230,230,230});
+
+}
+
+
 
 void
 LoraMacHelper::SetSpreadingFactorsUp (NodeContainer endDevices, NodeContainer gateways, Ptr<LoraChannel> channel)
@@ -311,4 +423,86 @@ LoraMacHelper::SetSpreadingFactorsUp (NodeContainer endDevices, NodeContainer ga
         }
     }
 }
+
+
+void
+LoraMacHelper::SetSpreadingFactorsUpJm (NodeContainer Jammers, NodeContainer gateways, Ptr<LoraChannel> channel)
+{
+  NS_LOG_FUNCTION_NOARGS ();
+
+  for (NodeContainer::Iterator j = Jammers.Begin (); j != Jammers.End (); ++j)
+    {
+      Ptr<Node> object = *j;
+      Ptr<MobilityModel> position = object->GetObject<MobilityModel> ();
+      NS_ASSERT (position != 0);
+      Ptr<NetDevice> netDevice = object->GetDevice (0);
+      Ptr<LoraNetDevice> loraNetDevice = netDevice->GetObject<LoraNetDevice> ();
+      NS_ASSERT (loraNetDevice != 0);
+      Ptr<EndDeviceLoraMac> mac = loraNetDevice->GetMac ()->GetObject<EndDeviceLoraMac> ();
+      NS_ASSERT (mac != 0);
+
+      // Try computing the distance from each gateway and find the best one
+      Ptr<Node> bestGateway = gateways.Get (0);
+      Ptr<MobilityModel> bestGatewayPosition = bestGateway->GetObject<MobilityModel> ();
+
+      // Assume devices transmit at 14 dBm
+      double highestRxPower = channel->GetRxPower (14, position, bestGatewayPosition);
+
+      for (NodeContainer::Iterator currentGw = gateways.Begin () + 1;
+           currentGw != gateways.End (); ++currentGw)
+        {
+          // Compute the power received from the current gateway
+          Ptr<Node> curr = *currentGw;
+          Ptr<MobilityModel> currPosition = curr->GetObject<MobilityModel> ();
+          double currentRxPower = channel->GetRxPower (14, position, currPosition);    // dBm
+
+          if (currentRxPower > highestRxPower)
+            {
+              bestGateway = curr;
+              bestGatewayPosition = curr->GetObject<MobilityModel> ();
+              highestRxPower = currentRxPower;
+            }
+        }
+
+      // NS_LOG_DEBUG ("Rx Power: " << highestRxPower);
+      double rxPower = highestRxPower;
+
+      // Get the Gw sensitivity
+      Ptr<NetDevice> gatewayNetDevice = bestGateway->GetDevice (0);
+      Ptr<LoraNetDevice> gatewayLoraNetDevice = gatewayNetDevice->GetObject<LoraNetDevice> ();
+      Ptr<GatewayLoraPhy> gatewayPhy = gatewayLoraNetDevice->GetPhy ()->GetObject<GatewayLoraPhy> ();
+      const double *gwSensitivity = gatewayPhy->sensitivity;
+
+      if(rxPower > *gwSensitivity)
+        {
+          mac->SetDataRate (5);
+        }
+      else if (rxPower > *(gwSensitivity+1))
+        {
+          mac->SetDataRate (4);
+        }
+      else if (rxPower > *(gwSensitivity+2))
+        {
+          mac->SetDataRate (3);
+        }
+      else if (rxPower > *(gwSensitivity+3))
+        {
+          mac->SetDataRate (2);
+        }
+      else if (rxPower > *(gwSensitivity+4))
+        {
+          mac->SetDataRate (1);
+        }
+      else if (rxPower > *(gwSensitivity+5))
+        {
+          mac->SetDataRate (0);
+        }
+      else // Device is out of range. Assign SF12.
+        {
+          mac->SetDataRate (0);
+        }
+    }
+}
+
+
 }

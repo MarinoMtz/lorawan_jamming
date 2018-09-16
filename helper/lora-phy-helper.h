@@ -44,7 +44,8 @@ public:
   enum DeviceType
   {
     GW,
-    ED
+    ED,
+	JM
   };
 
   /**

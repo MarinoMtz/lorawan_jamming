@@ -24,8 +24,9 @@
 #include "ns3/object-factory.h"
 #include "ns3/packet.h"
 #include "ns3/simulator.h"
-#include "ns3/end-device-lora-phy.h"
-#include "ns3/gateway-lora-phy.h"
+//#include "ns3/end-device-lora-phy.h"
+//#include "ns3/jammer-lora-phy.h"
+//#include "ns3/gateway-lora-phy.h"
 #include <algorithm>
 
 namespace ns3 {

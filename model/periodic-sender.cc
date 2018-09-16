@@ -108,11 +108,12 @@ PeriodicSender::SendPacket (void)
     {
 	  size = m_pktSize->GetInteger ();
 	  packet = Create<Packet>(10+size);
+	  //TODO
     }
   else
 	{
 	  size = m_setpktSize;
-	  packet = Create<Packet>(10+size);
+	  packet = Create<Packet>(size);
    	}
 
   m_mac->Send (packet);

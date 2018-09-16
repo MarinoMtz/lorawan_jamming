@@ -49,6 +49,9 @@ LoraPhyHelper::SetDeviceType (enum DeviceType dt)
     case ED:
       m_phy.SetTypeId ("ns3::EndDeviceLoraPhy");
       break;
+    case JM:
+      m_phy.SetTypeId ("ns3::EndDeviceLoraPhy");
+      break;
     }
 }
 
@@ -101,7 +104,8 @@ LoraPhyHelper::Create (Ptr<Node> node, Ptr<NetDevice> device) const
         }
 
     }
-  else if (typeId == "ns3::EndDeviceLoraPhy")
+
+  if (typeId == "ns3::EndDeviceLoraPhy")
     {
       // The line below can be commented to speed up uplink-only simulations.
       // This implies that the LoraChannel instance will only know about
@@ -110,6 +114,7 @@ LoraPhyHelper::Create (Ptr<Node> node, Ptr<NetDevice> device) const
 
       m_channel->Add (phy);
     }
+
 
   // Link the PHY to its net device
   phy->SetDevice (device);
