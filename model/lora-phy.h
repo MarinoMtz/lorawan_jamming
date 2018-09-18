@@ -30,6 +30,7 @@
 #include "ns3/lora-channel.h"
 #include "ns3/net-device.h"
 #include "ns3/lora-interference-helper.h"
+#include "ns3/lora-energy-consumption-helper.h"
 #include <list>
 
 namespace ns3 {
@@ -239,6 +240,9 @@ protected:
   Ptr<LoraChannel> m_channel; //!< The channel this PHY transmits on.
 
   LoraInterferenceHelper m_interference; //!< The LoraInterferenceHelper
+                                         //!associated to this PHY.
+
+  LoraEnergyConsumptionHelper m_conso; //!< The LoraInterferenceHelper
                                          //!associated to this PHY.
 
   // Trace sources

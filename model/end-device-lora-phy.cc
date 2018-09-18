@@ -120,6 +120,9 @@ EndDeviceLoraPhy::Send (Ptr<Packet> packet, LoraTxParameters txParams,
   NS_LOG_INFO ("Sending the packet in the channel");
   m_channel->Send (this, packet, txPowerDbm, txParams, duration, frequencyMHz);
 
+  Ptr<LoraEnergyConsumptionHelper::Event> Event;
+  Event = m_conso.Add (1, duration, txPowerDbm, txParams.sf, packet, frequencyMHz);
+
   // Schedule the switch back to STANDBY mode.
   // For reference see SX1272 datasheet, section 4.1.6
   Simulator::Schedule (duration, &EndDeviceLoraPhy::SwitchToStandby, this);
