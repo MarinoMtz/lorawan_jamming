@@ -26,6 +26,7 @@
 #include "ns3/simulator.h"
 #include "ns3/object.h"
 #include "ns3/traced-callback.h"
+#include "ns3/traced-value.h"
 #include "ns3/callback.h"
 #include "ns3/packet.h"
 #include "ns3/logical-lora-channel.h"
@@ -53,7 +54,7 @@ public:
 public:
 
     Event (int status, Time duration, double txPowerdBm, uint8_t spreadingFactor,
-           Ptr<Packet> packet, double frequencyMHz);
+           Ptr<Packet> packet, double frequencyMHz, uint32_t node_id);
     ~Event ();
 
 
@@ -92,6 +93,12 @@ public:
      * Get the frequency this event was on.
      */
     double GetFrequency (void) const;
+
+    /**
+     * Get NodeId.
+     */
+
+    double GetNodeId (void) const;
 
     /**
      * Print the current event in a human readable form.
@@ -138,8 +145,10 @@ private:
     double m_frequencyMHz;
 
     /**
-     * Energy consumption due to a transmission event
+     * The frequency this event was on.
      */
+    double m_node_id;
+
 };
 
   static TypeId GetTypeId (void);
@@ -161,7 +170,8 @@ private:
   Ptr<LoraEnergyConsumptionHelper::Event> Add (int status, Time duration, double rxPower,
                                           uint8_t spreadingFactor,
                                           Ptr<Packet> packet,
-                                          double frequencyMHz);
+                                          double frequencyMHz,
+										  uint32_t node_id);
 
   /**
    * Print the events that are saved in this helper in a human readable format.
@@ -169,11 +179,26 @@ private:
 
   void PrintEvents (std::ostream &stream);
 
-  double TxConso (Time duration, double consotx);
+  /**
+   * Compute the energy consumption due to transmissions.
+   */
+
+  double TxConso (Ptr<LoraEnergyConsumptionHelper::Event> event);
 
   /**
-   * Compute the energy consumption due to a transmission event
+   * Compute the energy consumption due to reception.
    */
+
+  double RxConso (Ptr<LoraEnergyConsumptionHelper::Event> event);
+
+  /**
+   * Trace source, Energy consumption due to a transmission event
+   */
+
+  TracedCallback<Ptr<const Packet>, double ,uint32_t> m_conso;
+
+
+
 
 private:
 

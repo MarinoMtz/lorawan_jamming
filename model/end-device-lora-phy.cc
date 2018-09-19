@@ -120,8 +120,10 @@ EndDeviceLoraPhy::Send (Ptr<Packet> packet, LoraTxParameters txParams,
   NS_LOG_INFO ("Sending the packet in the channel");
   m_channel->Send (this, packet, txPowerDbm, txParams, duration, frequencyMHz);
 
+  // Create the event to calculate the energy consumption of this transmission event
+
   Ptr<LoraEnergyConsumptionHelper::Event> Event;
-  Event = m_conso.Add (1, duration, txPowerDbm, txParams.sf, packet, frequencyMHz);
+  Event = m_conso.Add (1, duration, txPowerDbm, txParams.sf, packet, frequencyMHz, m_device->GetNode ()->GetId ());
 
   // Schedule the switch back to STANDBY mode.
   // For reference see SX1272 datasheet, section 4.1.6
@@ -275,6 +277,11 @@ EndDeviceLoraPhy::StartReceive (Ptr<Packet> packet, double rxPowerDbm,
             // Switch to RX state
             // EndReceive will handle the switch back to STANDBY state
             SwitchToRx ();
+
+            // Create the event to calculate the energy consumption of this transmission event
+
+            Ptr<LoraEnergyConsumptionHelper::Event> Event;
+            Event = m_conso.Add (2, duration, rxPowerDbm, sf, packet, frequencyMHz, m_device->GetNode ()->GetId ());
 
             // Schedule the end of the reception of the packet
             NS_LOG_INFO ("Scheduling reception of a packet. End in " <<
