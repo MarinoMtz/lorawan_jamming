@@ -242,9 +242,6 @@ protected:
   LoraInterferenceHelper m_interference; //!< The LoraInterferenceHelper
                                          //!associated to this PHY.
 
-  LoraEnergyConsumptionHelper m_conso; //!< The LoraInterferenceHelper
-                                         //!associated to this PHY.
-
   // Trace sources
 
   /**
@@ -291,6 +288,14 @@ protected:
    * \see class CallBackTraceSource
    */
   TracedCallback<Ptr<const Packet>, uint32_t> m_interferedPacket;
+
+  /**
+     * The trace source fired when when a computation of the energy consumption is done
+     *
+     * \see class CallBackTraceSource
+     */
+
+  TracedCallback<uint32_t,int,double> m_consumption;
 
   // Callbacks
 

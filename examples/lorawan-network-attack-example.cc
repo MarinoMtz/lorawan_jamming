@@ -7,6 +7,7 @@
 #include "ns3/end-device-lora-phy.h"
 #include "ns3/gateway-lora-phy.h"
 #include "ns3/end-device-lora-mac.h"
+#include "ns3/lora-energy-consumption-helper.h"
 #include "ns3/gateway-lora-mac.h"
 #include "ns3/simulator.h"
 #include "ns3/log.h"
@@ -239,6 +240,17 @@ void PrintSimulationTime (void)
   Simulator::Schedule (Minutes (30), &PrintSimulationTime);
 }
 
+
+void
+EnergyConsumptionCallback (Ptr<const Packet>, double conso ,uint32_t node_id)
+{
+  //NS_LOG_INFO ("The energy consumption is " << systemId);
+
+    //packet->AddPacketTag (const ns3::Tag);
+  std::cout << "E " << node_id << " " << conso << std::endl;
+}
+
+
 void
 PrintEndDevices (NodeContainer endDevices, NodeContainer gateways, std::string filename)
 {
@@ -290,9 +302,9 @@ int main (int argc, char *argv[])
 //  LogComponentEnable("LoraChannel", LOG_LEVEL_INFO);
 //  LogComponentEnable("LoraPhy", LOG_LEVEL_ALL);
 //  LogComponentEnable("EndDeviceLoraPhy", LOG_LEVEL_ALL);
-  LogComponentEnable("GatewayLoraPhy", LOG_LEVEL_ALL);
+//  LogComponentEnable("GatewayLoraPhy", LOG_LEVEL_ALL);
 //  LogComponentEnable("LoraInterferenceHelper", LOG_LEVEL_ALL);
-  LogComponentEnable("LoraMac", LOG_LEVEL_ALL);
+//  LogComponentEnable("LoraMac", LOG_LEVEL_ALL);
 //  LogComponentEnable("EndDeviceLoraMac", LOG_LEVEL_ALL);
 //  LogComponentEnable("GatewayLoraMac", LOG_LEVEL_ALL);
 //  LogComponentEnable("LogicalLoraChannelHelper", LOG_LEVEL_ALL);
@@ -305,6 +317,8 @@ int main (int argc, char *argv[])
 //  LogComponentEnable("LoraMacHeader", LOG_LEVEL_ALL);
 //  LogComponentEnable("LoraFrameHeader", LOG_LEVEL_ALL);
 //	LogComponentEnable("LoraMacHeader", LOG_LEVEL_ALL);
+  LogComponentEnable("LoraEnergyConsumptionHelper", LOG_LEVEL_ALL);
+
 
 
   /**********
@@ -416,8 +430,8 @@ int main (int argc, char *argv[])
     }
 
   // Create the LoraNetDevices of the end devices
-  phyHelper.SetDeviceType (LoraPhyHelper::ED);
-  macHelper.SetDeviceType (LoraMacHelper::ED);
+  phyHelper.SetDeviceType (LoraPhyHelper::JM);
+  macHelper.SetDeviceType (LoraMacHelper::JM);
   helper.Install (phyHelper, macHelper, Jammers);
 
   // Now Jammers are connected to the channel
@@ -505,7 +519,7 @@ int main (int argc, char *argv[])
   *  Set up the end jammer's spreading factor  *
   **********************************************/
 
-  macHelper.SetSpreadingFactorsUp (Jammers, gateways, channel);
+  macHelper.SetSpreadingFactorsUpJm (Jammers, gateways, channel);
 
   // Verify if we can change this to set manually an specific SF for the Jam nodes
 
@@ -535,8 +549,17 @@ int main (int argc, char *argv[])
 
   ApplicationContainer appJamContainer = appJamHelper.Install (Jammers);
 
-  appJamContainer.Start (Seconds (150));
+  appJamContainer.Start (Seconds (1));
   appJamContainer.Stop (appJamStopTime);
+
+
+  /*********************************************
+  *  Energy Consumption Callback *
+  *********************************************/
+
+  //Ptr<LoraEnergyConsumptionHelper> EnergyCons = CreateObject<LoraEnergyConsumptionHelper> ();
+
+  //EnergyCons->TraceConnectWithoutContext ("Consumption", MakeCallback(&EnergyConsumptionCallback));
 
 
 
@@ -555,7 +578,7 @@ int main (int argc, char *argv[])
   *  Simulation  *
   ****************/
 
-  Simulator::Stop (appJamStopTime + Hours (2));
+  Simulator::Stop (appJamStopTime);
 
   // PrintSimulationTime ();
 

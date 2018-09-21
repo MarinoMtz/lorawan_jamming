@@ -124,6 +124,7 @@ EndDeviceLoraPhy::Send (Ptr<Packet> packet, LoraTxParameters txParams,
 
   Ptr<LoraEnergyConsumptionHelper::Event> Event;
   Event = m_conso.Add (1, duration, txPowerDbm, txParams.sf, packet, frequencyMHz, m_device->GetNode ()->GetId ());
+  Consumption (Event, m_device->GetNode ()->GetId (), 1);
 
   // Schedule the switch back to STANDBY mode.
   // For reference see SX1272 datasheet, section 4.1.6
@@ -348,6 +349,32 @@ EndDeviceLoraPhy::EndReceive (Ptr<Packet> packet,
   // Automatically switch to Standby in either case
   SwitchToStandby ();
 }
+
+void
+EndDeviceLoraPhy::Consumption (Ptr<LoraEnergyConsumptionHelper::Event> event, uint32_t NodeId, int ConsoType)
+{
+
+double conso = 0;
+
+	  // Check the type of event in order to compute the corresponding energy consumption
+
+	  switch(ConsoType) {
+
+	  case 1 : conso = m_conso.TxConso(event);
+	           break;
+	  case 2 : conso =  m_conso.RxConso (event);
+	           break;
+	  case 3 :
+	           break;
+	  default :
+	           break;
+	  }
+
+	m_consumption(NodeId, ConsoType, conso);
+	NS_LOG_FUNCTION (this << conso << event);
+
+}
+
 
 bool
 EndDeviceLoraPhy::IsTransmitting (void)

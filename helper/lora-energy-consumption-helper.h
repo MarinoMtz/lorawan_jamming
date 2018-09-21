@@ -30,6 +30,7 @@
 #include "ns3/callback.h"
 #include "ns3/packet.h"
 #include "ns3/logical-lora-channel.h"
+#include "ns3/lora-phy.h"
 #include <list>
 
 namespace ns3 {
@@ -194,9 +195,6 @@ private:
   /**
    * Trace source, Energy consumption due to a transmission event
    */
-
-  TracedCallback<Ptr<const Packet>, double ,uint32_t> m_conso;
-
 
 
 

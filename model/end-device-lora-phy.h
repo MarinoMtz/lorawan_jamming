@@ -112,6 +112,8 @@ public:
   // Implementation of LoraPhy's pure virtual functions
   virtual bool IsTransmitting (void);
 
+  virtual void Consumption (Ptr<LoraEnergyConsumptionHelper::Event>, uint32_t, int);
+
   /**
    * Set the frequency this EndDevice will listen on.
    *
@@ -156,6 +158,8 @@ public:
    */
   void SwitchToSleep (void);
 
+//  LoraEnergyConsumptionHelper m_conso;
+
 private:
   /**
    * Switch to the RX state
@@ -181,6 +185,8 @@ private:
   TracedCallback<Ptr<const Packet>, uint32_t> m_wrongFrequency;
 
   TracedValue<State> m_state; //!< The state this PHY is currently in.
+
+  LoraEnergyConsumptionHelper m_conso;
 
   static const double sensitivity[6]; //!< The sensitivity vector of this device to different SFs
 

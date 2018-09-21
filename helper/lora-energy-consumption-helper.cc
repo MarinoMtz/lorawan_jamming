@@ -141,12 +141,7 @@ LoraEnergyConsumptionHelper::GetTypeId (void)
 {
   static TypeId tid = TypeId ("ns3::LoraEnergyConsumptionHelper")
     .SetParent<Object> ()
-    .SetGroupName ("lorawan")
-  	.AddTraceSource ("Consumption",
-                   "Trace source indicating the power "
-                   "consumption of a certain transmission",
-                   MakeTraceSourceAccessor (&LoraEnergyConsumptionHelper::m_conso),
-                   "ns3::Packet::TracedCallback");
+    .SetGroupName ("lorawan");
   return tid;
 }
 
@@ -188,29 +183,8 @@ LoraEnergyConsumptionHelper::Add (int status, Time duration, double txPower,
                                            packet, frequencyMHz , node_id);
 
 
-  double conso = 0;
-
-  // Check the type of event in order to compute the corresponding energy consumption
-
-  switch(status) {
-
-  case 1 : conso = TxConso(event);
-           break;
-  case 2 : conso = RxConso(event);
-           break;
-  case 3 :
-           break;
-  default :
-           break;
-  }
-
-
-   m_conso(packet,conso, node_id);
-
    return event;
 }
-
-
 
 double
 LoraEnergyConsumptionHelper::TxConso (Ptr<LoraEnergyConsumptionHelper::Event> event)
@@ -263,9 +237,6 @@ LoraEnergyConsumptionHelper::RxConso (Ptr<LoraEnergyConsumptionHelper::Event> ev
 {
   NS_LOG_FUNCTION (this << event);
 
-  // We want to see the interference affecting this event: cycle through events
-  // that overlap with this one and see whether it survives the interference or
-  // not.
 
   // Gather information about the event
 
