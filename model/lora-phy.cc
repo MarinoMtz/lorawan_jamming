@@ -69,9 +69,13 @@ LoraPhy::GetTypeId (void)
                      "its received power is below the sensitivity of the receiver",
                      MakeTraceSourceAccessor (&LoraPhy::m_underSensitivity),
                      "ns3::Packet::TracedCallback")
-					 .AddTraceSource ("EnergyConsumptionCallback",
+	.AddTraceSource ("EnergyConsumptionCallback",
 					 "Trace source indicating the energy consumption of a node",
-					 MakeTraceSourceAccessor (&LoraPhy::m_consumption));
+					 MakeTraceSourceAccessor (&LoraPhy::m_consumption))
+	.AddTraceSource ("DeadDeviceCallback",
+					 "Trace source indicating that an end-device is discharged",
+					 MakeTraceSourceAccessor (&LoraPhy::m_dead_device));
+
   return tid;
 }
 
@@ -150,7 +154,6 @@ LoraPhy::SetTxFinishedCallback (TxFinishedCallback callback)
   m_txFinishedCallback = callback;
 }
 
-
 Time
 LoraPhy::GetOnAirTime (Ptr<Packet> packet, LoraTxParameters txParams)
 {
@@ -196,6 +199,7 @@ LoraPhy::GetOnAirTime (Ptr<Packet> packet, LoraTxParameters txParams)
   // Compute and return the total packet on-air time
   return Seconds (tPreamble + tPayload);
 }
+
 
 std::ostream &operator << (std::ostream &os, const LoraTxParameters &params)
 {

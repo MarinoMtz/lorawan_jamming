@@ -60,9 +60,17 @@ EndDeviceLoraPhy::GetTypeId (void)
 // Initialize the device with some common settings.
 // These will then be changed by helpers.
 EndDeviceLoraPhy::EndDeviceLoraPhy () :
+
   m_state (SLEEP),
   m_frequency (868.1),
-  m_sf (7)
+  m_sf (7),
+  m_last_time_stamp (Seconds(0)),
+  m_last_state (4),
+  m_battery_level (battery_capacity),
+  m_cumulative_tx_conso (0),
+  m_cumulative_rx_conso (0),
+  m_cumulative_stb_conso (0),
+  m_cumulative_sleep_conso (0)
 {
 }
 
@@ -77,6 +85,9 @@ EndDeviceLoraPhy::~EndDeviceLoraPhy ()
 const double EndDeviceLoraPhy::sensitivity[6] =
 {-124, -127, -130, -133, -135, -137};
 
+// Standard Battery Capacity
+const double EndDeviceLoraPhy::battery_capacity = 100;
+
 void
 EndDeviceLoraPhy::SetSpreadingFactor (uint8_t sf)
 {
@@ -89,6 +100,48 @@ EndDeviceLoraPhy::GetSpreadingFactor (void)
   return m_sf;
 }
 
+Time
+EndDeviceLoraPhy::GetLastTimeStamp (void)
+{
+  return m_last_time_stamp;
+}
+
+int
+EndDeviceLoraPhy::GetLastState (void)
+{
+  return m_last_state;
+}
+
+double
+EndDeviceLoraPhy::GetBatteryLevel (void)
+{
+  return m_battery_level;
+}
+
+double
+EndDeviceLoraPhy::GetTxConso (void)
+{
+  return m_cumulative_tx_conso;
+}
+
+double
+EndDeviceLoraPhy::GetRxConso (void)
+{
+  return m_cumulative_rx_conso;
+}
+
+double
+EndDeviceLoraPhy::GetStbConso (void)
+{
+  return m_cumulative_stb_conso;
+}
+
+double
+EndDeviceLoraPhy::GetSleepConso (void)
+{
+  return m_cumulative_sleep_conso;
+}
+
 void
 EndDeviceLoraPhy::Send (Ptr<Packet> packet, LoraTxParameters txParams,
                         double frequencyMHz, double txPowerDbm)
@@ -98,6 +151,7 @@ EndDeviceLoraPhy::Send (Ptr<Packet> packet, LoraTxParameters txParams,
   NS_LOG_INFO ("Current state: " << m_state);
 
   // We must be either in STANDBY or SLEEP mode to send a packet
+
   if (m_state != STANDBY && m_state != SLEEP)
     {
       NS_LOG_INFO ("Cannot send because device is currently not in STANDBY or SLEEP mode");
@@ -120,14 +174,9 @@ EndDeviceLoraPhy::Send (Ptr<Packet> packet, LoraTxParameters txParams,
   NS_LOG_INFO ("Sending the packet in the channel");
   m_channel->Send (this, packet, txPowerDbm, txParams, duration, frequencyMHz);
 
-  // Create the event to calculate the energy consumption of this transmission event
-
-  Ptr<LoraEnergyConsumptionHelper::Event> Event;
-  Event = m_conso.Add (1, duration, txPowerDbm, txParams.sf, packet, frequencyMHz, m_device->GetNode ()->GetId ());
-  Consumption (Event, m_device->GetNode ()->GetId (), 1);
-
   // Schedule the switch back to STANDBY mode.
   // For reference see SX1272 datasheet, section 4.1.6
+
   Simulator::Schedule (duration, &EndDeviceLoraPhy::SwitchToStandby, this);
 
   // Schedule the txFinished callback, if it was set
@@ -139,8 +188,16 @@ EndDeviceLoraPhy::Send (Ptr<Packet> packet, LoraTxParameters txParams,
       Simulator::Schedule (duration + NanoSeconds (10),
                            &EndDeviceLoraPhy::m_txFinishedCallback, this,
                            packet);
+
     }
 
+  // Create the event to calculate the energy consumption of this transmission event
+
+  Ptr<LoraEnergyConsumptionHelper::Event> Event;
+  Event = m_conso.Add (1, duration, txPowerDbm, txParams.sf, frequencyMHz, m_device->GetNode ()->GetId ());
+  Consumption (Event, m_device->GetNode ()->GetId (), 1);
+
+  NS_LOG_FUNCTION (this << duration);
 
   // Call the trace source
   if (m_device)
@@ -186,6 +243,11 @@ EndDeviceLoraPhy::StartReceive (Ptr<Packet> packet, double rxPowerDbm,
     case TX:
       {
         NS_LOG_INFO ("Dropping packet because device is in TX state");
+        break;
+      }
+    case DEAD:
+      {
+        NS_LOG_INFO ("Dropping packet because end-device's battery is discharged");
         break;
       }
     case RX:
@@ -282,7 +344,7 @@ EndDeviceLoraPhy::StartReceive (Ptr<Packet> packet, double rxPowerDbm,
             // Create the event to calculate the energy consumption of this transmission event
 
             Ptr<LoraEnergyConsumptionHelper::Event> Event;
-            Event = m_conso.Add (2, duration, rxPowerDbm, sf, packet, frequencyMHz, m_device->GetNode ()->GetId ());
+            Event = m_conso.Add (2, duration, rxPowerDbm, sf, frequencyMHz, m_device->GetNode ()->GetId ());
 
             // Schedule the end of the reception of the packet
             NS_LOG_INFO ("Scheduling reception of a packet. End in " <<
@@ -347,32 +409,104 @@ EndDeviceLoraPhy::EndReceive (Ptr<Packet> packet,
 
     }
   // Automatically switch to Standby in either case
+
+  if (not IsDead ()) {
   SwitchToStandby ();
+  }
 }
 
 void
 EndDeviceLoraPhy::Consumption (Ptr<LoraEnergyConsumptionHelper::Event> event, uint32_t NodeId, int ConsoType)
 {
 
-double conso = 0;
+double event_conso;
+double Cumulative_Tx_Conso = GetTxConso();
+double Cumulative_Rx_Conso = GetRxConso();
+double Cumulative_Stb_Conso = GetStbConso();
+double Cumulative_Sleep_Conso = GetSleepConso();
 
 	  // Check the type of event in order to compute the corresponding energy consumption
 
-	  switch(ConsoType) {
+switch(ConsoType) {
 
-	  case 1 : conso = m_conso.TxConso(event);
+	  case 1 : event_conso  = m_conso.TxConso(event);
+	  	  	   Cumulative_Tx_Conso = Cumulative_Tx_Conso + event_conso;
+	  	  	   m_cumulative_tx_conso = Cumulative_Tx_Conso;
 	           break;
-	  case 2 : conso =  m_conso.RxConso (event);
+	  case 2 : event_conso =  m_conso.RxConso (event);
+	  	  	   Cumulative_Rx_Conso = Cumulative_Rx_Conso + event_conso;
+	  	  	   m_cumulative_rx_conso = Cumulative_Rx_Conso;
 	           break;
-	  case 3 :
+	  case 3 : event_conso =  m_conso.StbConso (event);
+	  	  	   Cumulative_Stb_Conso = Cumulative_Stb_Conso + event_conso;
+	  	  	   m_cumulative_stb_conso = Cumulative_Stb_Conso;
+	           break;
+	  case 4 : event_conso =  m_conso.SleepConso (event);
+	  	  	   Cumulative_Sleep_Conso = Cumulative_Sleep_Conso + event_conso;
+	  	  	   m_cumulative_sleep_conso = Cumulative_Sleep_Conso;
 	           break;
 	  default :
 	           break;
 	  }
 
-	m_consumption(NodeId, ConsoType, conso);
-	NS_LOG_FUNCTION (this << conso << event);
+double battery_level = GetBatteryLevel ();
+battery_level = battery_level - event_conso;
 
+m_battery_level = battery_level;
+
+
+switch(ConsoType) {
+
+	case 1 : m_consumption (NodeId, ConsoType, Cumulative_Tx_Conso, battery_level);
+			 break;
+	case 2 : m_consumption (NodeId, ConsoType, Cumulative_Rx_Conso, battery_level);
+         	 break;
+	case 3 : m_consumption (NodeId, ConsoType, Cumulative_Stb_Conso, battery_level);
+         	 break;
+	case 4 : m_consumption (NodeId, ConsoType, Cumulative_Sleep_Conso, battery_level);
+         	 break;
+	default :
+			 break;
+}
+
+
+if (battery_level <= 0) {
+	SwitchToDead();
+	m_dead_device(NodeId, m_cumulative_tx_conso, m_cumulative_rx_conso, m_cumulative_stb_conso, m_cumulative_sleep_conso, Simulator::Now ());
+	}
+
+NS_LOG_FUNCTION (this << battery_level << event);
+
+}
+
+void
+EndDeviceLoraPhy::StateDuration (Time time_stamp, int current_state)
+{
+	double rxnull = 0;
+	uint8_t sfnull = 0;
+
+	Time last_time_stamp = GetLastTimeStamp ();
+    int last_state = GetLastState ();
+
+    NS_LOG_FUNCTION (this << last_state << current_state);
+
+	Time duration = time_stamp - last_time_stamp;
+
+	if (last_state == 3 || last_state == 4)
+	{
+		Ptr<LoraEnergyConsumptionHelper::Event> Event;
+		Event = m_conso.Add (last_state, duration, rxnull, sfnull, rxnull, m_device->GetNode ()->GetId ());
+		Consumption (Event, m_device->GetNode ()->GetId (), last_state);
+	}
+
+	m_last_state = current_state;
+	m_last_time_stamp = time_stamp;
+}
+
+bool
+EndDeviceLoraPhy::IsDead (void)
+{
+  return m_state == DEAD;
 }
 
 
@@ -399,7 +533,10 @@ EndDeviceLoraPhy::SwitchToStandby (void)
 {
   NS_LOG_FUNCTION_NOARGS ();
 
+  NS_ASSERT (m_state != DEAD);
   m_state = STANDBY;
+  StateDuration (Simulator::Now (), 3);
+  NS_LOG_FUNCTION (this << "STB" << Simulator::Now ().GetSeconds ());
 }
 
 void
@@ -410,6 +547,8 @@ EndDeviceLoraPhy::SwitchToRx (void)
   NS_ASSERT (m_state == STANDBY);
 
   m_state = RX;
+  StateDuration (Simulator::Now (), 2);
+  NS_LOG_FUNCTION (this << "RX" << Simulator::Now ().GetSeconds ());
 }
 
 void
@@ -417,9 +556,13 @@ EndDeviceLoraPhy::SwitchToTx (void)
 {
   NS_LOG_FUNCTION_NOARGS ();
 
+  NS_ASSERT (m_state != DEAD);
   NS_ASSERT (m_state != RX);
 
   m_state = TX;
+  StateDuration (Simulator::Now (), 1);
+  NS_LOG_FUNCTION (this << "TX" << Simulator::Now ().GetSeconds ());
+
 }
 
 void
@@ -428,8 +571,19 @@ EndDeviceLoraPhy::SwitchToSleep (void)
   NS_LOG_FUNCTION_NOARGS ();
 
   NS_ASSERT (m_state == STANDBY);
-
   m_state = SLEEP;
+  StateDuration (Simulator::Now (), 4);
+
+  NS_LOG_FUNCTION (this << "SLEEP" << Simulator::Now ().GetSeconds ());
+
+}
+
+void
+EndDeviceLoraPhy::SwitchToDead (void)
+{
+  NS_LOG_FUNCTION_NOARGS ();
+  m_state = DEAD;
+
 }
 
 EndDeviceLoraPhy::State

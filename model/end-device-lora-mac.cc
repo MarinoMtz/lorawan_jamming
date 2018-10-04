@@ -78,8 +78,9 @@ EndDeviceLoraMac::EndDeviceLoraMac () :
   m_receiveDelay2 (Seconds (2)),            // LoraWAN default
   m_receiveWindowDuration (Seconds (0.2)),
   m_closeWindow (EventId ()),               // Initialize as the default eventId
-  // m_secondReceiveWindow (EventId ()),       // Initialize as the default eventId
-  // m_secondReceiveWindowDataRate (0),        // LoraWAN default
+  m_secondReceiveWindow (EventId ()),       // Initialize as the default eventId
+  m_secondReceiveWindowDataRate (0),        // LoraWAN default
+  m_secondReceiveWindowFrequency (868.1),
   m_rx1DrOffset (0),                         // LoraWAN default
   m_lastKnownLinkMargin (0),
   m_lastKnownGatewayCount (0),
@@ -108,6 +109,11 @@ void
 EndDeviceLoraMac::Send (Ptr<Packet> packet)
 {
   NS_LOG_FUNCTION (this << packet);
+
+  if (m_phy->GetObject<EndDeviceLoraPhy> ()->IsDead ()) {
+	  NS_LOG_INFO ("Cannot send because end-device is DEAD");
+	  return;
+  }
 
   // Check that there are no scheduled receive windows.
   // We cannot send a packet if we are in the process of transmitting or waiting
@@ -433,6 +439,13 @@ EndDeviceLoraMac::OpenFirstReceiveWindow (void)
   NS_LOG_FUNCTION_NOARGS ();
 
   // Set Phy in Standby mode
+
+  if (m_phy->GetObject<EndDeviceLoraPhy> ()->GetState () == EndDeviceLoraPhy::DEAD)
+    {
+      NS_LOG_INFO ("Won't open second receive window because the end-device is DEAD");
+      return;
+    }
+
   m_phy->GetObject<EndDeviceLoraPhy> ()->SwitchToStandby ();
 
   // Schedule return to sleep after "at least the time required by the end
@@ -457,7 +470,8 @@ EndDeviceLoraMac::CloseFirstReceiveWindow (void)
     {
     case EndDeviceLoraPhy::TX:
     case EndDeviceLoraPhy::SLEEP:
-      NS_ABORT_MSG ("PHY was in TX or SLEEP mode when attempting to " <<
+    case EndDeviceLoraPhy::DEAD:
+      NS_ABORT_MSG ("PHY was in TX or SLEEP mode or DEAD when attempting to " <<
                     "close a receive window");
       break;
     case EndDeviceLoraPhy::RX:
@@ -475,12 +489,21 @@ EndDeviceLoraMac::OpenSecondReceiveWindow (void)
 {
   NS_LOG_FUNCTION_NOARGS ();
 
+
+  // Check for receiver status: if it's discharged, don't open this
+  // window at all.
+
+  if (m_phy->GetObject<EndDeviceLoraPhy> ()->IsDead ()) {
+	  NS_LOG_INFO ("Won't open second receive window since device is DEAD");
+	  return;
+  }
+
   // Check for receiver status: if it's locked on a packet, don't open this
   // window at all.
-  if (m_phy->GetObject<EndDeviceLoraPhy> ()->GetState () == EndDeviceLoraPhy::RX)
+
+  if (m_phy->GetObject<EndDeviceLoraPhy> ()->GetState () == EndDeviceLoraPhy::RX )
     {
       NS_LOG_INFO ("Won't open second receive window since we are in RX mode");
-
       return;
     }
 
@@ -508,6 +531,11 @@ EndDeviceLoraMac::CloseSecondReceiveWindow (void)
 {
   NS_LOG_FUNCTION_NOARGS ();
 
+  if (m_phy->GetObject<EndDeviceLoraPhy> ()->IsDead ()) {
+	  NS_LOG_INFO ("Dont close second receive window since device is DEAD");
+	  return;
+  }
+
   Ptr<EndDeviceLoraPhy> phy = m_phy->GetObject<EndDeviceLoraPhy> ();
 
   // NS_ASSERT (phy->m_state != EndDeviceLoraPhy::TX &&
@@ -524,6 +552,8 @@ EndDeviceLoraMac::CloseSecondReceiveWindow (void)
       break;
     case EndDeviceLoraPhy::RX:
       // PHY is receiving: let it finish
+      break;
+    case EndDeviceLoraPhy::DEAD:
       break;
     case EndDeviceLoraPhy::STANDBY:
       // Turn PHY layer to sleep

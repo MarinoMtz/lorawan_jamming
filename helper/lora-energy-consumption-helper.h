@@ -31,6 +31,8 @@
 #include "ns3/packet.h"
 #include "ns3/logical-lora-channel.h"
 #include "ns3/lora-phy.h"
+
+#include <tuple>
 #include <list>
 
 namespace ns3 {
@@ -43,10 +45,7 @@ class LoraEnergyConsumptionHelper
 {
 public:
   /**
-   * A class representing a signal in time.
-   *
-   * Used in LoraEnergyConsumptionHelper to keep track of which signals overlap and
-   * cause destructive interference.
+   * A class representing the battery level in time.
    */
 
     class Event : public SimpleRefCount<LoraEnergyConsumptionHelper::Event>
@@ -55,7 +54,7 @@ public:
 public:
 
     Event (int status, Time duration, double txPowerdBm, uint8_t spreadingFactor,
-           Ptr<Packet> packet, double frequencyMHz, uint32_t node_id);
+           double frequencyMHz, uint32_t node_id);
     ~Event ();
 
 
@@ -107,7 +106,6 @@ public:
     void Print (std::ostream &stream) const;
 
 private:
-
 
     /**
      * The status of the device
@@ -170,7 +168,6 @@ private:
    */
   Ptr<LoraEnergyConsumptionHelper::Event> Add (int status, Time duration, double rxPower,
                                           uint8_t spreadingFactor,
-                                          Ptr<Packet> packet,
                                           double frequencyMHz,
 										  uint32_t node_id);
 
@@ -193,19 +190,26 @@ private:
   double RxConso (Ptr<LoraEnergyConsumptionHelper::Event> event);
 
   /**
-   * Trace source, Energy consumption due to a transmission event
+   * Compute the energy consumption due to a standby event
    */
 
+  double StbConso (Ptr<LoraEnergyConsumptionHelper::Event> event);
 
+  /**
+   * Compute the energy consumption due to a sleep event
+   */
+
+  double SleepConso (Ptr<LoraEnergyConsumptionHelper::Event> event);
 
 private:
 
   /**
-   * The matrix containing information about how packets survive interference.
+   * Power consumption related to different states (tx,rx,standby,sleep).
    */
   static const double consotx[6];
   static const double consorx[6];
-
+  static const double consostb;
+  static const double consosleep;
 
 };
 

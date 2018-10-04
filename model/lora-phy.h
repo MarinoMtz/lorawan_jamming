@@ -289,13 +289,16 @@ protected:
    */
   TracedCallback<Ptr<const Packet>, uint32_t> m_interferedPacket;
 
+
   /**
      * The trace source fired when when a computation of the energy consumption is done
      *
      * \see class CallBackTraceSource
      */
 
-  TracedCallback<uint32_t,int,double> m_consumption;
+  TracedCallback<uint32_t,int,double,double> m_consumption;
+
+  TracedCallback<uint32_t,double,double,double,double, Time> m_dead_device;
 
   // Callbacks
 

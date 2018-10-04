@@ -27,6 +27,8 @@
 #include "ns3/object.h"
 #include <limits>
 
+#include "ns3/lora-phy.h"
+
 namespace ns3 {
 
 NS_LOG_COMPONENT_DEFINE ("LoraEnergyConsumptionHelper");
@@ -37,14 +39,12 @@ NS_LOG_COMPONENT_DEFINE ("LoraEnergyConsumptionHelper");
 
 // Event Constructor
 LoraEnergyConsumptionHelper::Event::Event (int status, Time duration, double txPowerdBm,
-                                      uint8_t spreadingFactor,
-                                      Ptr<Packet> packet, double frequencyMHz, uint32_t node_id):
+                                      uint8_t spreadingFactor, double frequencyMHz, uint32_t node_id):
   m_status (status),
   m_startTime (Simulator::Now ()),
   m_endTime (m_startTime + duration),
   m_sf (spreadingFactor),
   m_txPowerdBm (txPowerdBm),
-  m_packet (packet),
   m_frequencyMHz (frequencyMHz),
   m_node_id (node_id)
 
@@ -148,7 +148,6 @@ LoraEnergyConsumptionHelper::GetTypeId (void)
 LoraEnergyConsumptionHelper::LoraEnergyConsumptionHelper ()
 {
   NS_LOG_FUNCTION (this);
-
 }
 
 LoraEnergyConsumptionHelper::~LoraEnergyConsumptionHelper ()
@@ -159,28 +158,34 @@ LoraEnergyConsumptionHelper::~LoraEnergyConsumptionHelper ()
 
 // LoRa transmission consumption vector in mA/s for each Spreading Factor
 
-const double LoraEnergyConsumptionHelper::consotx[6] = {1, 2, 3, 4, 5, 6};
+const double LoraEnergyConsumptionHelper::consotx[6] = {1, 1, 1, 1, 1, 1};
 // 														SF7  SF8  SF9  SF10 SF11 SF12
 
 // LoRa reception consumption vector in mA/s for each Spreading Factor
 
-const double LoraEnergyConsumptionHelper::consorx[6] = {3, 3, 3, 3, 3, 3};
+const double LoraEnergyConsumptionHelper::consorx[6] = {2, 2, 2, 2, 2, 2};
 // 														SF7  SF8  SF9  SF10 SF11 SF12
+
+// LoRa consumption vector in mA/s for standby
+const double LoraEnergyConsumptionHelper::consostb = 3;
+
+// LoRa consumption vector in mA/s for Sleep
+const double LoraEnergyConsumptionHelper::consosleep = 4;
 
 
 Ptr<LoraEnergyConsumptionHelper::Event>
 LoraEnergyConsumptionHelper::Add (int status, Time duration, double txPower,
-                             uint8_t spreadingFactor, Ptr<Packet> packet,
+                             uint8_t spreadingFactor,
                              double frequencyMHz, uint32_t node_id)
 {
 
   NS_LOG_FUNCTION (this << duration.GetSeconds () << txPower << unsigned
-                   (spreadingFactor) << packet << frequencyMHz);
+                   (spreadingFactor) << frequencyMHz);
 
   // Create an event based on the parameters
   Ptr<LoraEnergyConsumptionHelper::Event> event =
     Create<LoraEnergyConsumptionHelper::Event> (status, duration, txPower, spreadingFactor,
-                                           packet, frequencyMHz , node_id);
+                                           frequencyMHz , node_id);
 
 
    return event;
@@ -191,10 +196,6 @@ LoraEnergyConsumptionHelper::TxConso (Ptr<LoraEnergyConsumptionHelper::Event> ev
 {
   NS_LOG_FUNCTION (this << event);
 
-  // We want to see the interference affecting this event: cycle through events
-  // that overlap with this one and see whether it survives the interference or
-  // not.
-
   // Gather information about the event
 
   //double rxPowerDbm = event->GetTxPowerdBm ();
@@ -204,31 +205,30 @@ LoraEnergyConsumptionHelper::TxConso (Ptr<LoraEnergyConsumptionHelper::Event> ev
   Time duration = event->GetDuration ();
 
 
-  double conso = 0;
+  double event_conso = 0;
 
 
   switch(sf) {
-      case 7 : conso = consotx [0] * duration.GetSeconds ();
+      case 7 : event_conso = consotx [0] * duration.GetSeconds ();
       	  	   break;
-      case 8 : conso = consotx [1] * duration.GetSeconds ();
+      case 8 : event_conso = consotx [1] * duration.GetSeconds ();
                break;
-      case 9 : conso = consotx [2] * duration.GetSeconds ();
+      case 9 : event_conso = consotx [2] * duration.GetSeconds ();
                break;
-      case 10 : conso = consotx [3] * duration.GetSeconds ();
+      case 10 : event_conso = consotx [3] * duration.GetSeconds ();
                break;
-      case 11 : conso = consotx [4] * duration.GetSeconds ();
+      case 11 : event_conso = consotx [4] * duration.GetSeconds ();
                break;
-      case 12 : conso = consotx [5] * duration.GetSeconds ();
+      case 12 : event_conso = consotx [5] * duration.GetSeconds ();
                break;
-      default : conso = consotx [6] * duration.GetSeconds ();
+      default : event_conso = consotx [5] * duration.GetSeconds ();
                break;
    }
 
   NS_LOG_FUNCTION (this << duration.GetSeconds());
-  NS_LOG_FUNCTION (this << conso);
+  NS_LOG_FUNCTION (this << event_conso);
 
-  return conso;
-
+  return event_conso;
 }
 
 
@@ -247,29 +247,57 @@ LoraEnergyConsumptionHelper::RxConso (Ptr<LoraEnergyConsumptionHelper::Event> ev
   Time duration = event->GetDuration ();
 
 
-  double conso = 0;
+  double event_conso = 0;
 
 
   switch(sf) {
-      case 7 : conso = consorx [0] * duration.GetSeconds ();
+      case 7 : event_conso = consorx [0] * duration.GetSeconds ();
       	  	   break;
-      case 8 : conso = consorx [1] * duration.GetSeconds ();
+      case 8 : event_conso = consorx [1] * duration.GetSeconds ();
                break;
-      case 9 : conso = consorx [2] * duration.GetSeconds ();
+      case 9 : event_conso = consorx [2] * duration.GetSeconds ();
                break;
-      case 10 : conso = consorx [3] * duration.GetSeconds ();
+      case 10 : event_conso = consorx [3] * duration.GetSeconds ();
                break;
-      case 11 : conso = consorx [4] * duration.GetSeconds ();
+      case 11 : event_conso = consorx [4] * duration.GetSeconds ();
                break;
-      case 12 : conso = consorx [5] * duration.GetSeconds ();
+      case 12 : event_conso = consorx [5] * duration.GetSeconds ();
                break;
-      default : conso = consorx [6] * duration.GetSeconds ();
+      default : event_conso = consorx [5] * duration.GetSeconds ();
                break;
    }
 
   NS_LOG_FUNCTION (this << duration.GetSeconds());
-  NS_LOG_FUNCTION (this << conso);
-  return conso;
+  NS_LOG_FUNCTION (this << event_conso);
+
+  return event_conso;
+
+}
+
+double
+LoraEnergyConsumptionHelper::StbConso (Ptr<LoraEnergyConsumptionHelper::Event> event)
+{
+  NS_LOG_FUNCTION (this << event);
+
+  // Handy information about the time frame when the packet was received
+  Time duration = event->GetDuration ();
+
+  double event_conso = consostb * duration.GetSeconds ();
+
+  return event_conso;
+
+}
+
+double
+LoraEnergyConsumptionHelper::SleepConso (Ptr<LoraEnergyConsumptionHelper::Event> event)
+{
+  NS_LOG_FUNCTION (this << event);
+
+  // Handy information about the time frame when the packet was received
+  Time duration = event->GetDuration ();
+
+  double event_conso = consosleep * duration.GetSeconds ();
+  return event_conso;
 
 }
 

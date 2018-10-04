@@ -85,7 +85,20 @@ public:
      * While the device is locked on an incoming packet, transmission is
      * not possible.
      */
-    RX
+    RX,
+
+    /**
+     * The PHY layer is receiving a packet.
+     * While the device is locked on an incoming packet, transmission is
+     * not possible.
+     */
+
+    DEAD
+
+    /**
+     * The Battery of the End-Device is fully discharged
+     */
+
   };
 
   static TypeId GetTypeId (void);
@@ -112,7 +125,11 @@ public:
   // Implementation of LoraPhy's pure virtual functions
   virtual bool IsTransmitting (void);
 
+  virtual bool IsDead (void);
+
   virtual void Consumption (Ptr<LoraEnergyConsumptionHelper::Event>, uint32_t, int);
+
+  virtual void StateDuration (Time, int);
 
   /**
    * Set the frequency this EndDevice will listen on.
@@ -158,9 +175,39 @@ public:
    */
   void SwitchToSleep (void);
 
-//  LoraEnergyConsumptionHelper m_conso;
+  /**
+   * Switch to the DEAD state.
+   */
+  void SwitchToDead (void);
+
+  /**
+   * Standard End-Device's Battery Capacity in
+   */
+
+  static const double battery_capacity;
+
 
 private:
+
+
+  //  LoraEnergyConsumptionHelper m_conso;
+
+  LoraEnergyConsumptionHelper m_conso;
+
+  Time GetLastTimeStamp (void);
+
+  int GetLastState (void);
+
+  double GetBatteryLevel (void);
+
+  double GetTxConso (void);
+
+  double GetRxConso (void);
+
+  double GetStbConso (void);
+
+  double GetSleepConso (void);
+
   /**
    * Switch to the RX state
    */
@@ -186,13 +233,26 @@ private:
 
   TracedValue<State> m_state; //!< The state this PHY is currently in.
 
-  LoraEnergyConsumptionHelper m_conso;
-
   static const double sensitivity[6]; //!< The sensitivity vector of this device to different SFs
 
   double m_frequency; //!< The frequency this device is listening on
 
   uint8_t m_sf; //!< The Spreading Factor this device is listening for
+
+  Time m_last_time_stamp;
+
+  int m_last_state;
+
+  /**
+   * End-Device's Battery Level
+   */
+
+  double m_battery_level;
+
+  double m_cumulative_tx_conso;
+  double m_cumulative_rx_conso;
+  double m_cumulative_stb_conso;
+  double m_cumulative_sleep_conso;
 
 };
 
