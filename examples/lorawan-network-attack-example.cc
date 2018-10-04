@@ -242,12 +242,23 @@ void PrintSimulationTime (void)
 
 
 void
-EnergyConsumptionCallback (Ptr<const Packet>, double conso ,uint32_t node_id)
+EnergyConsumptionCallback (uint32_t NodeId, int ConsoType, double event_conso, double battery_level)
 {
-  //NS_LOG_INFO ("The energy consumption is " << systemId);
+  NS_LOG_INFO ("The energy consumption of Node " << NodeId << event_conso << "Conso type " << " " << ConsoType << "at " << Simulator::Now ().GetSeconds ());
+	//Conso Type: 1 for TX, 2 for RX, 3 for Standby and 4 Sleep
 
-    //packet->AddPacketTag (const ns3::Tag);
-  std::cout << "E " << node_id << " " << conso << std::endl;
+  std::cout << "E " << NodeId << " " << ConsoType << " " << event_conso << " " << " " << battery_level << " " << Simulator::Now ().GetSeconds () << std::endl;
+
+}
+
+void
+DeadDeviceCallback (uint32_t NodeId, double cumulative_tx_conso, double cumulative_rx_conso, double cumulative_stb_conso, double cumulative_sleep_conso, Time dead_time)
+{
+  NS_LOG_INFO ("The Node " << NodeId << "was dead at " << dead_time.GetSeconds () << "at " << Simulator::Now ().GetSeconds ());
+		//Conso Type: 1 for TX, 2 for RX, 3 for Standby and 4 Sleep
+
+  std::cout << "D " << NodeId << " " << cumulative_tx_conso << " " << cumulative_rx_conso << " " << cumulative_stb_conso << " " << cumulative_sleep_conso << " " << dead_time.GetSeconds () << std::endl;
+
 }
 
 
@@ -317,8 +328,7 @@ int main (int argc, char *argv[])
 //  LogComponentEnable("LoraMacHeader", LOG_LEVEL_ALL);
 //  LogComponentEnable("LoraFrameHeader", LOG_LEVEL_ALL);
 //	LogComponentEnable("LoraMacHeader", LOG_LEVEL_ALL);
-  LogComponentEnable("LoraEnergyConsumptionHelper", LOG_LEVEL_ALL);
-
+//  LogComponentEnable("LoraEnergyConsumptionHelper", LOG_LEVEL_ALL);
 
 
   /**********
@@ -403,7 +413,13 @@ int main (int argc, char *argv[])
       Ptr<LoraPhy> phy = loraNetDevice->GetPhy ();
       phy->TraceConnectWithoutContext ("StartSending",
                                        MakeCallback (&TransmissionCallback));
+      phy->TraceConnectWithoutContext ("EnergyConsumptionCallback",
+                                       MakeCallback (&EnergyConsumptionCallback));
+      phy->TraceConnectWithoutContext ("DeadDeviceCallback",
+                                       MakeCallback (&DeadDeviceCallback));
     }
+
+
 
 
   /************************
@@ -445,6 +461,8 @@ int main (int argc, char *argv[])
       Ptr<LoraPhy> phy = loraNetDevice->GetPhy ();
       phy->TraceConnectWithoutContext ("StartSending",
                                        MakeCallback (&TransmissionCallback));
+      phy->TraceConnectWithoutContext ("EnergyConsumptionCallback",
+                                       MakeCallback (&EnergyConsumptionCallback));
     }
 
 
@@ -551,17 +569,6 @@ int main (int argc, char *argv[])
 
   appJamContainer.Start (Seconds (1));
   appJamContainer.Stop (appJamStopTime);
-
-
-  /*********************************************
-  *  Energy Consumption Callback *
-  *********************************************/
-
-  //Ptr<LoraEnergyConsumptionHelper> EnergyCons = CreateObject<LoraEnergyConsumptionHelper> ();
-
-  //EnergyCons->TraceConnectWithoutContext ("Consumption", MakeCallback(&EnergyConsumptionCallback));
-
-
 
   /**********************
    * Print output files *
