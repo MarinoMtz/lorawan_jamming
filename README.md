@@ -8,9 +8,9 @@ This module is a fork of https://github.com/signetlabdei/lorawan
 2. lorawan module is on src/lorawan
 
 3. To start a simulation we navigate to /ns-3-allinone/ns-3-dev and then:
-
+```
 ./waf --run "scratch/lorawan-network-attack-example --appPeriod=20 --nJammers=40 --appPeriodJam=10 --nDevices=2 --PayloadSize=30 --PayloadJamSize=10"
-
+```
 Here we have 6 parameters that allow us to set how the simulation will behave :
 
 -nbJammers : number of attackers in the network
@@ -27,7 +27,9 @@ Here we have 6 parameters that allow us to set how the simulation will behave :
 
 4. Then, the results are shown in this way:
 
+```
 E 0 4 2.27942  97.7206 0.569855
+```
 
 The first field corresponds to the type of event (E=energy consumption, R=reception, T=transmission, Jamming, D=dead device, I=interference)
 
@@ -49,16 +51,18 @@ In addition to the simulation parameters that can be set when the simulation is 
 
 - Reception Windows time stamps: In Class A Devices there are two reception Windows, the first one start one second after the transmission event, and the second one two seconds after. Then the duration of both are set by default as the minimal time required to detect a preamble at the corresponding SF, these time-stamps can be set in end-device-lora-mac.cc:
 
+``` 
   m_receiveDelay1 (Seconds (1)),            // LoraWAN default
   m_receiveDelay2 (Seconds (2)),            //WAN default
   m_receiveWindowDuration (Seconds (0.2)),  // This will be set as the time necessary to detect a preamble at the corresponding sf
-
+```
 - Sub-band parameters for jammer nodes: We included two changes regarding the sub-band rules that are aplied to jammer devices: Duty Cycle and Tx Power, it can be set by editing the ApplyCommonEuConfigurationsJm function in the lora-mac-helper.cc file:
 
+``` 
   channelHelper.AddSubBand (868, 868.6, 1, 14); // (firstFrequency, lastFrequency, dutyCycle, maxTxPowerDbm)
   channelHelper.AddSubBand (868.7, 869.2, 1, 14); // (firstFrequency, lastFrequency, dutyCycle, maxTxPowerDbm)
   channelHelper.AddSubBand (869.4, 869.65, 1, 27); // (firstFrequency, lastFrequency, dutyCycle, maxTxPowerDbm)
-
+```
 - Spreading factor selection for end-devices and jammer nodes: 
 
 The algorithm that handles the sf selection is located in the lora-mac-helper.cc file et the SetSpreadingFactorsUp(Jm) function, it select the appropiated sf based on the distance from each gateway and the jammer/end-device node.
@@ -82,11 +86,14 @@ const double LoraEnergyConsumptionHelper::consostb = 3;
 // LoRa consumption vector in mA/s for Sleep
 const double LoraEnergyConsumptionHelper::consosleep = 4;
 ```
+
 - Battery Capacity
 
 The Battery level is handled at the Lora-end-device-phy.cc, it calls the Energy consumption helper each time a change in the end-device status is made, the battery capacity can be set by editing the corresponding variable:
 
 // Standard Battery Capacity
-const double EndDeviceLoraPhy::battery_capacity = 100;
 
+```
+const double EndDeviceLoraPhy::battery_capacity = 100;
+```
 
