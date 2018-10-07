@@ -75,8 +75,8 @@ EndDeviceLoraMac::EndDeviceLoraMac () :
   m_codingRate (1),                         // LoraWAN default
   m_headerDisabled (0),                     // LoraWAN default
   m_receiveDelay1 (Seconds (1)),            // LoraWAN default
-  m_receiveDelay2 (Seconds (2)),            // LoraWAN default
-  m_receiveWindowDuration (Seconds (0.2)),
+  m_receiveDelay2 (Seconds (2)),            //WAN default
+  m_receiveWindowDuration (Seconds (0.2)),  // This will be set as the time necessary to detect a preamble at the corresponding sf
   m_closeWindow (EventId ()),               // Initialize as the default eventId
   m_secondReceiveWindow (EventId ()),       // Initialize as the default eventId
   m_secondReceiveWindowDataRate (0),        // LoraWAN default
@@ -173,6 +173,11 @@ EndDeviceLoraMac::Send (Ptr<Packet> packet)
       params.nPreamble = m_nPreambleSymbols;
       params.crcEnabled = 1;
       params.lowDataRateOptimizationEnabled = 0;
+
+
+      // Compute the duration of the receive windows as the time necessary to detect a preambule
+
+      m_receiveWindowDuration = m_phy->GetPreambleTime (params);
 
       // Wake up PHY layer and directly send the packet
 
@@ -451,6 +456,8 @@ EndDeviceLoraMac::OpenFirstReceiveWindow (void)
   // Schedule return to sleep after "at least the time required by the end
   // device's radio transceiver to effectively detect a downlink preamble"
   // (LoraWAN specification)
+
+
   m_closeWindow = Simulator::Schedule (m_receiveWindowDuration,
                                        &EndDeviceLoraMac::CloseFirstReceiveWindow, this);
 }

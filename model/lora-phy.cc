@@ -201,6 +201,25 @@ LoraPhy::GetOnAirTime (Ptr<Packet> packet, LoraTxParameters txParams)
 }
 
 
+Time
+LoraPhy::GetPreambleTime (LoraTxParameters txParams)
+{
+
+  NS_LOG_FUNCTION (txParams);
+
+  // The contents of this function are based on [1].
+  // [1] SX1272 LoRa modem designer's guide.
+
+  // Compute the symbol duration
+  // Bandwidth is in Hz
+  double tSym = pow (2, int(txParams.sf)) / (txParams.bandwidthHz);
+
+  // Compute the preamble duration
+  double tPreamble = (double(txParams.nPreamble) + 4.25) * tSym;
+
+  return Seconds (tPreamble);
+}
+
 std::ostream &operator << (std::ostream &os, const LoraTxParameters &params)
 {
   os << "SF: " << unsigned(params.sf) <<

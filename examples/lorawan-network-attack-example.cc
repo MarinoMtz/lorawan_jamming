@@ -392,7 +392,7 @@ int main (int argc, char *argv[])
       Ptr<MobilityModel> mobility = (*j)->GetObject<MobilityModel> ();
       Vector position = mobility->GetPosition ();
       position.z = 1;
-      position.x = 10;
+      position.x = 100000000;
       position.y = 0;
       mobility->SetPosition (position);
     }
