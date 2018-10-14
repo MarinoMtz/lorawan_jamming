@@ -13,17 +13,17 @@ This module is a fork of https://github.com/signetlabdei/lorawan
 ```
 Here we have 6 parameters that allow us to set how the simulation will behave :
 
-- nbJammers : number of attackers in the network
+   - nbJammers : number of attackers in the network
 
-- nbDevices : number of end-devices in the network
+   - nbDevices : number of end-devices in the network
 
-- appPeriod : period between two messages sent by end-devices
+   - appPeriod : period between two messages sent by end-devices
 
-- appPeriodJam : period between two messages sent by attackers
+   - appPeriodJam : period between two messages sent by attackers
 
-- PayloadSize : size of the payload of the end-devices in bytes, the total length of the package will be payload size + 9 bytes (header)
+   - PayloadSize : size of the payload of the end-devices in bytes, the total length of the package will be payload size + 9 bytes (header)
 
-- PayloadJamSize : size of the payload of the attackers in bytes, the total length of the package will be payload size + 9 bytes (header)
+   - PayloadJamSize : size of the payload of the attackers in bytes, the total length of the package will be payload size + 9 bytes (header)
 
 4. Then, the results are shown in this way:
 ```
@@ -31,17 +31,17 @@ E 0 4 2.27942  97.7206 0.569855
 ```
 The first field corresponds to the type of event (E=energy consumption, R=reception, T=transmission, Jamming, D=dead device, I=interference)
 
-- Energy consumption : E, Node ID, state (1=Tx, 2=Rx, 3=Stb, 4=sleep), cumulative consumption of the current event, remaining battery level, simulation time (in seconds)
+   - Energy consumption : E, Node ID, state (1=Tx, 2=Rx, 3=Stb, 4=sleep), cumulative consumption of the current event, remaining battery level, simulation time (in seconds)
 
-- Reception : R, gateway ID, packet size (including header), simulation time, Tx end-device ID
+   - Reception : R, gateway ID, packet size (including header), simulation time, Tx end-device ID
 
-- Transmission : T, node ID, packet size (including header), simulation time
+   - Transmission : T, node ID, packet size (including header), simulation time
 
-- Jamming : J, jammer ID, packet size (including header), simulation time
+   - Jamming : J, jammer ID, packet size (including header), simulation time
 
-- Interference : I, node ID, packet size (including heqder), simulaton time
+   - Interference : I, node ID, packet size (including heqder), simulaton time
 
-- Dead device : D, Node ID, Cumulative consumption due to Tx events, Cumulative consumption due to Rx events, Cumulative consumption due to Sleep status, Dead Time
+   - Dead device : D, Node ID, Cumulative consumption due to Tx events, Cumulative consumption due to Rx events, Cumulative consumption due to Sleep status, Dead Time
 
 ## Configuration parameters
 
