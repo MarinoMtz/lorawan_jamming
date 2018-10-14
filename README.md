@@ -29,7 +29,7 @@ Here we have 6 parameters that allow us to set how the simulation will behave :
 ```
 E 0 4 2.27942  97.7206 0.569855
 ```
-The first field corresponds to the type of event (E=energy consumption, R=reception, T=transmission, Jamming, D=dead device, I=interference)
+The first field corresponds to the type of event (E=energy consumption, R=reception, T=transmission, Jamming, D=dead device, I=interference):
 
    - Energy consumption : E, Node ID, state (1=Tx, 2=Rx, 3=Stb, 4=sleep), cumulative consumption of the current event, remaining battery level, simulation time (in seconds)
 
