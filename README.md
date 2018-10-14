@@ -13,17 +13,17 @@ This module is a fork of https://github.com/signetlabdei/lorawan
 ```
 Here we have 6 parameters that allow us to set how the simulation will behave :
 
--nbJammers : number of attackers in the network
+- nbJammers : number of attackers in the network
 
--nbDevices : number of end-devices in the network
+- nbDevices : number of end-devices in the network
 
--appPeriod : period between two messages sent by end-devices
+- appPeriod : period between two messages sent by end-devices
 
--appPeriodJam : period between two messages sent by attackers
+- appPeriodJam : period between two messages sent by attackers
 
--PayloadSize : size of the payload of the end-devices in bytes, the total length of the package will be payload size + 9 bytes (header)
+- PayloadSize : size of the payload of the end-devices in bytes, the total length of the package will be payload size + 9 bytes (header)
 
--PayloadJamSize : size of the payload of the attackers in bytes, the total length of the package will be payload size + 9 bytes (header)
+- PayloadJamSize : size of the payload of the attackers in bytes, the total length of the package will be payload size + 9 bytes (header)
 
 4. Then, the results are shown in this way:
 
