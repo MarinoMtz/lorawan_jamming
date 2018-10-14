@@ -45,29 +45,34 @@ The first field corresponds to the type of event (E=energy consumption, R=recept
 
 - Dead device : D, Node ID, Cumulative consumption due to Tx events, Cumulative consumption due to Rx events, Cumulative consumption due to Sleep status, Dead Time
 
-5. Configuration parameters
+## Configuration parameters
 
 In addition to the simulation parameters that can be set when the simulation is launched, there are some others that can be changed only by editing the corresponding .cc file:
 
-- Reception Windows time stamps: In Class A Devices there are two reception Windows, the first one start one second after the transmission event, and the second one two seconds after. Then the duration of both are set by default as the minimal time required to detect a preamble at the corresponding SF, these time-stamps can be set in end-device-lora-mac.cc:
+1. Reception Windows time stamps: In Class A Devices there are two reception Windows, the first one start one second after the transmission event, and the second one two seconds after. Then the duration of both are set by default as the minimal time required to detect a preamble at the corresponding SF, these time-stamps can be set in end-device-lora-mac.cc:
 
 ``` 
   m_receiveDelay1 (Seconds (1)),            // LoraWAN default
   m_receiveDelay2 (Seconds (2)),            //WAN default
   m_receiveWindowDuration (Seconds (0.2)),  // This will be set as the time necessary to detect a preamble at the corresponding sf
 ```
-- Sub-band parameters for jammer nodes: We included two changes regarding the sub-band rules that are aplied to jammer devices: Duty Cycle and Tx Power, it can be set by editing the ApplyCommonEuConfigurationsJm function in the lora-mac-helper.cc file:
+2. Sub-band parameters for jammer nodes: We included three changes regarding the sub-band rules that are aplied to jammer devices: Duty Cycle and Tx Power, and maximum payload length, it can be set by editing the ApplyCommonEuConfigurationsJm function in the lora-mac-helper.cc file:
 
 ``` 
   channelHelper.AddSubBand (868, 868.6, 1, 14); // (firstFrequency, lastFrequency, dutyCycle, maxTxPowerDbm)
   channelHelper.AddSubBand (868.7, 869.2, 1, 14); // (firstFrequency, lastFrequency, dutyCycle, maxTxPowerDbm)
   channelHelper.AddSubBand (869.4, 869.65, 1, 27); // (firstFrequency, lastFrequency, dutyCycle, maxTxPowerDbm)
 ```
-- Spreading factor selection for end-devices and jammer nodes: 
+
+```
+loraMac->SetMaxAppPayloadForDataRate (std::vector<uint32_t> {59,59,59,123,230,230,230,230}); //maximal payload length for each spreading factor (12,11,10,9,8,7,7)
+```
+
+3. Spreading factor selection for end-devices and jammer nodes: 
 
 The algorithm that handles the sf selection is located in the lora-mac-helper.cc file et the SetSpreadingFactorsUp(Jm) function, it select the appropiated sf based on the distance from each gateway and the jammer/end-device node.
 
-- Energy consumption
+4. Energy consumption
 
 In order to handle the energy consumption of end-devices, the Energy Consumption helper was created, it computes the energy consumption of each state based on a pre-defined energy consumption per second, it can be modified by editing the lora-energy-consumption-helper.cc :
 
@@ -87,13 +92,11 @@ const double LoraEnergyConsumptionHelper::consostb = 3;
 const double LoraEnergyConsumptionHelper::consosleep = 4;
 ```
 
-- Battery Capacity
+5. Battery Capacity
 
 The Battery level is handled at the Lora-end-device-phy.cc, it calls the Energy consumption helper each time a change in the end-device status is made, the battery capacity can be set by editing the corresponding variable:
 
-// Standard Battery Capacity
-
 ```
-const double EndDeviceLoraPhy::battery_capacity = 100;
+const double EndDeviceLoraPhy::battery_capacity = 100; // Standard Battery Capacity
 ```
 
