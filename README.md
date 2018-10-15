@@ -80,15 +80,19 @@ The time on air is the most important parameter in the simulation. It allows us 
 
 For the case of the receive windows' duration, as indicated by the [LoRaWAN Specification v1.0.3](https://lora-alliance.org/resource-hub/lorawantm-specification-v103) they are set as at least the time required to detect a downlink preambule. 
 
-| DR | SF | Tsym | Trxw |
+The following table shows the symbole duration and the corresponding preamble duration. We assume an 8-symbol preamble length, a CR of 4/5 and a bandwidth BW = 125 kHz. 
+
+> We do not consider the cases of DR6 and DR7 that are based on FSK
+
+| DR | SF | Tsym | Tpreamble |
 | --- | --- | --- | --- |
-| 0 | 7 | 0 |  |
-| 0 | 7 | 0.001024 | 0.012544 |
-| 0 | 8 | 0.002048 | 0.025088 |
-| 0 | 9 | 0.050176 | 0.050176 |
-| 0 | 10 | 0.100352 | 0.100352 |
-| 0 | 11 | 0.016384 | 0.200704 |
+| 5 | 7 | 0.001024 | 0.012544 |
+| 4 | 8 | 0.002048 | 0.025088 |
+| 3 | 9 | 0.050176 | 0.050176 |
+| 2 | 10 | 0.100352 | 0.100352 |
+| 1 | 11 | 0.016384 | 0.200704 |
 | 0 | 12 | 0.032768 | 0.401488 |
+
 
 
 
