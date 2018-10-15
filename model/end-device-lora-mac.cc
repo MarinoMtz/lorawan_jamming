@@ -175,9 +175,11 @@ EndDeviceLoraMac::Send (Ptr<Packet> packet)
       params.lowDataRateOptimizationEnabled = 0;
 
 
-      // Compute the duration of the receive windows as the time necessary to detect a preambule
+      // Compute the duration of the receive windows as the time necessary to detect a preamble
 
       m_receiveWindowDuration = m_phy->GetPreambleTime (params);
+
+
 
       // Wake up PHY layer and directly send the packet
 
@@ -253,10 +255,7 @@ EndDeviceLoraMac::Receive (Ptr<Packet const> packet)
 
           // Parse the MAC commands
           ParseCommands (fHdr);
-
           // TODO Pass the packet up to the NetDevice
-
-
           // Call the trace source
           m_receivedPacket (packet);
         }

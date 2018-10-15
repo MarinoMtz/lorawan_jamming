@@ -55,7 +55,7 @@ loraMac->SetMaxAppPayloadForDataRate (std::vector<uint32_t> {59,59,59,123,230,23
 3. Spreading factor selection for end-devices and jammer nodes: 
 The algorithm that handles the sf selection is located in the lora-mac-helper.cc file et the SetSpreadingFactorsUp(Jm) function, it select the appropiated sf based on the distance from each gateway and the jammer/end-device node.
 
-4. Energy consumption
+4. Energy consumption: 
 In order to handle the energy consumption of end-devices, the Energy Consumption helper was created, it computes the energy consumption of each state based on a pre-defined energy consumption per second, it can be modified by editing the lora-energy-consumption-helper.cc :
 ``` 
 // LoRa transmission consumption vector in mA/s for each Spreading Factor
@@ -68,9 +68,17 @@ const double LoraEnergyConsumptionHelper::consostb = 3;
 const double LoraEnergyConsumptionHelper::consosleep = 4;
 ```
 
-5. Battery Capacity
+5. Battery Capacity: 
 The Battery level is handled at the Lora-end-device-phy.cc, it calls the Energy consumption helper each time a change in the end-device status is made, the battery capacity can be set by editing the corresponding variable:
 ```
 const double EndDeviceLoraPhy::battery_capacity = 100; // Standard Battery Capacity
 ```
+
+## Time on air and Reception Windows
+
+The time on air is the most important parameter in the simulation, it allows to compute the packet and receive windows' duration. The formulas used to compute it are based on the [LoRa modem designer guide](https://www.semtech.com/uploads/documents/LoraDesignGuide_STD.pdf) and are handled at the [LoRa PHY](model/lora-phy.cc) file. It is computed as a funtion of the transmission parameters (spreading factor, bandwith, coding rate and packet size) and is composed of two time slots: the preamble time and the time to transmit the payload. 
+
+For the case of the receive windows' duration, as indicated by the [LoRaWAN Specification v1.0.3](https://lora-alliance.org/resource-hub/lorawantm-specification-v103) they are set as at least the time required to detect a downlink preambule.
+
+
 
