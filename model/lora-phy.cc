@@ -223,10 +223,10 @@ LoraPhy::GetPreambleTime (LoraTxParameters txParams)
   double tSym7 = pow (2, int(7)) / (txParams.bandwidthHz);
 
   // Compute the preamble duration
-  double tPreamble7 = (double(txParams.nPreamble)) * tSym7;
+  double tPreamble7 = (double(txParams.nPreamble)+ 4.25) * tSym7;
 
   NS_LOG_DEBUG ("tPreamble7 = " << tPreamble7);
-
+  NS_LOG_DEBUG ("tSym7 = " << tSym7);
 
 
   double tSym8 = pow (2, int(8)) / (txParams.bandwidthHz);
@@ -235,7 +235,7 @@ LoraPhy::GetPreambleTime (LoraTxParameters txParams)
   double tPreamble8 = (double(txParams.nPreamble) + 4.25) * tSym8;
 
   NS_LOG_DEBUG ("tPreamble8 = " << tPreamble8);
-
+  NS_LOG_DEBUG ("tSym8 = " << tSym8);
 
   double tSym9 = pow (2, int(9)) / (txParams.bandwidthHz);
 
@@ -243,7 +243,7 @@ LoraPhy::GetPreambleTime (LoraTxParameters txParams)
   double tPreamble9 = (double(txParams.nPreamble) + 4.25) * tSym9;
 
   NS_LOG_DEBUG ("tPreamble9 = " << tPreamble9);
-
+  NS_LOG_DEBUG ("tSym9 = " << tSym9);
 
 
   double tSym10 = pow (2, int(10)) / (txParams.bandwidthHz);
@@ -252,7 +252,7 @@ LoraPhy::GetPreambleTime (LoraTxParameters txParams)
   double tPreamble10 = (double(txParams.nPreamble) + 4.25) * tSym10;
 
   NS_LOG_DEBUG ("tPreamble10 = " << tPreamble10);
-
+  NS_LOG_DEBUG ("tSym10 = " << tSym10);
 
 
 
@@ -262,7 +262,7 @@ LoraPhy::GetPreambleTime (LoraTxParameters txParams)
   double tPreamble11 = (double(txParams.nPreamble) + 4.25) * tSym11;
 
   NS_LOG_DEBUG ("tPreamble11 = " << tPreamble11);
-
+  NS_LOG_DEBUG ("tSym11 = " << tSym11);
 
 
 
@@ -272,6 +272,7 @@ LoraPhy::GetPreambleTime (LoraTxParameters txParams)
   double tPreamble12 = (double(txParams.nPreamble) + 4.25) * tSym12;
 
   NS_LOG_DEBUG ("tPreamble12 = " << tPreamble12);
+  NS_LOG_DEBUG ("tSym12 = " << tSym12);
 
 
   return Seconds (tPreamble);
