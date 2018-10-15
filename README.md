@@ -76,9 +76,13 @@ const double EndDeviceLoraPhy::battery_capacity = 100; // Standard Battery Capac
 
 ## Time on air and Reception Windows
 
-The time on air is the most important parameter in the simulation, it allows to compute the packet and receive windows' duration. The formulas used to compute it are based on the [LoRa modem designer guide](https://www.semtech.com/uploads/documents/LoraDesignGuide_STD.pdf) and are handled at the [LoRa PHY](model/lora-phy.cc) file. It is computed as a funtion of the transmission parameters (spreading factor, bandwith, coding rate and packet size) and is composed of two time slots: the preamble time and the time to transmit the payload. 
+The time on air is the most important parameter in the simulation. It allows us to compute the packet and receive windows' duration. The formulas used to compute it are based on the [LoRa modem designer guide](https://www.semtech.com/uploads/documents/LoraDesignGuide_STD.pdf) and are handled at the [LoRa PHY](model/lora-phy.cc) file. It is computed as a funtion of the transmission parameters (spreading factor, bandwith, coding rate and packet size) and is composed of two time slots: the preamble time and the time to transmit the payload. 
 
-For the case of the receive windows' duration, as indicated by the [LoRaWAN Specification v1.0.3](https://lora-alliance.org/resource-hub/lorawantm-specification-v103) they are set as at least the time required to detect a downlink preambule.
+For the case of the receive windows' duration, as indicated by the [LoRaWAN Specification v1.0.3](https://lora-alliance.org/resource-hub/lorawantm-specification-v103) they are set as at least the time required to detect a downlink preambule. 
+
+| DR | SF | Tsym | Trxw |
+| --- | --- | --- | --- |
+| 0 | 12 | 0 | 0.401488 |
 
 
 
