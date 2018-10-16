@@ -22,6 +22,15 @@ Here we have 6 parameters that allow us to set how the simulation will behave :
 4. Then, the results are shown in this way:
 ```
 E 0 4 2.27942  97.7206 0.569855
+E 0 3 0  97.7206 0.569855
+E 0 1 1.31891  96.4017 0.569855
+T 0 19 0 0.569855
+E 0 3 3e-08  96.4017 1.88877
+R 1 19 1.88879 0
+E 0 4 6.27942  92.4017 2.88877
+E 0 3 1.20422  91.1974 3.29017
+E 0 4 8.67379  88.8031 3.88877
+E 0 3 2.40845  87.5989 4.29017
 ```
 The first field corresponds to the type of event (E=energy consumption, R=reception, T=transmission, Jamming, D=dead device, I=interference):
    - Energy consumption : E, Node ID, state (1=Tx, 2=Rx, 3=Stb, 4=sleep), cumulative consumption of the current event, remaining battery level, simulation time (in seconds)
@@ -78,13 +87,13 @@ const double EndDeviceLoraPhy::battery_capacity = 100; // Standard Battery Capac
 
 The time on air is the most important parameter in the simulation. It allows us to compute the packet and receive windows' duration. The formulas used to compute it are based on the [LoRa modem designer guide](https://www.semtech.com/uploads/documents/LoraDesignGuide_STD.pdf) and are handled at the [LoRa PHY](model/lora-phy.cc) file. It is computed as a funtion of the transmission parameters (spreading factor, bandwith, coding rate and packet size) and is composed of two time slots: the preamble time and the time to transmit the payload. 
 
-For the case of the receive windows' duration, as indicated by the [LoRaWAN Specification v1.0.3](https://lora-alliance.org/resource-hub/lorawantm-specification-v103) they are set as at least the time required to detect a downlink preambule. 
+For the case of the receive windows' duration, as indicated by the [LoRaWAN Specification v1.0.3](https://lora-alliance.org/resource-hub/lorawantm-specification-v103) they must be set as at least the time required to detect a downlink preambule. 
 
-The following table shows the symbole duration and the corresponding preamble duration. We assume an 8-symbol preamble length, a CR of 4/5 and a bandwidth BW = 125 kHz. 
+For this simulation we follow the model proposed by [Luis Casals et al.](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5677147/pdf/sensors-17-02364.pdf) where, in the case of the first receive window this time corresponds to the symbol timeout parameter (SymbTimeout), which is set to 8 symbols for DR0 and DR1 (SF12 and SF11) and 12 symbols for the rest of the DRs, and in the case of the second receive window the CAD (Channel Activity Detection) feature is used. The following table shows the symbol duration, the corresponding preamble duration and the first and second receive windows. We assume an 8-symbol preamble length, a CR of 4/5 and a bandwidth of 125 kHz. 
 
 > We do not consider the cases of DR6 and DR7 that are based on FSK
 
-| DR | SF | Tsym | Tpreamble |
+| DR | SF | Tsym | Tpreamble | Trx1 | Trx2 |
 | --- | --- | --- | --- |
 | 5 | 7 | 0.001024 | 0.012544 |
 | 4 | 8 | 0.002048 | 0.025088 |
@@ -93,7 +102,7 @@ The following table shows the symbole duration and the corresponding preamble du
 | 1 | 11 | 0.016384 | 0.200704 |
 | 0 | 12 | 0.032768 | 0.401488 |
 
-
+## Time on air and Reception Windows
 
 
 

@@ -76,7 +76,8 @@ EndDeviceLoraMac::EndDeviceLoraMac () :
   m_headerDisabled (0),                     // LoraWAN default
   m_receiveDelay1 (Seconds (1)),            // LoraWAN default
   m_receiveDelay2 (Seconds (2)),            //WAN default
-  m_receiveWindowDuration (Seconds (0.2)),  // This will be set as the time necessary to detect a preamble at the corresponding sf
+  m_FirstReceiveWindowDuration (Seconds (0.2)),  // This will be set as the time necessary to detect a preamble at the corresponding sf
+  m_SecondReceiveWindowDuration (Seconds (0.2)),  // This will be set as the time necessary to detect a preamble at the corresponding sf
   m_closeWindow (EventId ()),               // Initialize as the default eventId
   m_secondReceiveWindow (EventId ()),       // Initialize as the default eventId
   m_secondReceiveWindowDataRate (0),        // LoraWAN default
@@ -177,9 +178,8 @@ EndDeviceLoraMac::Send (Ptr<Packet> packet)
 
       // Compute the duration of the receive windows as the time necessary to detect a preamble
 
-      m_receiveWindowDuration = m_phy->GetPreambleTime (params);
-
-
+      m_FirstReceiveWindowDuration = m_phy->GetReceiveWindowTime (params,1);
+      m_SecondReceiveWindowDuration = m_phy->GetReceiveWindowTime (params,2);
 
       // Wake up PHY layer and directly send the packet
 
@@ -457,7 +457,7 @@ EndDeviceLoraMac::OpenFirstReceiveWindow (void)
   // (LoraWAN specification)
 
 
-  m_closeWindow = Simulator::Schedule (m_receiveWindowDuration,
+  m_closeWindow = Simulator::Schedule (m_FirstReceiveWindowDuration,
                                        &EndDeviceLoraMac::CloseFirstReceiveWindow, this);
 }
 
@@ -528,7 +528,7 @@ EndDeviceLoraMac::OpenSecondReceiveWindow (void)
   // Schedule return to sleep after "at least the time required by the end
   // device's radio transceiver to effectively detect a downlink preamble"
   // (LoraWAN specification)
-  m_closeWindow = Simulator::Schedule (m_receiveWindowDuration,
+  m_closeWindow = Simulator::Schedule (m_SecondReceiveWindowDuration,
                                        &EndDeviceLoraMac::CloseSecondReceiveWindow, this);
 }
 

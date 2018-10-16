@@ -358,9 +358,14 @@ private:
   Time m_receiveDelay2;
 
   /**
-   * The duration of a receive window.
+   * The duration of the first receive window.
    */
-  Time m_receiveWindowDuration;
+  Time m_FirstReceiveWindowDuration;
+
+  /**
+   * The duration of the second receive window.
+   */
+  Time m_SecondReceiveWindowDuration;
 
   /**
    * The event of the closing of a receive window.

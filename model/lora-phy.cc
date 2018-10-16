@@ -202,22 +202,42 @@ LoraPhy::GetOnAirTime (Ptr<Packet> packet, LoraTxParameters txParams)
 
 
 Time
-LoraPhy::GetPreambleTime (LoraTxParameters txParams)
+LoraPhy::GetReceiveWindowTime (LoraTxParameters txParams, int txw)
 {
 
   NS_LOG_FUNCTION (txParams);
 
-  // The contents of this function are based on [1].
+  // The contents of this function are based on [1,2].
   // [1] SX1272 LoRa modem designer's guide.
+  // [2] Modeling Energy Performance of LoRaWAN by Lluis Casals et al. (pages 11 and 12)
 
   // Compute the symbol duration
   // Bandwidth is in Hz
   double tSym = pow (2, int(txParams.sf)) / (txParams.bandwidthHz);
+  double trx = 0;
+  double Ndsym = 0;
 
-  // Compute the preamble duration
-  double tPreamble = (double(txParams.nPreamble) + 4.25) * tSym;
+  // compute the first receive window
+  if (txw == 1){
 
-  return Seconds (tPreamble);
+	  switch (txParams.sf) {
+	  case 11 : Ndsym = 8;
+	  	  	  	trx = Ndsym*tSym;
+	  	  	  	break;
+	  case 12 : Ndsym = 8;
+  	  			trx = Ndsym*tSym;
+  	  			break;
+	  default:  Ndsym = 12;
+				trx = Ndsym*tSym;
+				break;
+	  }
+  }
+  // compute the second receive window
+  else {
+	  trx = (pow (2, int(txParams.sf)) + 32) / (txParams.bandwidthHz);
+  }
+
+  return Seconds (trx);
 
 }
 

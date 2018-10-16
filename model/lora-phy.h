@@ -229,7 +229,7 @@ public:
    */
   static Time GetOnAirTime (Ptr<Packet> packet, LoraTxParameters txParams);
 
-  static Time GetPreambleTime (LoraTxParameters txParams);
+  static Time GetReceiveWindowTime (LoraTxParameters txParams, int txw);
 
 private:
   Ptr<MobilityModel> m_mobility;   //!< The mobility model associated to this PHY.
