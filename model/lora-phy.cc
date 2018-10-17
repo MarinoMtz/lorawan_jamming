@@ -237,31 +237,6 @@ LoraPhy::GetReceiveWindowTime (LoraTxParameters txParams, int txw)
 	  trx = (pow (2, int(txParams.sf)) + 32) / (txParams.bandwidthHz);
   }
 
-
-  tSym = pow (2, int(7)) / (txParams.bandwidthHz);
-  NS_LOG_DEBUG ("trx1 7 " << 12*tSym);
-  NS_LOG_DEBUG ("trx2 7 " << (pow (2,7) + 32) / (txParams.bandwidthHz));
-
-  tSym = pow (2, int(8)) / (txParams.bandwidthHz);
-  NS_LOG_DEBUG ("trx1 8 " << 12*tSym);
-  NS_LOG_DEBUG ("trx2 8 " << (pow (2,8) + 32) / (txParams.bandwidthHz));
-
-  tSym = pow (2, int(9)) / (txParams.bandwidthHz);
-  NS_LOG_DEBUG ("trx1 9 " << 12*tSym);
-  NS_LOG_DEBUG ("trx2 9 " << (pow (2,9) + 32) / (txParams.bandwidthHz));
-
-  tSym = pow (2, int(10)) / (txParams.bandwidthHz);
-  NS_LOG_DEBUG ("trx1 10 " << 12*tSym);
-  NS_LOG_DEBUG ("trx2 10 " << (pow (2,10) + 32) / (txParams.bandwidthHz));
-
-  tSym = pow (2, int(11)) / (txParams.bandwidthHz);
-  NS_LOG_DEBUG ("trx1 11 " << 8*tSym);
-  NS_LOG_DEBUG ("trx2 11 " << (pow (2,11) + 32) / (txParams.bandwidthHz));
-
-  tSym = pow (2, int(12)) / (txParams.bandwidthHz);
-  NS_LOG_DEBUG ("trx1 11 " << 8*tSym);
-  NS_LOG_DEBUG ("trx2 11 " << (pow (2,12) + 32) / (txParams.bandwidthHz));
-
   return Seconds (trx);
 
 }
