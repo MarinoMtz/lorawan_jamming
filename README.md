@@ -67,13 +67,15 @@ The algorithm that handles the sf selection is located in the lora-mac-helper.cc
 4. Energy consumption: 
 In order to handle the energy consumption of end-devices, the Energy Consumption helper was created, it computes the energy consumption of each state based on a pre-defined energy consumption per second, it can be modified by editing the lora-energy-consumption-helper.cc :
 ``` 
-// LoRa transmission consumption vector in mA/s for each Spreading Factor
-const double LoraEnergyConsumptionHelper::consotx[6] = {1, 1, 1, 1, 1, 1}; //SF7  SF8  SF9  SF10 SF11 SF12
-// LoRa reception consumption vector in mA/s for each Spreading Factor
-const double LoraEnergyConsumptionHelper::consorx[6] = {2, 2, 2, 2, 2, 2}; // SF7  SF8  SF9  SF10 SF11 SF12
-// LoRa consumption vector in mA/s for standby
+// LoRa transmission consumption vector in mA for each Spreading Factor
+const double LoraEnergyConsumptionHelper::consotx[6] = {83 , 83, 83, 83, 83, 83};
+// SF7  SF8  SF9  SF10 SF11 SF12
+// LoRa reception consumption vector in mA for each Spreading Factor
+const double LoraEnergyConsumptionHelper::consorx[6] = {32, 32, 32, 32, 32, 32};
+// SF7  SF8  SF9  SF10 SF11 SF12
+// LoRa consumption vector in mA for standby
 const double LoraEnergyConsumptionHelper::consostb = 3;
-// LoRa consumption vector in mA/s for Sleep
+// LoRa consumption vector in mA for Sleep
 const double LoraEnergyConsumptionHelper::consosleep = 4;
 ```
 

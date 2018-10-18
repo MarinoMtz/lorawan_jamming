@@ -156,21 +156,18 @@ LoraEnergyConsumptionHelper::~LoraEnergyConsumptionHelper ()
 }
 
 
-// LoRa transmission consumption vector in mA/s for each Spreading Factor
-
-const double LoraEnergyConsumptionHelper::consotx[6] = {1, 1, 1, 1, 1, 1};
+// LoRa transmission consumption vector in mA for each Spreading Factor
+const double LoraEnergyConsumptionHelper::consotx[6] = {83 , 83, 83, 83, 83, 83};
 // 														SF7  SF8  SF9  SF10 SF11 SF12
+// LoRa reception consumption vector in mA for each Spreading Factor
 
-// LoRa reception consumption vector in mA/s for each Spreading Factor
-
-const double LoraEnergyConsumptionHelper::consorx[6] = {2, 2, 2, 2, 2, 2};
+const double LoraEnergyConsumptionHelper::consorx[6] = {32, 32, 32, 32, 32, 32};
 // 														SF7  SF8  SF9  SF10 SF11 SF12
+// LoRa consumption vector in mA for standby
+const double LoraEnergyConsumptionHelper::consostb = 32;
 
-// LoRa consumption vector in mA/s for standby
-const double LoraEnergyConsumptionHelper::consostb = 3;
-
-// LoRa consumption vector in mA/s for Sleep
-const double LoraEnergyConsumptionHelper::consosleep = 4;
+// LoRa consumption vector in mA for Sleep
+const double LoraEnergyConsumptionHelper::consosleep = 0.0045;
 
 
 Ptr<LoraEnergyConsumptionHelper::Event>
@@ -207,21 +204,20 @@ LoraEnergyConsumptionHelper::TxConso (Ptr<LoraEnergyConsumptionHelper::Event> ev
 
   double event_conso = 0;
 
-
   switch(sf) {
-      case 7 : event_conso = consotx [0] * duration.GetSeconds ();
+      case 7 : event_conso = consotx [0] * duration.GetHours ();
       	  	   break;
-      case 8 : event_conso = consotx [1] * duration.GetSeconds ();
+      case 8 : event_conso = consotx [1] * duration.GetHours ();
                break;
-      case 9 : event_conso = consotx [2] * duration.GetSeconds ();
+      case 9 : event_conso = consotx [2] * duration.GetHours ();
                break;
-      case 10 : event_conso = consotx [3] * duration.GetSeconds ();
+      case 10 : event_conso = consotx [3] * duration.GetHours ();
                break;
-      case 11 : event_conso = consotx [4] * duration.GetSeconds ();
+      case 11 : event_conso = consotx [4] * duration.GetHours ();
                break;
-      case 12 : event_conso = consotx [5] * duration.GetSeconds ();
+      case 12 : event_conso = consotx [5] * duration.GetHours ();
                break;
-      default : event_conso = consotx [5] * duration.GetSeconds ();
+      default : event_conso = consotx [5] * duration.GetHours ();
                break;
    }
 
@@ -251,19 +247,19 @@ LoraEnergyConsumptionHelper::RxConso (Ptr<LoraEnergyConsumptionHelper::Event> ev
 
 
   switch(sf) {
-      case 7 : event_conso = consorx [0] * duration.GetSeconds ();
+      case 7 : event_conso = consorx [0] * duration.GetHours ();
       	  	   break;
-      case 8 : event_conso = consorx [1] * duration.GetSeconds ();
+      case 8 : event_conso = consorx [1] * duration.GetHours ();
                break;
-      case 9 : event_conso = consorx [2] * duration.GetSeconds ();
+      case 9 : event_conso = consorx [2] * duration.GetHours ();
                break;
-      case 10 : event_conso = consorx [3] * duration.GetSeconds ();
+      case 10 : event_conso = consorx [3] * duration.GetHours ();
                break;
-      case 11 : event_conso = consorx [4] * duration.GetSeconds ();
+      case 11 : event_conso = consorx [4] * duration.GetHours ();
                break;
-      case 12 : event_conso = consorx [5] * duration.GetSeconds ();
+      case 12 : event_conso = consorx [5] * duration.GetHours ();
                break;
-      default : event_conso = consorx [5] * duration.GetSeconds ();
+      default : event_conso = consorx [5] * duration.GetHours ();
                break;
    }
 
@@ -282,7 +278,7 @@ LoraEnergyConsumptionHelper::StbConso (Ptr<LoraEnergyConsumptionHelper::Event> e
   // Handy information about the time frame when the packet was received
   Time duration = event->GetDuration ();
 
-  double event_conso = consostb * duration.GetSeconds ();
+  double event_conso = consostb * duration.GetHours ();
 
   return event_conso;
 
@@ -296,7 +292,7 @@ LoraEnergyConsumptionHelper::SleepConso (Ptr<LoraEnergyConsumptionHelper::Event>
   // Handy information about the time frame when the packet was received
   Time duration = event->GetDuration ();
 
-  double event_conso = consosleep * duration.GetSeconds ();
+  double event_conso = consosleep * duration.GetHours ();
   return event_conso;
 
 }

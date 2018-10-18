@@ -185,7 +185,7 @@ public:
    */
 
   static const double battery_capacity;
-
+  static const double voltage;
 
 private:
 
@@ -244,11 +244,10 @@ private:
   int m_last_state;
 
   /**
-   * End-Device's Battery Level
+   * End-Device's Battery Level in Joules
    */
 
   double m_battery_level;
-
   double m_cumulative_tx_conso;
   double m_cumulative_rx_conso;
   double m_cumulative_stb_conso;

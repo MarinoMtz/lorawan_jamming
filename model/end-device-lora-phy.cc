@@ -85,8 +85,10 @@ EndDeviceLoraPhy::~EndDeviceLoraPhy ()
 const double EndDeviceLoraPhy::sensitivity[6] =
 {-124, -127, -130, -133, -135, -137};
 
-// Standard Battery Capacity
-const double EndDeviceLoraPhy::battery_capacity = 100;
+// Standard Battery Capacity in mAh
+const double EndDeviceLoraPhy::battery_capacity = 2400;
+// Standard Battery voltage in volts
+const double EndDeviceLoraPhy::voltage = 3.7;
 
 void
 EndDeviceLoraPhy::SetSpreadingFactor (uint8_t sf)
@@ -177,6 +179,8 @@ EndDeviceLoraPhy::Send (Ptr<Packet> packet, LoraTxParameters txParams,
   // Schedule the switch back to STANDBY mode.
   // For reference see SX1272 datasheet, section 4.1.6
 
+  if (m_state != DEAD)  {
+
   Simulator::Schedule (duration, &EndDeviceLoraPhy::SwitchToStandby, this);
 
   // Schedule the txFinished callback, if it was set
@@ -208,6 +212,7 @@ EndDeviceLoraPhy::Send (Ptr<Packet> packet, LoraTxParameters txParams,
     {
       m_startSending (packet, 0);
     }
+  }
 }
 
 void
@@ -454,7 +459,6 @@ battery_level = battery_level - event_conso;
 
 m_battery_level = battery_level;
 
-
 switch(ConsoType) {
 
 	case 1 : m_consumption (NodeId, ConsoType, Cumulative_Tx_Conso, battery_level);
@@ -509,7 +513,6 @@ EndDeviceLoraPhy::IsDead (void)
   return m_state == DEAD;
 }
 
-
 bool
 EndDeviceLoraPhy::IsTransmitting (void)
 {
@@ -533,7 +536,12 @@ EndDeviceLoraPhy::SwitchToStandby (void)
 {
   NS_LOG_FUNCTION_NOARGS ();
 
-  NS_ASSERT (m_state != DEAD);
+  if (m_state == DEAD)
+    {
+      NS_LOG_INFO ("Won't switch to standby because the end-device is DEAD");
+      return;
+    }
+
   m_state = STANDBY;
   StateDuration (Simulator::Now (), 3);
   NS_LOG_FUNCTION (this << "STB" << Simulator::Now ().GetSeconds ());
@@ -544,7 +552,13 @@ EndDeviceLoraPhy::SwitchToRx (void)
 {
   NS_LOG_FUNCTION_NOARGS ();
 
-  NS_ASSERT (m_state == STANDBY);
+  if (m_state == DEAD)
+    {
+      NS_LOG_INFO ("Won't switch to rx because the end-device is DEAD");
+      return;
+    }
+
+    NS_ASSERT (m_state == STANDBY);
 
   m_state = RX;
   StateDuration (Simulator::Now (), 2);
@@ -556,9 +570,13 @@ EndDeviceLoraPhy::SwitchToTx (void)
 {
   NS_LOG_FUNCTION_NOARGS ();
 
-  NS_ASSERT (m_state != DEAD);
-  NS_ASSERT (m_state != RX);
+  if (m_state == DEAD)
+    {
+      NS_LOG_INFO ("Won't switch to tx because the end-device is DEAD");
+      return;
+    }
 
+  NS_ASSERT (m_state != RX);
   m_state = TX;
   StateDuration (Simulator::Now (), 1);
   NS_LOG_FUNCTION (this << "TX" << Simulator::Now ().GetSeconds ());
@@ -570,7 +588,12 @@ EndDeviceLoraPhy::SwitchToSleep (void)
 {
   NS_LOG_FUNCTION_NOARGS ();
 
-  NS_ASSERT (m_state == STANDBY);
+  if (m_state == DEAD)
+    {
+      NS_LOG_INFO ("Won't switch to sleep because the end-device is DEAD");
+      return;
+    }
+
   m_state = SLEEP;
   StateDuration (Simulator::Now (), 4);
 
