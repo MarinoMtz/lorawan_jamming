@@ -40,9 +40,7 @@ The first field corresponds to the type of event (E=energy consumption, R=recept
    - Interference : I, node ID, packet size (including heqder), simulaton time
    - Dead device : D, Node ID, Cumulative consumption due to Tx events, Cumulative consumption due to Rx events, Cumulative consumption due to Sleep status, Dead Time
 
-5. Output files:
-
-Appart from the LOG, there is also a possibility of printing some files that contain some parameters regarding the simulation:
+5. Output files: appart from the LOG, there is also a possibility of printing some files that contain some parameters regarding the simulation:
    - Devices.dat: contains the position and the SF of each End-Device and Jammer, it is stored at "scratch/Devices.dat"
 
 ## Configuration parameters
