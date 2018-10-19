@@ -40,6 +40,11 @@ The first field corresponds to the type of event (E=energy consumption, R=recept
    - Interference : I, node ID, packet size (including heqder), simulaton time
    - Dead device : D, Node ID, Cumulative consumption due to Tx events, Cumulative consumption due to Rx events, Cumulative consumption due to Sleep status, Dead Time
 
+5. Output files:
+
+Appart from the LOG, there is also a possibility of printing some files that contain some parameters regarding the simulation:
+- Devices.dat: contains the position and the SF of each End-Device and Jammer, it is stored at "scratch/Devices.dat"
+
 ## Configuration parameters
 
 In addition to the simulation parameters that can be set when the simulation is launched, there are some others that can be changed only by editing the corresponding .cc file:
@@ -69,14 +74,14 @@ In order to handle the energy consumption of end-devices, the Energy Consumption
 ``` 
 // LoRa transmission consumption vector in mA for each Spreading Factor
 const double LoraEnergyConsumptionHelper::consotx[6] = {83 , 83, 83, 83, 83, 83};
-// SF7  SF8  SF9  SF10 SF11 SF12
+// 							SF7  SF8  SF9  SF10 SF11 SF12
 // LoRa reception consumption vector in mA for each Spreading Factor
 const double LoraEnergyConsumptionHelper::consorx[6] = {32, 32, 32, 32, 32, 32};
-// SF7  SF8  SF9  SF10 SF11 SF12
+// 							SF7  SF8  SF9  SF10 SF11 SF12
 // LoRa consumption vector in mA for standby
-const double LoraEnergyConsumptionHelper::consostb = 3;
+const double LoraEnergyConsumptionHelper::consostb = 32;
 // LoRa consumption vector in mA for Sleep
-const double LoraEnergyConsumptionHelper::consosleep = 4;
+const double LoraEnergyConsumptionHelper::consosleep = 0.0045;
 ```
 
 5. Battery Capacity: 

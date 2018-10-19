@@ -149,11 +149,11 @@ TransmissionCallback (Ptr<Packet const> packet, uint32_t systemId)
 
   if (systemId < nDevices)
   {
-	  std::cout << "T " << systemId << " " << packet->GetSize () << " " << packet->GetUid () << " " << Simulator::Now ().GetSeconds () << std::endl;
+	  std::cout << "T " << systemId << " " << packet->GetSize () << " " << Simulator::Now ().GetSeconds () << std::endl;
   }
   else
   {
-	  std::cout << "J " << systemId << " " << packet->GetSize () << " " << packet->GetUid () << " " << Simulator::Now ().GetSeconds () << std::endl;
+	  std::cout << "J " << systemId << " " << packet->GetSize () << " " << Simulator::Now ().GetSeconds () << std::endl;
   }
 
 }
@@ -195,7 +195,7 @@ InterferenceCallback (Ptr<Packet const> packet, uint32_t systemId)
   //NS_LOG_INFO ("A packet was lost because of interference at gateway " << systemId);
 
     //packet->AddPacketTag (const ns3::Tag);
-  std::cout << "I " << systemId << " " << packet->GetSize () << " " << packet->GetUid() << " " << Simulator::Now ().GetSeconds () << std::endl;
+  std::cout << "I " << systemId << " " << packet->GetSize () << " " << Simulator::Now ().GetSeconds () << std::endl;
 
   std::map<Ptr<Packet const>, PacketStatus>::iterator it = packetTracker.find (packet);
   (*it).second.outcomes.at (systemId - nJammers - nDevices) = INTERFERED;
@@ -263,11 +263,12 @@ DeadDeviceCallback (uint32_t NodeId, double cumulative_tx_conso, double cumulati
 
 
 void
-PrintEndDevices (NodeContainer endDevices, NodeContainer gateways, std::string filename)
+PrintEndDevices (NodeContainer endDevices, NodeContainer Jammers, NodeContainer gateways, std::string filename)
 {
   const char * c = filename.c_str ();
   std::ofstream spreadingFactorFile;
   spreadingFactorFile.open (c);
+
   for (NodeContainer::Iterator j = endDevices.Begin (); j != endDevices.End (); ++j)
     {
       Ptr<Node> object = *j;
@@ -281,6 +282,21 @@ PrintEndDevices (NodeContainer endDevices, NodeContainer gateways, std::string f
       Vector pos = position->GetPosition ();
       spreadingFactorFile << pos.x << " " << pos.y << " " << sf << std::endl;
     }
+
+  for (NodeContainer::Iterator j = Jammers.Begin (); j != Jammers.End (); ++j)
+    {
+      Ptr<Node> object = *j;
+      Ptr<MobilityModel> position = object->GetObject<MobilityModel> ();
+      NS_ASSERT (position != 0);
+      Ptr<NetDevice> netDevice = object->GetDevice (0);
+      Ptr<LoraNetDevice> loraNetDevice = netDevice->GetObject<LoraNetDevice> ();
+      NS_ASSERT (loraNetDevice != 0);
+      Ptr<EndDeviceLoraMac> mac = loraNetDevice->GetMac ()->GetObject<EndDeviceLoraMac> ();
+      int sf = int(mac->GetDataRate ());
+      Vector pos = position->GetPosition ();
+      spreadingFactorFile << pos.x << " " << pos.y << " " << sf << std::endl;
+    }
+
   // Also print the gateways
   for (NodeContainer::Iterator j = gateways.Begin (); j != gateways.End (); ++j)
     {
@@ -328,7 +344,7 @@ int main (int argc, char *argv[])
 //  LogComponentEnable("LoraMacHeader", LOG_LEVEL_ALL);
 //  LogComponentEnable("LoraFrameHeader", LOG_LEVEL_ALL);
 //	LogComponentEnable("LoraMacHeader", LOG_LEVEL_ALL);
-//  LogComponentEnable("LoraEnergyConsumptionHelper", LOG_LEVEL_ALL);
+ // LogComponentEnable("LoraEnergyConsumptionHelper", LOG_LEVEL_ALL);
 
 
   /**********
@@ -392,7 +408,7 @@ int main (int argc, char *argv[])
       Ptr<MobilityModel> mobility = (*j)->GetObject<MobilityModel> ();
       Vector position = mobility->GetPosition ();
       position.z = 1;
-      position.x = 100000000;
+      position.x = 8000;
       position.y = 0;
       mobility->SetPosition (position);
     }
@@ -577,7 +593,7 @@ int main (int argc, char *argv[])
   if (printEDs)
     {
 
-	  PrintEndDevices (Jammers, gateways,
+	  PrintEndDevices (endDevices, Jammers, gateways,
                    "scratch/Devices.dat");
     }
 

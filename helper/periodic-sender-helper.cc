@@ -44,6 +44,8 @@ PeriodicSenderHelper::PeriodicSenderHelper ()
   m_intervalProb = CreateObject<UniformRandomVariable> ();
   m_intervalProb->SetAttribute ("Min", DoubleValue (0));
   m_intervalProb->SetAttribute ("Max", DoubleValue (1));
+
+  m_size = 10;
 }
 
 PeriodicSenderHelper::~PeriodicSenderHelper ()
