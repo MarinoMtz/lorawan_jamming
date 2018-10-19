@@ -43,7 +43,7 @@ The first field corresponds to the type of event (E=energy consumption, R=recept
 5. Output files:
 
 Appart from the LOG, there is also a possibility of printing some files that contain some parameters regarding the simulation:
-- Devices.dat: contains the position and the SF of each End-Device and Jammer, it is stored at "scratch/Devices.dat"
+   - Devices.dat: contains the position and the SF of each End-Device and Jammer, it is stored at "scratch/Devices.dat"
 
 ## Configuration parameters
 
