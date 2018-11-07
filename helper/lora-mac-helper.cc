@@ -150,8 +150,6 @@ LoraMacHelper::Create (Ptr<Node> node, Ptr<NetDevice> device) const
   return mac;
 }
 
-
-
 void
 LoraMacHelper::ConfigureForEuRegion (Ptr<EndDeviceLoraMac> edMac) const
 {
@@ -201,6 +199,7 @@ LoraMacHelper::ConfigureForEuRegionJm (Ptr<EndDeviceLoraMac> jmMac) const
   // TxPower -> Transmission power in dBm conversion //
   /////////////////////////////////////////////////////
   jmMac->SetTxDbmForTxPower (std::vector<double> {16, 14, 12, 10, 8, 6, 4, 2});
+//  jmMac->SetTxDbmForTxPower (std::vector<double> {100, 100, 100, 100, 100, 100, 100, 100});
 
   ////////////////////////////////////////////////////////////
   // Matrix to know which DataRate the GW will respond with //
@@ -225,6 +224,7 @@ LoraMacHelper::ConfigureForEuRegionJm (Ptr<EndDeviceLoraMac> jmMac) const
   //////////////////////////////////////
   jmMac->SetSecondReceiveWindowDataRate (0);
   jmMac->SetSecondReceiveWindowFrequency (869.525);
+
 }
 
 void
@@ -426,7 +426,7 @@ LoraMacHelper::SetSpreadingFactorsUp (NodeContainer endDevices, NodeContainer ga
 
 
 void
-LoraMacHelper::SetSpreadingFactorsUpJm (NodeContainer Jammers, NodeContainer gateways, Ptr<LoraChannel> channel)
+LoraMacHelper::SetSpreadingFactorsUpJm (NodeContainer Jammers, NodeContainer gateways, Ptr<LoraChannel> channel, double txpower)
 {
   NS_LOG_FUNCTION_NOARGS ();
 
@@ -444,6 +444,8 @@ LoraMacHelper::SetSpreadingFactorsUpJm (NodeContainer Jammers, NodeContainer gat
       // Try computing the distance from each gateway and find the best one
       Ptr<Node> bestGateway = gateways.Get (0);
       Ptr<MobilityModel> bestGatewayPosition = bestGateway->GetObject<MobilityModel> ();
+
+      mac->SetTxPower (txpower);
 
       // Assume devices transmit at 14 dBm
       double highestRxPower = channel->GetRxPower (14, position, bestGatewayPosition);

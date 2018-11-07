@@ -28,6 +28,7 @@
 #include "ns3/callback.h"
 #include "ns3/packet.h"
 #include "ns3/logical-lora-channel.h"
+#include "ns3/lora-tag.h"
 #include <list>
 
 namespace ns3 {
@@ -39,6 +40,7 @@ namespace ns3 {
   * device, in order to compute which ones can be correctly received and which
   * ones are lost due to interference.
   */
+
 class LoraInterferenceHelper
 {
 public:
@@ -48,6 +50,7 @@ public:
    * Used in LoraInterferenceHelper to keep track of which signals overlap and
    * cause destructive interference.
    */
+
   class Event : public SimpleRefCount<LoraInterferenceHelper::Event>
   {
 
@@ -147,6 +150,7 @@ private:
    *
    * \return the newly created event
    */
+
   Ptr<LoraInterferenceHelper::Event> Add (Time duration, double rxPower,
                                           uint8_t spreadingFactor,
                                           Ptr<Packet> packet,
@@ -172,10 +176,10 @@ private:
    * \return The sf of the packets that caused the loss, or 0 if there was no
    * loss.
    */
-  uint8_t IsDestroyedByInterference (Ptr<LoraInterferenceHelper::Event>
+  bool IsDestroyedByInterference (Ptr<LoraInterferenceHelper::Event>
                                      event);
 
-  /**
+   /**
    * Compute the time duration in which two given events are overlapping.
    *
    * \param event1 The first event
@@ -184,6 +188,10 @@ private:
    * \return The overlap time
    */
   Time GetOverlapTime (Ptr< LoraInterferenceHelper:: Event> event1,
+                       Ptr<LoraInterferenceHelper:: Event> event2);
+
+
+  bool OnThePreamble (Ptr< LoraInterferenceHelper:: Event> event1,
                        Ptr<LoraInterferenceHelper:: Event> event2);
 
   /**
@@ -195,6 +203,22 @@ private:
    * Delete old events in this LoraInterferenceHelper.
    */
   void CleanOldEvents (void);
+
+  bool GetOnThePreamble (void);
+
+  Time GetColStart (void);
+
+  Time GetColEnd (void);
+
+
+  uint8_t GetSF (void);
+
+  void CleanParameters(void);
+
+  bool m_onthepreamble;
+  Time m_colstart;
+  Time m_colend;
+  uint8_t m_colsf;
 
 private:
 

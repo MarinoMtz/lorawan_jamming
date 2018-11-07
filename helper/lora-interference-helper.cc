@@ -26,6 +26,7 @@ namespace ns3 {
 
 NS_LOG_COMPONENT_DEFINE ("LoraInterferenceHelper");
 
+
 /***************************************
  *    LoraInterferenceHelper::Event    *
  ***************************************/
@@ -41,7 +42,8 @@ LoraInterferenceHelper::Event::Event (Time duration, double rxPowerdBm,
   m_packet (packet),
   m_frequencyMHz (frequencyMHz)
 {
-  // NS_LOG_FUNCTION_NOARGS ();
+
+	// NS_LOG_FUNCTION_NOARGS ();
 }
 
 // Event Destructor
@@ -124,7 +126,11 @@ LoraInterferenceHelper::GetTypeId (void)
   return tid;
 }
 
-LoraInterferenceHelper::LoraInterferenceHelper ()
+LoraInterferenceHelper::LoraInterferenceHelper() :
+	m_onthepreamble(false),
+	m_colstart(Seconds(0)),
+	m_colend(Seconds(0)),
+	m_colsf (uint8_t(0))
 {
   NS_LOG_FUNCTION (this);
 }
@@ -227,7 +233,7 @@ LoraInterferenceHelper::PrintEvents (std::ostream &stream)
     }
 }
 
-uint8_t
+bool
 LoraInterferenceHelper::IsDestroyedByInterference
   (Ptr<LoraInterferenceHelper::Event> event)
 {
@@ -287,8 +293,11 @@ LoraInterferenceHelper::IsDestroyedByInterference
 
       // Compute the fraction of time the two events are overlapping
       Time overlap = GetOverlapTime (event, interferer);
-
       NS_LOG_DEBUG ("The two events overlap for " << overlap.GetSeconds () << " s.");
+
+      bool onthepreamble = OnThePreamble (event, interferer);
+      NS_LOG_DEBUG ("Overlapped event on the preamble ? " << onthepreamble);
+      m_onthepreamble = onthepreamble;
 
       // Compute the equivalent energy of the interference
       // Power [mW] = 10^(Power[dBm]/10)
@@ -331,15 +340,15 @@ LoraInterferenceHelper::IsDestroyedByInterference
         {
           NS_LOG_DEBUG ("Packet destroyed by interference with SF" <<
                         unsigned(currentSf));
-
-          return currentSf;
+          m_colsf = currentSf;
+          return true;
         }
     }
   // If we get to here, it means that the packet survived all interference
   NS_LOG_DEBUG ("Packet survived all interference");
 
   // Since the packet was not destroyed, we return 0.
-  return uint8_t (0);
+  return false;
 }
 
 void
@@ -377,11 +386,15 @@ LoraInterferenceHelper::GetOverlapTime (Ptr<LoraInterferenceHelper::Event> event
       else if (e1 >= e2)
         {
           overlap = e2 - s2;
+          m_colstart = s2;
+          m_colend = e2;
         }
       // Partially overlapping events
       else
         {
           overlap = e1 - s2;
+          m_colstart = s2;
+          m_colend = e1;
         }
     }
   // Event2 starts before Event1
@@ -396,13 +409,132 @@ LoraInterferenceHelper::GetOverlapTime (Ptr<LoraInterferenceHelper::Event> event
       else if (e2 >= e1)
         {
           overlap = e1 - s1;
+          m_colstart = s1;
+          m_colend = e1;
         }
       // Partially overlapping events
       else
         {
           overlap = e2 - s1;
+          m_colstart = s1;
+          m_colend = e2;
         }
     }
   return overlap;
 }
+
+
+bool
+LoraInterferenceHelper::OnThePreamble (Ptr<LoraInterferenceHelper::Event> event1,
+                                        Ptr<LoraInterferenceHelper::Event> event2)
+{
+  NS_LOG_FUNCTION_NOARGS ();
+
+
+  Ptr<Packet> packet1 = event1->GetPacket ();
+  Ptr<Packet> packet2 = event1->GetPacket ();
+
+
+  LoraTag tag1;
+  packet1->RemovePacketTag (tag1);
+  Time p1 = Seconds(tag1.GetPreamble ());
+  packet1->AddPacketTag (tag1);
+
+
+  LoraTag tag2;
+  packet2->RemovePacketTag (tag2);
+  Time p2= Seconds(tag2.GetPreamble ());
+  packet2->AddPacketTag (tag2);
+
+  // Get handy values
+  Time s1 = event1->GetStartTime (); // Start times
+  Time s2 = event2->GetStartTime ();
+  Time e1 = event1->GetEndTime ();   // End times
+  Time e2 = event2->GetEndTime ();
+
+  NS_LOG_DEBUG ("s1 " << s1.GetSeconds () << " s.");
+  NS_LOG_DEBUG ("s2 " << s2.GetSeconds () << " s.");
+  NS_LOG_DEBUG ("e1 " << e1.GetSeconds () << " s.");
+  NS_LOG_DEBUG ("e2 " << e2.GetSeconds () << " s.");
+  NS_LOG_DEBUG ("p1 " << p1.GetSeconds () << " s.");
+  NS_LOG_DEBUG ("p2 " << p2.GetSeconds () << " s.");
+
+
+  bool OnThePreambule;
+
+  // Event1 starts before Event2
+  if (s1 < s2)
+    {
+      // Non-overlapping events
+      if (e1 < s2)
+        {
+    	  OnThePreambule = false;
+        }
+      else if (s2 <= s1 + p1)
+        {
+		  OnThePreambule = true;
+	    }
+      else
+        {
+    	  OnThePreambule = false;
+        }
+    }
+  // Event2 starts before Event1
+  else
+    {
+      // Non-overlapping events
+      if (e2 < s1)
+        {
+    	  OnThePreambule = false;
+        }
+      // event2 contains event1
+      else if (s1 <= s2 + p2)
+        {
+    	  OnThePreambule = true;
+        }
+      else
+        {
+    	  OnThePreambule = false;
+        }
+    }
+  return OnThePreambule;
 }
+
+
+bool
+LoraInterferenceHelper::GetOnThePreamble (void)
+{
+	return m_onthepreamble;
+}
+
+Time
+LoraInterferenceHelper::GetColStart (void)
+{
+	return m_colstart;
+}
+
+Time
+LoraInterferenceHelper::GetColEnd (void)
+{
+	return m_colend;
+}
+
+uint8_t
+LoraInterferenceHelper::GetSF (void)
+{
+	return m_colsf;
+}
+
+void
+LoraInterferenceHelper::CleanParameters(void)
+{
+	m_onthepreamble = false;
+	m_colstart = Seconds(0);
+	m_colend = Seconds(0);
+	m_colsf = uint8_t(0);
+}
+
+
+}
+
+

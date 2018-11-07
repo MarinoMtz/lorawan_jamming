@@ -31,7 +31,6 @@ def build(bld):
         'model/simple-network-server.cc',
         'model/device-status.cc',
         'model/gateway-status.cc',
-        'model/tag-sender.cc',
         'helper/lora-interference-helper.cc',
         'helper/logical-lora-channel-helper.cc',
         'helper/lora-helper.cc',
@@ -42,6 +41,7 @@ def build(bld):
         'helper/forwarder-helper.cc',
         'helper/network-server-helper.cc',
         'helper/lora-energy-consumption-helper.cc',
+        'helper/attack-helper.cc',
         
         ]
 
@@ -75,7 +75,6 @@ def build(bld):
         'model/simple-network-server.h',
         'model/device-status.h',
         'model/gateway-status.h',
-        'model/tag-sender.h',
         'helper/logical-lora-channel-helper.h',
         'helper/lora-interference-helper.h',
         'helper/lora-helper.h',
@@ -86,6 +85,7 @@ def build(bld):
         'helper/forwarder-helper.h',
         'helper/network-server-helper.h',
         'helper/lora-energy-consumption-helper.h',
+        'helper/attack-helper.h',
         ]
 
     if bld.env.ENABLE_EXAMPLES:

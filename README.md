@@ -34,10 +34,10 @@ E 0 3 2.40845  87.5989 4.29017
 ```
 The first field corresponds to the type of event (E=energy consumption, R=reception, T=transmission, Jamming, D=dead device, I=interference):
    - Energy consumption : E, Node ID, state (1=Tx, 2=Rx, 3=Stb, 4=sleep), cumulative consumption of the current event, remaining battery level, simulation time (in seconds)
-   - Reception : R, gateway ID, packet size (including header), simulation time, Tx end-device ID
+   - Reception : R, gateway ID, packet size (including header), Tx end-device ID, simulation time 
    - Transmission : T, node ID, packet size (including header), simulation time
    - Jamming : J, jammer ID, packet size (including header), simulation time
-   - Interference : I, node ID, packet size (including heqder), simulaton time
+   - Colission : C, Rx node ID, Sender ID, SF, Start Time, End Time, On the preamble (bool)
    - Dead device : D, Node ID, Cumulative consumption due to Tx events, Cumulative consumption due to Rx events, Cumulative consumption due to Sleep status, Dead Time
 
 5. Output files: appart from the LOG, there is also a possibility of printing some files that contain some parameters regarding the simulation:

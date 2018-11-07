@@ -56,8 +56,7 @@ public:
   virtual void StartReceive (Ptr<Packet> packet, double rxPowerDbm, uint8_t sf,
                              Time duration, double frequencyMHz);
 
-  virtual void EndReceive (Ptr<Packet> packet,
-                           Ptr<LoraInterferenceHelper::Event> event);
+  virtual void EndReceive (Ptr<Packet> packet, Ptr<LoraInterferenceHelper::Event> event);
 
   virtual void Send (Ptr<Packet> packet, LoraTxParameters txParams,
                      double frequencyMHz, double txPowerDbm);
@@ -198,7 +197,7 @@ private:
    *
    * \see class CallBackTraceSource
    */
-  TracedCallback<Ptr<const Packet>, uint32_t> m_noMoreDemodulators;
+  TracedCallback<Ptr<const Packet>, uint32_t,  uint32_t> m_noMoreDemodulators;
 
   bool m_isTransmitting; //!< Flag indicating whether a transmission is going on
 };

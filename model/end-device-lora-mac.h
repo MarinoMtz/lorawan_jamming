@@ -105,6 +105,14 @@ public:
    */
   void SetDataRate (uint8_t dataRate);
 
+    /**
+     * Set the TxPower this end device will use when transmitting. For End
+     * Devices, this value is assumed to be fixed, and can be modified via MAC
+     * commands issued by the GW.
+     */
+
+  void SetTxPower (double txPower);
+
   /**
    * Get the data rate this end device is set to use.
    *

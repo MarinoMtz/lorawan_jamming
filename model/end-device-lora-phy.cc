@@ -21,6 +21,7 @@
 #include <algorithm>
 #include "ns3/end-device-lora-phy.h"
 #include "ns3/simulator.h"
+#include "ns3/nstime.h"
 #include "ns3/lora-tag.h"
 #include "ns3/log.h"
 
@@ -66,6 +67,7 @@ EndDeviceLoraPhy::EndDeviceLoraPhy () :
   m_sf (7),
   m_last_time_stamp (Seconds(0)),
   m_last_state (4),
+  m_preamble (0.012544),
   m_battery_level (battery_capacity),
   m_cumulative_tx_conso (0),
   m_cumulative_rx_conso (0),
@@ -87,8 +89,6 @@ const double EndDeviceLoraPhy::sensitivity[6] =
 
 // Standard Battery Capacity in mAh
 const double EndDeviceLoraPhy::battery_capacity = 2400;
-// Standard Battery voltage in volts
-const double EndDeviceLoraPhy::voltage = 3.7;
 
 void
 EndDeviceLoraPhy::SetSpreadingFactor (uint8_t sf)
@@ -166,10 +166,15 @@ EndDeviceLoraPhy::Send (Ptr<Packet> packet, LoraTxParameters txParams,
   // Compute the duration of the transmission
   Time duration = GetOnAirTime (packet, txParams);
 
-  // Tag the packet with information about its Spreading Factor
+  // Compute the duration preamble, this will be used for the interference helper
+  Time preamble = GetPreambleTime (txParams.sf, txParams.bandwidthHz, txParams.nPreamble);
+
+  // Tag the packet with information about its Spreading Factor, the preamble and the sender ID
   LoraTag tag;
   packet->RemovePacketTag (tag);
   tag.SetSpreadingFactor (txParams.sf);
+  tag.SetPreamble(preamble.ToDouble(Time::S));
+  tag.SetSenderID (m_device->GetNode ()->GetId ());
   packet->AddPacketTag (tag);
 
   // Send the packet over the channel
@@ -374,6 +379,13 @@ EndDeviceLoraPhy::EndReceive (Ptr<Packet> packet,
   // Fire the trace source
   m_phyRxEndTrace (packet);
 
+  // Update the packet's LoraTag
+  LoraTag tag;
+  packet->RemovePacketTag (tag);
+  uint32_t SenderID = tag.GetSenderID();
+  packet->AddPacketTag (tag);
+
+
   // Call the LoraInterferenceHelper to determine whether there was destructive
   // interference on this event.
   bool packetDestroyed = m_interference.IsDestroyedByInterference (event);
@@ -383,13 +395,26 @@ EndDeviceLoraPhy::EndReceive (Ptr<Packet> packet,
     {
       NS_LOG_INFO ("Packet destroyed by interference");
 
+      bool OnThePreamble = m_interference.GetOnThePreamble ();
+      Time colstart = m_interference.GetColStart ();
+      Time colend = m_interference.GetColEnd ();
+	  uint8_t colsf = m_interference.GetSF ();
+
+      // Update the packet's LoraTag
+      LoraTag tag;
+      packet->RemovePacketTag (tag);
+      tag.SetDestroyedBy (packetDestroyed);
+      packet->AddPacketTag (tag);
+
+      NS_LOG_DEBUG ("Packet destroyed - collision Parameters: start time = " << colstart.GetSeconds() << " end time = " << colend.GetSeconds() << " on the preamble = " << OnThePreamble <<" Sender ID = " << SenderID << " SF = " << unsigned(colsf));
+
       if (m_device)
         {
-          m_interferedPacket (packet, m_device->GetNode ()->GetId ());
+    	  m_interferedPacket (packet, m_device->GetNode ()->GetId () , SenderID, colsf, colstart, colend, OnThePreamble);
         }
       else
         {
-          m_interferedPacket (packet, 0);
+          m_interferedPacket (packet, 0, SenderID, colsf, colstart, colend, OnThePreamble);
         }
 
     }
@@ -399,11 +424,11 @@ EndDeviceLoraPhy::EndReceive (Ptr<Packet> packet,
 
       if (m_device)
         {
-          m_successfullyReceivedPacket (packet, m_device->GetNode ()->GetId ());
+          m_successfullyReceivedPacket (packet, m_device->GetNode ()->GetId (), SenderID);
         }
       else
         {
-          m_successfullyReceivedPacket (packet, 0);
+          m_successfullyReceivedPacket (packet, 0, SenderID);
         }
 
       // If there is one, perform the callback to inform the upper layer

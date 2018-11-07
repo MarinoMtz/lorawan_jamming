@@ -231,6 +231,8 @@ public:
 
   static Time GetReceiveWindowTime (LoraTxParameters txParams, int txw);
 
+  static Time GetPreambleTime (uint8_t sf, double bandwidthHz, uint32_t nPreamble);
+
 private:
   Ptr<MobilityModel> m_mobility;   //!< The mobility model associated to this PHY.
 
@@ -273,7 +275,7 @@ protected:
    *
    * \see class CallBackTraceSource
    */
-  TracedCallback<Ptr<const Packet>, uint32_t> m_successfullyReceivedPacket;
+  TracedCallback<Ptr<const Packet>, uint32_t, uint32_t> m_successfullyReceivedPacket;
 
   /**
    * The trace source fired when a packet cannot be received because its power
@@ -289,7 +291,7 @@ protected:
    *
    * \see class CallBackTraceSource
    */
-  TracedCallback<Ptr<const Packet>, uint32_t> m_interferedPacket;
+  TracedCallback<Ptr<const Packet>, uint32_t, uint32_t, uint8_t, Time, Time, bool> m_interferedPacket;
 
 
   /**

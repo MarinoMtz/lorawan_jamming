@@ -25,6 +25,11 @@
 #include <algorithm>
 #include <ctime>
 
+
+//for tags
+#include "ns3/tag-sender.h"
+
+
 using namespace ns3;
 
 
@@ -64,6 +69,8 @@ enum PacketOutcome {
   UNSET
 };
 
+
+Ptr<Packet> EnableChecking;
 
 struct PacketStatus {
   Ptr<Packet const> packet;
@@ -132,6 +139,14 @@ TransmissionCallback (Ptr<Packet const> packet, uint32_t systemId)
   status.outcomes = std::vector<enum PacketOutcome> (nGateways, UNSET);
   packetTracker.insert (std::pair<Ptr<Packet const>, PacketStatus> (packet, status));
 
+  // create a tag.
+  MyTag tag;
+  tag.SetSimpleValue (systemId);
+  //tag.SetSimpleValue (0xFF);
+  packet->AddPacketTag (tag);
+
+  // Print
+
   if (systemId < nDevices)
   {
 	  std::cout << "T " << systemId << " " << packet->GetSize () << " " << Simulator::Now ().GetSeconds () << std::endl;
@@ -144,10 +159,18 @@ TransmissionCallback (Ptr<Packet const> packet, uint32_t systemId)
 }
 
 void
-PacketReceptionCallback (Ptr<Packet const> packet, uint32_t systemId, uint32_t SenderID)
+PacketReceptionCallback (Ptr<Packet const> packet, uint32_t systemId)
 {
   // Remove the successfully received packet from the list of sent ones
   // NS_LOG_INFO ("A packet was successfully received at gateway " << systemId);
+
+
+	  // create a copy of the packet
+	  Ptr<Packet> aCopy = packet->Copy ();
+
+	  // read the tag from the packet copy
+	  MyTag sender_tag;
+	  aCopy->PeekPacketTag (sender_tag);
 
 
   std::map<Ptr<Packet const>, PacketStatus>::iterator it = packetTracker.find (packet);
@@ -157,17 +180,22 @@ PacketReceptionCallback (Ptr<Packet const> packet, uint32_t systemId, uint32_t S
   CheckReceptionByAllGWsComplete (it);
 
   // Print
-  std::cout << "R " << systemId << " " << packet->GetSize () << " " << SenderID << " " << Simulator::Now ().GetSeconds () << std::endl;
+  std::cout << "R " << systemId << " " << packet->GetSize () << " " << Simulator::Now ().GetSeconds ()  << " ";
+
+  sender_tag.Print (std::cout);
+  std::cout << std::endl;
+
+//  aCopy->PrintPacketTags (std::cout);
 
 }
 
 void
-CollisionCallback (Ptr<Packet const> packet, uint32_t systemId, uint32_t interferingID, uint8_t SF, Time colstart, Time coldend, bool onthepreable)
-
+InterferenceCallback (Ptr<Packet const> packet, uint32_t systemId)
 {
   //NS_LOG_INFO ("A packet was lost because of interference at gateway " << systemId);
 
-  std::cout << "C " << systemId << " " << interferingID << " " << unsigned(SF) << " " << colstart.GetSeconds() << " " << coldend.GetSeconds() << " " << onthepreable << std::endl;
+    //packet->AddPacketTag (const ns3::Tag);
+  std::cout << "I " << systemId << " " << packet->GetSize () << " " << Simulator::Now ().GetSeconds () << std::endl;
 
   std::map<Ptr<Packet const>, PacketStatus>::iterator it = packetTracker.find (packet);
   (*it).second.outcomes.at (systemId - nJammers - nDevices) = INTERFERED;
@@ -177,11 +205,10 @@ CollisionCallback (Ptr<Packet const> packet, uint32_t systemId, uint32_t interfe
 }
 
 void
-NoMoreReceiversCallback (Ptr<Packet const> packet, uint32_t systemId, uint32_t SenderID)
+NoMoreReceiversCallback (Ptr<Packet const> packet, uint32_t systemId)
 {
   // NS_LOG_INFO ("A packet was lost because there were no more receivers at gateway " << systemId);
 
-  std::cout << "D " << systemId << " " << SenderID << std::endl;
   std::map<Ptr<Packet const>, PacketStatus>::iterator it = packetTracker.find (packet);
   (*it).second.outcomes.at (systemId - nJammers - nDevices) = NO_MORE_RECEIVERS;
   (*it).second.outcomeNumber += 1;
@@ -507,7 +534,7 @@ int main (int argc, char *argv[])
       gwPhy->TraceConnectWithoutContext ("ReceivedPacket",
                                          MakeCallback (&PacketReceptionCallback));
       gwPhy->TraceConnectWithoutContext ("LostPacketBecauseInterference",
-                                         MakeCallback (&CollisionCallback));
+                                         MakeCallback (&InterferenceCallback));
       gwPhy->TraceConnectWithoutContext ("LostPacketBecauseNoMoreReceivers",
                                          MakeCallback (&NoMoreReceiversCallback));
       gwPhy->TraceConnectWithoutContext ("LostPacketBecauseUnderSensitivity",
@@ -526,7 +553,7 @@ int main (int argc, char *argv[])
   *  Set up the end jammer's spreading factor  *
   **********************************************/
 
-  macHelper.SetSpreadingFactorsUpJm (Jammers, gateways, channel, 100);
+  macHelper.SetSpreadingFactorsUpJm (Jammers, gateways, channel);
 
   // Verify if we can change this to set manually an specific SF for the Jam nodes
 

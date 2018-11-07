@@ -184,7 +184,7 @@ EndDeviceLoraMac::Send (Ptr<Packet> packet)
       // Wake up PHY layer and directly send the packet
 
       // Make sure we can transmit at the current power on this channel
-      NS_ASSERT (m_txPower <= m_channelHelper.GetTxPowerForChannel (txChannel));
+      //NS_ASSERT (m_txPower <= m_channelHelper.GetTxPowerForChannel (txChannel));
       m_phy->GetObject<EndDeviceLoraPhy> ()->SwitchToStandby ();
       m_phy->Send (packet, params, txChannel->GetFrequency (), m_txPower);
 
@@ -636,6 +636,14 @@ EndDeviceLoraMac::SetDataRate (uint8_t dataRate)
   NS_LOG_FUNCTION (this << unsigned (dataRate));
 
   m_dataRate = dataRate;
+}
+
+void
+EndDeviceLoraMac::SetTxPower (double txPower)
+{
+  NS_LOG_FUNCTION (this << unsigned (txPower));
+
+  m_txPower = txPower;
 }
 
 uint8_t

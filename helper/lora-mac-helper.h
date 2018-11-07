@@ -92,6 +92,8 @@ public:
    */
   void SetRegion (enum Regions region);
 
+  void SetTxPower (double txpower);
+
   /**
    * Create the LoRaMac instance and connect it to a device
    *
@@ -118,7 +120,8 @@ public:
 
   static void SetSpreadingFactorsUpJm (NodeContainer Jammers,
                                        NodeContainer gateways,
-									   Ptr<LoraChannel> channel);
+									   Ptr<LoraChannel> channel,
+									   double txpower);
 
 
 private:

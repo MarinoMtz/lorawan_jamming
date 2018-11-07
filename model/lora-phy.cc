@@ -241,6 +241,26 @@ LoraPhy::GetReceiveWindowTime (LoraTxParameters txParams, int txw)
 
 }
 
+Time
+LoraPhy::GetPreambleTime (uint8_t sf, double bandwidthHz, uint32_t nPreamble)
+{
+
+	  NS_LOG_FUNCTION (sf << bandwidthHz << nPreamble);
+
+	  // The contents of this function are based on [1].
+	  // [1] SX1272 LoRa modem designer's guide.
+
+	  // Compute the symbol duration
+	  // Bandwidth is in Hz
+	  double tSym = pow (2, int(sf)) / (bandwidthHz);
+
+	  // Compute the preamble duration
+	  double tPreamble = (double(nPreamble) + 4.25) * tSym;
+
+  return Seconds (tPreamble);
+
+}
+
 std::ostream &operator << (std::ostream &os, const LoraTxParameters &params)
 {
   os << "SF: " << unsigned(params.sf) <<

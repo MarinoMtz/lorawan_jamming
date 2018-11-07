@@ -40,7 +40,6 @@ PeriodicSenderHelper::PeriodicSenderHelper ()
 
   m_initialDelay = CreateObject<UniformRandomVariable> ();
   m_initialDelay->SetAttribute ("Min", DoubleValue (0));
-
   m_intervalProb = CreateObject<UniformRandomVariable> ();
   m_intervalProb->SetAttribute ("Min", DoubleValue (0));
   m_intervalProb->SetAttribute ("Max", DoubleValue (1));
@@ -109,6 +108,7 @@ PeriodicSenderHelper::InstallPriv (Ptr<Node> node) const
   else interval = m_period;
 
   app->SetInterval (interval);
+
   NS_LOG_DEBUG ("Created an application with interval = " <<
                 interval.GetMinutes () << " minutes");
 

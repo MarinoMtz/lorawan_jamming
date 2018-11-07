@@ -241,6 +241,8 @@ private:
 
   Time m_last_time_stamp;
 
+  Time m_preamble;
+
   int m_last_state;
 
   /**

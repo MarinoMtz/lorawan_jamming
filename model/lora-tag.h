@@ -116,11 +116,25 @@ public:
   uint8_t GetDataRate (void);
 
   /**
+   * Get the preamble for this packet.
+   *
+   * \return The preamble of this packet.
+   */
+  void SetDataRate (uint8_t dataRate);
+
+  double GetPreamble(void);
+
+  void SetPreamble (double Preamble);
+  /**
    * Set the data rate for this packet.
    *
    * \param dataRate The data rate.
    */
-  void SetDataRate (uint8_t dataRate);
+
+  uint32_t GetSenderID (void);
+
+  void SetSenderID (uint32_t senderid);
+
 
 private:
   uint8_t m_sf; //!< The Spreading Factor used by the packet.
@@ -129,6 +143,11 @@ private:
   uint8_t m_dataRate; //!< The Data Rate that needs to be used to send this
                       //!packet.
   double m_frequency; //!< The frequency of this packet
+  double m_preamble; //!< The preamble time of this packet
+  uint32_t m_senderid;
+
+
+
 };
 } // namespace ns3
 #endif
