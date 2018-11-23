@@ -176,8 +176,9 @@ SimpleNetworkServer::Receive (Ptr<NetDevice> device, Ptr<const Packet> packet,
                                                                   rcvPower);
 
   // Determine whether the packet requires a reply
-  if (macHdr.GetMType () == LoraMacHeader::CONFIRMED_DATA_UP &&
-      !m_deviceStatuses.at (frameHdr.GetAddress ()).HasReply ())
+  if (macHdr.GetMType () == LoraMacHeader::CONFIRMED_DATA_UP
+		  //&&      !m_deviceStatuses.at (frameHdr.GetAddress ()).HasReply ()
+		  )
     {
       NS_LOG_DEBUG ("Scheduling a reply for this device");
 

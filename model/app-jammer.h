@@ -18,21 +18,69 @@
  * Author: Davide Magrin <magrinda@dei.unipd.it>
  */
 
-#ifndef PERIODIC_SENDER_H
-#define PERIODIC_SENDER_H
+#ifndef APP_JAMMER_H
+#define APP_JAMMER_H
 
 #include "ns3/application.h"
 #include "ns3/nstime.h"
 #include "ns3/lora-mac.h"
+#include "ns3/jammer-lora-phy.h"
+#include "ns3/jammer-lora-mac.h"
 #include "ns3/attribute.h"
 
 namespace ns3 {
 
-class PeriodicSender : public Application {
+class AppJammer : public Application {
+
 public:
 
-  PeriodicSender ();
-  ~PeriodicSender ();
+	  class Event : public SimpleRefCount<AppJammer::Event>
+	  {
+
+	public:
+
+	  Event (Ptr<Packet> packet, double rxPowerDbm,
+		        uint8_t sf, Time duration, double frequencyMHz, double Type);
+	  ~Event ();
+
+	private:
+
+	  /**
+	    * The packet this event was generated for.
+	    */
+	  Ptr<Packet> m_packet;
+
+	  /**
+	   * The power of this event in dBm (at the device).
+	   */
+	  double m_rxPowerdBm;
+
+	  /**
+	   * The spreading factor of this signal.
+	   */
+	  uint8_t m_sf;
+
+	  /**
+	   * Duration of the packet.
+	   */
+	  Time m_duration;
+
+	  /**
+	   * The frequency this event was on.
+	   */
+	  double m_frequencyMHz;
+
+	  };
+
+  AppJammer ();
+  ~AppJammer ();
+
+  Ptr<AppJammer::Event> Add (Ptr<Packet> packet,
+		  	  	  	  	  	 double rxPowerDbm,
+							 uint8_t sf,
+							 Time duration,
+							 double frequencyMHz,
+							 double Type);
 
   static TypeId GetTypeId (void);
 
@@ -68,8 +116,20 @@ public:
    */
   void StopApplication (void);
 
-
+  /**
+   * Set packet size
+   */
   void SetPktSize  (uint16_t size);
+
+  /**
+   * Set Jammer type
+   */
+
+  void SelectType (Ptr<Packet> packet, double rxPowerDbm,
+  		  	  	uint8_t sf, Time duration, double frequencyMHz, double Type);
+
+  void JammerI (Ptr<Packet> packet, double rxPowerDbm,
+  		  	  	uint8_t sf, Time duration, double frequencyMHz);
 
 
 private:
@@ -92,14 +152,26 @@ private:
   /**
    * The MAC layer of this node
    */
-  Ptr<LoraMac> m_mac;
+  Ptr<JammerLoraMac> m_mac;
+
+  /**
+   * The PHY layer of this node
+   */
+  Ptr<LoraPhy> m_phy;
 
   /**
    * The size of the packets this application sends
    */
   uint16_t m_pktSize;
+
+  /**
+   * Jammer type
+   */
+  uint8_t m_jammer_type;
+
+
 };
 
 } //namespace ns3
 
-#endif /* SENDER_APPLICATION */
+#endif /* APP_JAMMER */

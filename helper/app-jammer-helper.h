@@ -18,8 +18,8 @@
  * Author: Davide Magrin <magrinda@dei.unipd.it>
  */
 
-#ifndef PERIODIC_SENDER_HELPER_H
-#define PERIODIC_SENDER_HELPER_H
+#ifndef APP_JAMMER_HELPER_H
+#define APP_JAMMER_HELPER_H
 
 #include "ns3/object-factory.h"
 #include "ns3/address.h"
@@ -27,23 +27,23 @@
 #include "ns3/net-device.h"
 #include "ns3/node-container.h"
 #include "ns3/application-container.h"
-#include "ns3/periodic-sender.h"
+#include "ns3/app-jammer.h"
 #include <stdint.h>
 #include <string>
 
 namespace ns3 {
 
 /**
- * This class can be used to install PeriodicSender applications on a wide
+ * This class can be used to install AppJammer applications on a wide
  * range of nodes.
  */
 
-class PeriodicSenderHelper
+class AppJammerHelper
 {
 public:
-  PeriodicSenderHelper ();
+  AppJammerHelper ();
 
-  ~PeriodicSenderHelper ();
+  ~AppJammerHelper ();
 
   void SetAttribute (std::string name, const AttributeValue &value);
 
@@ -63,8 +63,6 @@ public:
 
   void SetPacketSize (uint16_t size);
 
-  void SetType (uint8_t);
-
 private:
   Ptr<Application> InstallPriv (Ptr<Node> node) const;
 
@@ -82,4 +80,4 @@ private:
 
 } // namespace ns3
 
-#endif /* PERIODIC_SENDER_HELPER_H */
+#endif /* APP_JAMMER_HELPER_H */

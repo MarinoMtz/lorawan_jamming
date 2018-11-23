@@ -63,7 +63,7 @@ EndDeviceLoraPhy::GetTypeId (void)
 EndDeviceLoraPhy::EndDeviceLoraPhy () :
 
   m_state (SLEEP),
-  m_frequency (868.1),
+  m_frequency (868.3),
   m_sf (7),
   m_last_time_stamp (Seconds(0)),
   m_last_state (4),
@@ -211,11 +211,11 @@ EndDeviceLoraPhy::Send (Ptr<Packet> packet, LoraTxParameters txParams,
   // Call the trace source
   if (m_device)
     {
-      m_startSending (packet, m_device->GetNode ()->GetId ());
+      m_startSending (packet, m_device->GetNode ()->GetId (), frequencyMHz, txParams.sf);
     }
   else
     {
-      m_startSending (packet, 0);
+      m_startSending (packet, 0, 0, 0);
     }
   }
 }
@@ -227,6 +227,7 @@ EndDeviceLoraPhy::StartReceive (Ptr<Packet> packet, double rxPowerDbm,
 
   NS_LOG_FUNCTION (this << packet << rxPowerDbm << unsigned (sf) << duration <<
                    frequencyMHz);
+  NS_LOG_INFO ("End device receive");
 
   // Notify the LoraInterferenceHelper of the impinging signal, and remember
   // the event it creates. This will be used then to correctly handle the end
@@ -385,7 +386,6 @@ EndDeviceLoraPhy::EndReceive (Ptr<Packet> packet,
   uint32_t SenderID = tag.GetSenderID();
   packet->AddPacketTag (tag);
 
-
   // Call the LoraInterferenceHelper to determine whether there was destructive
   // interference on this event.
   bool packetDestroyed = m_interference.IsDestroyedByInterference (event);
@@ -422,13 +422,16 @@ EndDeviceLoraPhy::EndReceive (Ptr<Packet> packet,
     {
       NS_LOG_INFO ("Packet received correctly");
 
+      uint32_t ID = m_device->GetNode ()->GetId ();
+      NS_LOG_DEBUG ("Receiver ID" << ID);
+
       if (m_device)
         {
-          m_successfullyReceivedPacket (packet, m_device->GetNode ()->GetId (), SenderID);
+          m_successfullyReceivedPacket (packet, m_device->GetNode ()->GetId (), SenderID, event->GetFrequency (), event->GetSpreadingFactor () );
         }
       else
         {
-          m_successfullyReceivedPacket (packet, 0, SenderID);
+          m_successfullyReceivedPacket (packet, 0, SenderID, event->GetFrequency (), event->GetSpreadingFactor ());
         }
 
       // If there is one, perform the callback to inform the upper layer

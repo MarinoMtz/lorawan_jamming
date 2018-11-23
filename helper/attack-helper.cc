@@ -19,7 +19,6 @@
  */
 
 #include "ns3/attack-helper.h"
-#include "ns3/gateway-lora-phy.h"
 #include "ns3/lora-net-device.h"
 #include "ns3/log.h"
 
@@ -32,85 +31,140 @@ AttackHelper::AttackHelper ()
 }
 
 void
-AttackHelper::SetConfig (NodeContainer Jammers, NodeContainer gateways, Ptr<LoraChannel> channel, double txpower)
+AttackHelper::SetSF (NodeContainer Jammers, uint8_t dataRate)
 {
   NS_LOG_FUNCTION_NOARGS ();
 
   for (NodeContainer::Iterator j = Jammers.Begin (); j != Jammers.End (); ++j)
     {
       Ptr<Node> object = *j;
-      Ptr<MobilityModel> position = object->GetObject<MobilityModel> ();
-      NS_ASSERT (position != 0);
       Ptr<NetDevice> netDevice = object->GetDevice (0);
       Ptr<LoraNetDevice> loraNetDevice = netDevice->GetObject<LoraNetDevice> ();
       NS_ASSERT (loraNetDevice != 0);
-      Ptr<EndDeviceLoraMac> mac = loraNetDevice->GetMac ()->GetObject<EndDeviceLoraMac> ();
+      Ptr<JammerLoraMac> mac = loraNetDevice->GetMac ()->GetObject<JammerLoraMac> ();
       NS_ASSERT (mac != 0);
 
-      // Try computing the distance from each gateway and find the best one
-      Ptr<Node> bestGateway = gateways.Get (0);
-      Ptr<MobilityModel> bestGatewayPosition = bestGateway->GetObject<MobilityModel> ();
+      mac->SetDataRate (dataRate);
 
-      mac->SetTxPower (txpower);
-
-      // Assume devices transmit at 14 dBm
-      double highestRxPower = channel->GetRxPower (14, position, bestGatewayPosition);
-
-      for (NodeContainer::Iterator currentGw = gateways.Begin () + 1;
-           currentGw != gateways.End (); ++currentGw)
-        {
-          // Compute the power received from the current gateway
-          Ptr<Node> curr = *currentGw;
-          Ptr<MobilityModel> currPosition = curr->GetObject<MobilityModel> ();
-          double currentRxPower = channel->GetRxPower (14, position, currPosition);    // dBm
-
-          if (currentRxPower > highestRxPower)
-            {
-              bestGateway = curr;
-              bestGatewayPosition = curr->GetObject<MobilityModel> ();
-              highestRxPower = currentRxPower;
-            }
-        }
-
-      // NS_LOG_DEBUG ("Rx Power: " << highestRxPower);
-      double rxPower = highestRxPower;
-
-      // Get the Gw sensitivity
-      Ptr<NetDevice> gatewayNetDevice = bestGateway->GetDevice (0);
-      Ptr<LoraNetDevice> gatewayLoraNetDevice = gatewayNetDevice->GetObject<LoraNetDevice> ();
-      Ptr<GatewayLoraPhy> gatewayPhy = gatewayLoraNetDevice->GetPhy ()->GetObject<GatewayLoraPhy> ();
-      const double *gwSensitivity = gatewayPhy->sensitivity;
-
-      if(rxPower > *gwSensitivity)
-        {
-          mac->SetDataRate (5);
-        }
-      else if (rxPower > *(gwSensitivity+1))
-        {
-          mac->SetDataRate (4);
-        }
-      else if (rxPower > *(gwSensitivity+2))
-        {
-          mac->SetDataRate (3);
-        }
-      else if (rxPower > *(gwSensitivity+3))
-        {
-          mac->SetDataRate (2);
-        }
-      else if (rxPower > *(gwSensitivity+4))
-        {
-          mac->SetDataRate (1);
-        }
-      else if (rxPower > *(gwSensitivity+5))
-        {
-          mac->SetDataRate (0);
-        }
-      else // Device is out of range. Assign SF12.
-        {
-          mac->SetDataRate (0);
-        }
     }
 }
 
+void
+AttackHelper::SetType (NodeContainer Jammers, double type)
+{
+  NS_LOG_FUNCTION_NOARGS ();
+
+  for (NodeContainer::Iterator j = Jammers.Begin (); j != Jammers.End (); ++j)
+    {
+      Ptr<Node> object = *j;
+      Ptr<NetDevice> netDevice = object->GetDevice (0);
+      Ptr<LoraNetDevice> loraNetDevice = netDevice->GetObject<LoraNetDevice> ();
+      NS_ASSERT (loraNetDevice != 0);
+      Ptr<JammerLoraMac> mac = loraNetDevice->GetMac ()->GetObject<JammerLoraMac> ();
+      NS_ASSERT (mac != 0);
+      mac->SetType (type);
+
+      Ptr<JammerLoraPhy> phy = loraNetDevice->GetPhy ()->GetObject<JammerLoraPhy> ();
+      NS_ASSERT (phy != 0);
+      phy->SetType (type);
+
+    }
 }
+
+
+void
+AttackHelper::SetTxPower (NodeContainer Jammers, double txpower)
+{
+	NS_LOG_FUNCTION_NOARGS ();
+
+	for (NodeContainer::Iterator j = Jammers.Begin (); j != Jammers.End (); ++j)
+	    {
+	      Ptr<Node> object = *j;
+	      Ptr<NetDevice> netDevice = object->GetDevice (0);
+	      Ptr<LoraNetDevice> loraNetDevice = netDevice->GetObject<LoraNetDevice> ();
+	      NS_ASSERT (loraNetDevice != 0);
+	      Ptr<JammerLoraMac> mac = loraNetDevice->GetMac ()->GetObject<JammerLoraMac> ();
+	      NS_ASSERT (mac != 0);
+	      mac->SetTxPower (txpower);
+	    }
+
+}
+
+void
+AttackHelper::ConfigureForEuRegionJm (NodeContainer Jammers) const
+{
+  NS_LOG_FUNCTION_NOARGS ();
+
+  for (NodeContainer::Iterator j = Jammers.Begin (); j != Jammers.End (); ++j)
+	  {
+
+      	  Ptr<Node> object = *j;
+      	  Ptr<NetDevice> netDevice = object->GetDevice (0);
+      	  Ptr<LoraNetDevice> loraNetDevice = netDevice->GetObject<LoraNetDevice> ();
+      	  NS_ASSERT (loraNetDevice != 0);
+      	  Ptr<JammerLoraMac> mac = loraNetDevice->GetMac ()->GetObject<JammerLoraMac> ();
+
+      	  mac->SetSfForDataRate (std::vector<uint8_t> {12,11,10,9,8,7,7});
+      	  mac->SetBandwidthForDataRate (std::vector<double> {125000,125000,125000,125000,125000,125000,250000});
+      	  mac->SetMaxAppPayloadForDataRate (std::vector<uint32_t> {59,59,59,123,230,230,230,230});
+
+      	  /////////////////////////////////////////////////////
+      	  // TxPower -> Transmission power in dBm conversion //
+      	  /////////////////////////////////////////////////////
+      	  mac->SetTxDbmForTxPower (std::vector<double> {16, 14, 12, 10, 8, 6, 4, 2});
+      	  //  jmMac->SetTxDbmForTxPower (std::vector<double> {100, 100, 100, 100, 100, 100, 100, 100});
+
+      	  ////////////////////////////////////////////////////////////
+      	  // Matrix to know which DataRate the GW will respond with //
+      	  ////////////////////////////////////////////////////////////
+      	  LoraMac::ReplyDataRateMatrix matrix = {{{{0,0,0,0,0,0}},
+      			  	  	  	  	  	  	  	  	 {{1,0,0,0,0,0}},
+												 {{2,1,0,0,0,0}},
+												 {{3,2,1,0,0,0}},
+												 {{4,3,2,1,0,0}},
+												 {{5,4,3,2,1,0}},
+												 {{6,5,4,3,2,1}},
+												 {{7,6,5,4,3,2}}}};
+      	  mac->SetReplyDataRateMatrix (matrix);
+
+      	  /////////////////////
+      	  // Preamble length //
+      	  /////////////////////
+      	  mac->SetNPreambleSymbols (8);
+
+	    }
+}
+
+void
+AttackHelper::ConfigureBand (NodeContainer Jammers,
+							 double firstFrequency,
+							 double lastFrequency,
+							 double dutyCycle,
+							 double maxTxPowerDbm,
+							 double frequency,
+							 uint8_t minDataRate,
+							 uint8_t maxDataRate)
+{
+  NS_LOG_FUNCTION_NOARGS ();
+
+  for (NodeContainer::Iterator j = Jammers.Begin (); j != Jammers.End (); ++j)
+	  {
+
+      	  Ptr<Node> object = *j;
+      	  Ptr<NetDevice> netDevice = object->GetDevice (0);
+      	  Ptr<LoraNetDevice> loraNetDevice = netDevice->GetObject<LoraNetDevice> ();
+      	  NS_ASSERT (loraNetDevice != 0);
+      	  Ptr<JammerLoraMac> mac = loraNetDevice->GetMac ()->GetObject<JammerLoraMac> ();
+
+
+      	  LogicalLoraChannelHelper channelHelper;
+      	  channelHelper.AddSubBand (firstFrequency, lastFrequency, dutyCycle, maxTxPowerDbm);
+      	  Ptr<LogicalLoraChannel> lc1 = CreateObject<LogicalLoraChannel> (frequency, minDataRate, maxDataRate);
+      	  channelHelper.AddChannel (lc1);
+      	  mac->SetLogicalLoraChannelHelper (channelHelper);
+
+	  }
+}
+}
+
 

@@ -15,8 +15,10 @@ def build(bld):
         'model/lora-channel.cc',
         'model/gateway-lora-mac.cc',
         'model/end-device-lora-mac.cc',
+        'model/jammer-lora-mac.cc',
         'model/gateway-lora-phy.cc',
         'model/end-device-lora-phy.cc',
+        'model/jammer-lora-phy.cc',
         'model/sub-band.cc',
         'model/logical-lora-channel.cc',
         'model/periodic-sender.cc',
@@ -31,6 +33,7 @@ def build(bld):
         'model/simple-network-server.cc',
         'model/device-status.cc',
         'model/gateway-status.cc',
+        'model/app-jammer.cc',
         'helper/lora-interference-helper.cc',
         'helper/logical-lora-channel-helper.cc',
         'helper/lora-helper.cc',
@@ -42,7 +45,7 @@ def build(bld):
         'helper/network-server-helper.cc',
         'helper/lora-energy-consumption-helper.cc',
         'helper/attack-helper.cc',
-        
+        'helper/app-jammer-helper.cc'
         ]
 
     module_test = bld.create_ns3_module_test_library('lorawan')
@@ -59,8 +62,10 @@ def build(bld):
         'model/lora-channel.h',
         'model/gateway-lora-mac.h',
         'model/end-device-lora-mac.h',
+        'model/jammer-lora-mac.h',
         'model/gateway-lora-phy.h',
         'model/end-device-lora-phy.h',
+        'model/jammer-lora-phy.h',
         'model/sub-band.h',
         'model/logical-lora-channel.h',
         'model/periodic-sender.h',
@@ -75,6 +80,7 @@ def build(bld):
         'model/simple-network-server.h',
         'model/device-status.h',
         'model/gateway-status.h',
+        'model/app-jammer.h',
         'helper/logical-lora-channel-helper.h',
         'helper/lora-interference-helper.h',
         'helper/lora-helper.h',
@@ -86,6 +92,7 @@ def build(bld):
         'helper/network-server-helper.h',
         'helper/lora-energy-consumption-helper.h',
         'helper/attack-helper.h',
+        'helper/app-jammer-helper.h'
         ]
 
     if bld.env.ENABLE_EXAMPLES:

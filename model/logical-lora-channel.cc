@@ -42,7 +42,8 @@ LogicalLoraChannel::LogicalLoraChannel () :
   m_maxDataRate (5),
   m_enabledForUplink (true)
 {
-  NS_LOG_FUNCTION (this);
+  //NS_LOG_FUNCTION (this);
+  //NS_LOG_DEBUG ("Current Channel " <<  m_frequency);
 }
 
 LogicalLoraChannel::~LogicalLoraChannel () {
@@ -53,7 +54,8 @@ LogicalLoraChannel::LogicalLoraChannel (double frequency) :
   m_frequency (frequency),
   m_enabledForUplink (true)
 {
-  NS_LOG_FUNCTION (this);
+  //NS_LOG_FUNCTION (this);
+  //NS_LOG_DEBUG ("Current Channel " <<  frequency);
 }
 
 LogicalLoraChannel::LogicalLoraChannel (double frequency, uint8_t minDataRate,
@@ -63,7 +65,8 @@ LogicalLoraChannel::LogicalLoraChannel (double frequency, uint8_t minDataRate,
   m_maxDataRate (maxDataRate),
   m_enabledForUplink (true)
 {
-  NS_LOG_FUNCTION (this);
+//  NS_LOG_FUNCTION (this);
+  NS_LOG_DEBUG ("Logical Channel " <<  frequency << " " << unsigned(minDataRate) << " " << unsigned(maxDataRate) );
 }
 
 double

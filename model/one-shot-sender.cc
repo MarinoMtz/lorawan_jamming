@@ -21,6 +21,7 @@
 #include "ns3/one-shot-sender.h"
 #include "ns3/end-device-lora-mac.h"
 #include "ns3/Jammer-lora-mac.h"
+#include "ns3/gateway-lora-mac.h"
 #include "ns3/pointer.h"
 #include "ns3/log.h"
 #include "ns3/double.h"
@@ -74,8 +75,8 @@ OneShotSender::SendPacket (void)
 
   // Create and send a new packet
   Ptr<Packet> packet = Create<Packet>(10);
-  m_mac->GetObject<EndDeviceLoraMac> ()->SetMType
-    (LoraMacHeader::CONFIRMED_DATA_UP);
+  m_mac->GetObject<JammerLoraMac> ();
+
   m_mac->Send (packet);
 }
 

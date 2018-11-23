@@ -26,11 +26,10 @@
 #include "ns3/lora-phy.h"
 #include "ns3/lora-mac.h"
 #include "ns3/lora-device-address-generator.h"
-#include "ns3/end-device-lora-mac.h"
+#include "ns3/jammer-lora-mac.h"
+#include "ns3/jammer-lora-phy.h"
 #include "ns3/gateway-lora-mac.h"
 #include "ns3/node-container.h"
-
-
 namespace ns3 {
 
 class AttackHelper
@@ -40,11 +39,25 @@ public:
 
 	AttackHelper ();
 
-	static void SetConfig (NodeContainer Jammers,
-						   NodeContainer gateways,
-						   Ptr<LoraChannel> channel,
-						   double txpower);
+	static void SetSF (NodeContainer Jammers,
+					   uint8_t dataRate);
 
+
+	static void SetTxPower (NodeContainer Jammers,
+							double txpower);
+
+	void ConfigureForEuRegionJm (NodeContainer Jammers) const;
+
+	void ConfigureBand (NodeContainer Jammers,
+						double firstFrequency,
+						double lastFrequency,
+						double dutyCycle,
+						double maxTxPowerDbm,
+						double frequency,
+						uint8_t minDataRate,
+						uint8_t maxDataRate);
+
+	void SetType (NodeContainer Jammers, double type);
 };
 
 } //namespace ns3

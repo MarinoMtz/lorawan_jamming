@@ -48,9 +48,10 @@ LoraTag::LoraTag (uint8_t sf, uint8_t destroyedBy) :
   m_destroyedBy (destroyedBy),
   m_receivePower (0),
   m_dataRate (0),
-  m_frequency (0),
+  m_frequency (868.2),
   m_preamble (0.01254),
-  m_senderid (0)
+  m_senderid (0),
+  m_jammer(0)
 {
 }
 
@@ -63,7 +64,7 @@ LoraTag::GetSerializedSize (void) const
 {
   // Each datum about a SF is 1 byte + receivePower (the size of a double) +
   // frequency (the size of a double)
-  return 3 + 3*sizeof(double) + sizeof(uint32_t);
+  return 4 + 3*sizeof(double) + sizeof(uint32_t);
 }
 
 void
@@ -76,6 +77,7 @@ LoraTag::Serialize (TagBuffer i) const
   i.WriteDouble (m_frequency);
   i.WriteDouble (m_preamble);
   i.WriteU32 (m_senderid);
+  i.WriteU8 (m_jammer);
 
 }
 
@@ -89,6 +91,7 @@ LoraTag::Deserialize (TagBuffer i)
   m_frequency = i.ReadDouble ();
   m_preamble = i.ReadDouble ();
   m_senderid = i.ReadU32 ();
+  m_jammer = i.ReadU8 ();
 
 }
 
@@ -183,5 +186,16 @@ LoraTag::SetSenderID (uint32_t senderid)
 	m_senderid = senderid;
 }
 
+uint8_t
+LoraTag::GetJammer (void)
+{
+  return m_jammer;
+}
+
+void
+LoraTag::SetJammer (uint8_t jammer)
+{
+  m_jammer = jammer;
+}
 
 } // namespace ns3

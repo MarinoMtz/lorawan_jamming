@@ -18,7 +18,7 @@
  * Author: Davide Magrin <magrinda@dei.unipd.it>
  */
 
-#include "ns3/periodic-sender-helper.h"
+#include "ns3/app-jammer-helper.h"
 #include "ns3/random-variable-stream.h"
 #include "ns3/periodic-sender.h"
 #include "ns3/double.h"
@@ -29,35 +29,34 @@
 
 namespace ns3 {
 
-NS_LOG_COMPONENT_DEFINE ("PeriodicSenderHelper");
+NS_LOG_COMPONENT_DEFINE ("AppJammerHelper");
 
-PeriodicSenderHelper::PeriodicSenderHelper ()
+AppJammerHelper::AppJammerHelper ()
 {
-  m_factory.SetTypeId ("ns3::PeriodicSender");
-
+  m_factory.SetTypeId ("ns3::AppJammer");
   m_initialDelay = CreateObject<UniformRandomVariable> ();
   m_initialDelay->SetAttribute ("Min", DoubleValue (0));
   m_size = 10;
 }
 
-PeriodicSenderHelper::~PeriodicSenderHelper ()
+AppJammerHelper::~AppJammerHelper ()
 {
 }
 
 void
-PeriodicSenderHelper::SetAttribute (std::string name, const AttributeValue &value)
+AppJammerHelper::SetAttribute (std::string name, const AttributeValue &value)
 {
   m_factory.Set (name, value);
 }
 
 ApplicationContainer
-PeriodicSenderHelper::Install (Ptr<Node> node) const
+AppJammerHelper::Install (Ptr<Node> node) const
 {
   return ApplicationContainer (InstallPriv (node));
 }
 
 ApplicationContainer
-PeriodicSenderHelper::Install (NodeContainer c) const
+AppJammerHelper::Install (NodeContainer c) const
 {
   ApplicationContainer apps;
   for (NodeContainer::Iterator i = c.Begin (); i != c.End (); ++i)
@@ -69,45 +68,37 @@ PeriodicSenderHelper::Install (NodeContainer c) const
 }
 
 Ptr<Application>
-PeriodicSenderHelper::InstallPriv (Ptr<Node> node) const
+AppJammerHelper::InstallPriv (Ptr<Node> node) const
 {
   NS_LOG_FUNCTION (this << node);
 
-  Ptr<PeriodicSender> app = m_factory.Create<PeriodicSender> ();
+  Ptr<AppJammer> app = m_factory.Create<AppJammer> ();
 
   Time interval;
-
-
   interval = m_period;
-
   app->SetInterval (interval);
 
-  NS_LOG_DEBUG ("Created an application with interval = " <<
-                interval.GetMinutes () << " minutes");
+  NS_LOG_DEBUG ("Created an application with interval = " <<interval.GetMinutes () << " minutes");
 
   //app->SetInitialDelay (Seconds (m_initialDelay->GetValue (0, interval.GetSeconds ())));
-
   app->SetInitialDelay (Seconds (0));
-
   app->SetNode (node);
-
   node->AddApplication (app);
-
   app->SetPktSize (m_size);
-
 
   return app;
 }
 
 void
-PeriodicSenderHelper::SetPeriod (Time period)
+AppJammerHelper::SetPeriod (Time period)
 {
   m_period = period;
 }
 
 void
-PeriodicSenderHelper::SetPacketSize (uint16_t size)
+AppJammerHelper::SetPacketSize (uint16_t size)
 {
   m_size = size;
 }
+
 } // namespace ns3

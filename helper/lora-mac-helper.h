@@ -27,6 +27,7 @@
 #include "ns3/lora-mac.h"
 #include "ns3/lora-device-address-generator.h"
 #include "ns3/end-device-lora-mac.h"
+#include "ns3/jammer-lora-mac.h"
 #include "ns3/gateway-lora-mac.h"
 #include "ns3/node-container.h"
 
@@ -117,12 +118,7 @@ public:
                                      NodeContainer gateways,
                                      Ptr<LoraChannel> channel);
 
-
-  static void SetSpreadingFactorsUpJm (NodeContainer Jammers,
-                                       NodeContainer gateways,
-									   Ptr<LoraChannel> channel,
-									   double txpower);
-
+  void SetMType (NodeContainer endDevices,LoraMacHeader::MType mType);
 
 private:
 
@@ -130,22 +126,17 @@ private:
    * Perform region-specific configurations for the 868 MHz EU band.
    */
   void ConfigureForEuRegion (Ptr<EndDeviceLoraMac> edMac) const;
-
-  void ConfigureForEuRegionJm (Ptr<EndDeviceLoraMac> jmMac) const;
-
   /**
    * Perform region-specific configurations for the 868 MHz EU band.
    */
   void ConfigureForEuRegion (Ptr<GatewayLoraMac> gwMac) const;
 
-  /**
+   /**
    * Apply configurations that are common both for the GatewayLoraMac and the
    * EndDeviceLoraMac classes.
    */
 
   void ApplyCommonEuConfigurations (Ptr<LoraMac> loraMac) const;
-
-  void ApplyCommonEuConfigurationsJm (Ptr<LoraMac> loraMac) const;
 
   ObjectFactory m_mac;
   Ptr<LoraDeviceAddressGenerator> m_addrGen; //!< Pointer to the address generator to use

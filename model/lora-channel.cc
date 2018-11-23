@@ -174,7 +174,8 @@ LoraChannel::Send (Ptr< LoraPhy > sender, Ptr< Packet > packet,
           Simulator::ScheduleWithContext (dstNode, delay, &LoraChannel::Receive,
                                           this, j, packet, parameters);
 
-          // Fire the trace source for sent packet
+//          Simulator::Schedule (delay, &LoraChannel::Receive,
+//                                          this, j, packet, parameters);
           m_packetSent (packet);
         }
     }

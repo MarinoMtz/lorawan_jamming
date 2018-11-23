@@ -135,6 +135,9 @@ public:
 
   void SetSenderID (uint32_t senderid);
 
+  uint8_t GetJammer (void);
+
+  void  SetJammer (uint8_t jammer);
 
 private:
   uint8_t m_sf; //!< The Spreading Factor used by the packet.
@@ -146,6 +149,7 @@ private:
   double m_preamble; //!< The preamble time of this packet
   uint32_t m_senderid;
 
+  uint8_t m_jammer;
 
 
 };

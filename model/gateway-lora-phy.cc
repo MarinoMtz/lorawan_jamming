@@ -179,6 +179,12 @@ GatewayLoraPhy::Send (Ptr<Packet> packet, LoraTxParameters txParams,
   m_interference.Add (duration, txPowerDbm, txParams.sf, packet, frequencyMHz);
 
   // Send the packet in the channel
+
+  LoraTag tag;
+  packet->RemovePacketTag (tag);
+  tag.SetSenderID (m_device->GetNode ()->GetId ());
+  packet->AddPacketTag (tag);
+
   m_channel->Send (this, packet, txPowerDbm, txParams, duration, frequencyMHz);
 
   Simulator::Schedule (duration, &GatewayLoraPhy::TxFinished, this, packet);
@@ -188,11 +194,11 @@ GatewayLoraPhy::Send (Ptr<Packet> packet, LoraTxParameters txParams,
   // Fire the trace source
   if (m_device)
     {
-      m_startSending (packet, m_device->GetNode ()->GetId ());
+	  m_startSending (packet, m_device->GetNode ()->GetId (), frequencyMHz, txParams.sf);
     }
   else
     {
-      m_startSending (packet, 0);
+	  m_startSending (packet, 0, 0, 0);
     }
 }
 
@@ -355,11 +361,11 @@ GatewayLoraPhy::EndReceive (Ptr<Packet> packet, Ptr<LoraInterferenceHelper::Even
       // Fire the trace source
       if (m_device)
         {
-          m_successfullyReceivedPacket (packet, m_device->GetNode ()->GetId (), SenderID);
+          m_successfullyReceivedPacket (packet, m_device->GetNode ()->GetId (), SenderID, event->GetFrequency (), event->GetSpreadingFactor () );
         }
       else
         {
-          m_successfullyReceivedPacket (packet, 0, SenderID);
+          m_successfullyReceivedPacket (packet, 0, SenderID, event->GetFrequency (), event->GetSpreadingFactor ());
         }
 
       // Forward the packet to the upper layer

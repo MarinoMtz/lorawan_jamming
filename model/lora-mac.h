@@ -202,6 +202,7 @@ public:
    */
   int GetNPreambleSymbols (void);
 
+
 protected:
   /**
   * The trace source that is fired when a packet cannot be sent because of duty

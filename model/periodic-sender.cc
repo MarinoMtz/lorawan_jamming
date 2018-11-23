@@ -43,17 +43,16 @@ PeriodicSender::GetTypeId (void)
                                      &PeriodicSender::SetInterval),
                    MakeTimeChecker ())
     .AddAttribute ("PacketSize", "The size of the packets this application sends, in bytes",
-                   StringValue ("ns3::ParetoRandomVariable[Bound=100,Shape=2.5]"),
-                   MakePointerAccessor (&PeriodicSender::m_pktSize),
-                   MakePointerChecker <RandomVariableStream>());
+    			   UintegerValue (20),
+				   MakeUintegerAccessor (&PeriodicSender::m_pktSize),
+				   MakeUintegerChecker <uint16_t>());
   return tid;
 }
 
 PeriodicSender::PeriodicSender () :
-  m_interval (Seconds (10)),
-  m_initialDelay (Seconds (1)),
-  m_randomPktSize (0),
-  m_setpktSize (0)
+  m_interval (Seconds (0)),
+  m_initialDelay (Seconds (0)),
+  m_pktSize (0)
 {
 //  NS_LOG_FUNCTION_NOARGS ();
 }
@@ -85,10 +84,10 @@ PeriodicSender::SetInitialDelay (Time delay)
 }
 
 void
-PeriodicSender::SetPktSize (int size)
+PeriodicSender::SetPktSize (uint16_t size)
 {
 
-  m_setpktSize = size;
+  m_pktSize = size;
   NS_LOG_DEBUG ("Packet of size " << size);
 
 }
@@ -96,31 +95,19 @@ PeriodicSender::SetPktSize (int size)
 void
 PeriodicSender::SendPacket (void)
 {
-//  NS_LOG_FUNCTION (this);
-
+  // NS_LOG_FUNCTION (this);
   // Create and send a new packet
 
-  int size = 0;
-
+  uint16_t size = 0;
   Ptr<Packet> packet;
 
-  if (m_randomPktSize == true)
-    {
-	  size = m_pktSize->GetInteger ();
-	  packet = Create<Packet>(10+size);
-	  //TODO
-    }
-  else
-	{
-	  size = m_setpktSize;
-	  packet = Create<Packet>(size);
-   	}
+  size = m_pktSize;
+  packet = Create<Packet>(size);
 
   m_mac->Send (packet);
 
   // Schedule the next SendPacket event
-  m_sendEvent = Simulator::Schedule (m_interval, &PeriodicSender::SendPacket,
-                                     this);
+  m_sendEvent = Simulator::Schedule (m_interval, &PeriodicSender::SendPacket, this);
 
   NS_LOG_DEBUG ("Sent a packet of size " << packet->GetSize ());
 }
@@ -144,8 +131,9 @@ PeriodicSender::StartApplication (void)
   Simulator::Cancel (m_sendEvent);
   NS_LOG_DEBUG ("Starting up application with a first event with a " <<
                 m_initialDelay.GetSeconds () << " seconds delay");
-  m_sendEvent = Simulator::Schedule (m_initialDelay,
-                                     &PeriodicSender::SendPacket, this);
+
+  m_sendEvent = Simulator::Schedule (m_initialDelay, &PeriodicSender::SendPacket, this);
+
   NS_LOG_DEBUG ("Event Id: " << m_sendEvent.GetUid ());
 }
 
@@ -156,3 +144,4 @@ PeriodicSender::StopApplication (void)
   Simulator::Cancel (m_sendEvent);
 }
 }
+

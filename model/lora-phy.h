@@ -31,6 +31,7 @@
 #include "ns3/net-device.h"
 #include "ns3/lora-interference-helper.h"
 #include "ns3/lora-energy-consumption-helper.h"
+
 #include <list>
 
 namespace ns3 {
@@ -253,7 +254,7 @@ protected:
    *
    * \see class CallBackTraceSource
    */
-  TracedCallback<Ptr<const Packet>, uint32_t> m_startSending;
+  TracedCallback<Ptr<const Packet>, uint32_t, double, uint8_t> m_startSending;
 
   /**
    * The trace source fired when a packet begins the reception process from the
@@ -275,7 +276,7 @@ protected:
    *
    * \see class CallBackTraceSource
    */
-  TracedCallback<Ptr<const Packet>, uint32_t, uint32_t> m_successfullyReceivedPacket;
+  TracedCallback<Ptr<const Packet>, uint32_t, uint32_t, double, uint8_t> m_successfullyReceivedPacket;
 
   /**
    * The trace source fired when a packet cannot be received because its power

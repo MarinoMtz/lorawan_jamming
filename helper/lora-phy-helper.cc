@@ -50,7 +50,7 @@ LoraPhyHelper::SetDeviceType (enum DeviceType dt)
       m_phy.SetTypeId ("ns3::EndDeviceLoraPhy");
       break;
     case JM:
-      m_phy.SetTypeId ("ns3::EndDeviceLoraPhy");
+      m_phy.SetTypeId ("ns3::JammerLoraPhy");
       break;
     }
 }
@@ -112,7 +112,17 @@ LoraPhyHelper::Create (Ptr<Node> node, Ptr<NetDevice> device) const
       // Gateways, and it will not lose time delivering packets and interference
       // information to devices which will never listen.
 
-      // m_channel->Add (phy);
+      m_channel->Add (phy);
+    }
+
+  if (typeId == "ns3::JammerLoraPhy")
+    {
+      // The line below can be commented to speed up uplink-only simulations.
+      // This implies that the LoraChannel instance will only know about
+      // Gateways, and it will not lose time delivering packets and interference
+      // information to devices which will never listen.
+
+       m_channel->Add (phy);
     }
 
 
