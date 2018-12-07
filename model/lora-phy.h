@@ -232,6 +232,8 @@ public:
 
   static Time GetReceiveWindowTime (LoraTxParameters txParams, int txw);
 
+  static Time GetCAD (LoraTxParameters txParams);
+
   static Time GetPreambleTime (uint8_t sf, double bandwidthHz, uint32_t nPreamble);
 
 private:
@@ -284,7 +286,7 @@ protected:
    *
    * \see class CallBackTraceSource
    */
-  TracedCallback<Ptr<const Packet>, uint32_t> m_underSensitivity;
+  TracedCallback<Ptr<const Packet>, uint32_t, uint32_t, double, uint8_t> m_underSensitivity;
 
   /**
    * The trace source fired when a packet cannot be correctly received because
@@ -292,7 +294,7 @@ protected:
    *
    * \see class CallBackTraceSource
    */
-  TracedCallback<Ptr<const Packet>, uint32_t, uint32_t, uint8_t, Time, Time, bool> m_interferedPacket;
+  TracedCallback<Ptr<const Packet>, uint32_t, uint32_t, uint8_t, double, Time, Time, bool> m_interferedPacket;
 
 
   /**

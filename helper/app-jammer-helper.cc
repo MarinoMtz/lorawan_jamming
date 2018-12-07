@@ -35,7 +35,6 @@ AppJammerHelper::AppJammerHelper ()
 {
   m_factory.SetTypeId ("ns3::AppJammer");
   m_initialDelay = CreateObject<UniformRandomVariable> ();
-  m_initialDelay->SetAttribute ("Min", DoubleValue (0));
   m_size = 10;
 }
 
@@ -76,13 +75,16 @@ AppJammerHelper::InstallPriv (Ptr<Node> node) const
 
   Time interval;
   interval = m_period;
+  double m_interval = interval.GetSeconds();
   app->SetInterval (interval);
 
   NS_LOG_DEBUG ("Created an application with interval = " <<interval.GetMinutes () << " minutes");
 
-  //app->SetInitialDelay (Seconds (m_initialDelay->GetValue (0, interval.GetSeconds ())));
-  app->SetInitialDelay (Seconds (0));
+  app->SetInitialDelay (Seconds (unsigned (m_initialDelay->GetValue (0, 36000))));
+
+ // app->SetInitialDelay (Seconds (0));
   app->SetNode (node);
+
   node->AddApplication (app);
   app->SetPktSize (m_size);
 

@@ -220,6 +220,11 @@ GatewayLoraPhy::StartReceive (Ptr<Packet> packet, double rxPowerDbm,
 {
   NS_LOG_FUNCTION (this << packet << rxPowerDbm << duration << frequencyMHz);
 
+  LoraTag tag;
+  packet->RemovePacketTag (tag);
+  uint32_t SenderID = tag.GetSenderID();
+  packet->AddPacketTag (tag);
+
   // Fire the trace source
   m_phyRxBeginTrace (packet);
 
@@ -255,11 +260,11 @@ GatewayLoraPhy::StartReceive (Ptr<Packet> packet, double rxPowerDbm,
 
               if (m_device)
                 {
-                  m_underSensitivity (packet, m_device->GetNode ()->GetId ());
+                  m_underSensitivity (packet, m_device->GetNode ()->GetId (), SenderID, frequencyMHz, sf);
                 }
               else
                 {
-                  m_underSensitivity (packet, 0);
+                  m_underSensitivity (packet, 0, SenderID, frequencyMHz, sf);
                 }
 
               // Since the packet is below sensitivity, it makes no sense to
@@ -290,18 +295,15 @@ GatewayLoraPhy::StartReceive (Ptr<Packet> packet, double rxPowerDbm,
                " because no suitable demodulator was found");
 
   // Fire the trace source
-  LoraTag tag;
-  packet->RemovePacketTag (tag);
-  uint32_t SenderID = tag.GetSenderID();
-  packet->AddPacketTag (tag);
 
   if (m_device)
     {
-      m_noMoreDemodulators (packet, m_device->GetNode ()->GetId (), SenderID);
+      m_noMoreDemodulators (packet, m_device->GetNode ()->GetId (), SenderID, frequencyMHz, sf);
+
     }
   else
     {
-      m_noMoreDemodulators (packet, 0, SenderID);
+      m_noMoreDemodulators (packet, 0, SenderID, frequencyMHz, sf);
     }
 }
 
@@ -343,12 +345,12 @@ GatewayLoraPhy::EndReceive (Ptr<Packet> packet, Ptr<LoraInterferenceHelper::Even
       // Fire the trace source
       if (m_device)
         {
-          m_interferedPacket (packet,m_device->GetNode ()->GetId () , SenderID, colsf, colstart, colend, OnThePreamble);
+          m_interferedPacket (packet,m_device->GetNode ()->GetId () , SenderID, colsf, event->GetFrequency (), colstart, colend, OnThePreamble);
           m_interference.CleanParameters ();
         }
       else
         {
-          m_interferedPacket (packet, 0, SenderID, colsf, colstart, colend, OnThePreamble);
+          m_interferedPacket (packet, 0, SenderID, colsf, event->GetFrequency (), colstart, colend, OnThePreamble);
           m_interference.CleanParameters ();
         }
     }

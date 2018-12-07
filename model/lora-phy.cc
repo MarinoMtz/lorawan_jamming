@@ -242,6 +242,20 @@ LoraPhy::GetReceiveWindowTime (LoraTxParameters txParams, int txw)
 }
 
 Time
+LoraPhy::GetCAD (LoraTxParameters txParams)
+{
+
+// The contents of this function are based on [1,2].
+// [1] SX1272 LoRa modem designer's guide.
+// [2] Modeling Energy Performance of LoRaWAN by Lluis Casals et al. (pages 11 and 12)
+// compute the second receive window (Channel Activity Detection)
+
+	double trx = 0;
+	trx = (pow (2, int(txParams.sf)) + 32) / (txParams.bandwidthHz);
+	return Seconds (trx);
+}
+
+Time
 LoraPhy::GetPreambleTime (uint8_t sf, double bandwidthHz, uint32_t nPreamble)
 {
 

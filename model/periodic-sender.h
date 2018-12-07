@@ -98,6 +98,9 @@ private:
    * The size of the packets this application sends
    */
   uint16_t m_pktSize;
+
+  Ptr<UniformRandomVariable> m_randomdelay;
+
 };
 
 } //namespace ns3

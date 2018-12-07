@@ -86,7 +86,7 @@ JammerLoraMac::JammerLoraMac () :
   m_lastKnownLinkMargin (0),
   m_lastKnownGatewayCount (0),
   m_aggregatedDutyCycle (1),
-  m_mType (LoraMacHeader::UNCONFIRMED_DATA_UP),
+  m_mType (LoraMacHeader::UNCONFIRMED_DATA_DOWN),
   m_jamType (uint8_t (0))
 {
   NS_LOG_FUNCTION (this);
@@ -177,14 +177,7 @@ JammerLoraMac::Send (Ptr<Packet> packet)
       // Compute packet duration
       Time duration = m_phy->GetOnAirTime (packet, params);
 
-      // Register the sent packet into the DutyCycleHelper
-      m_channelHelper.AddEvent (duration, txChannel);
-
      }
-  else // Transmission cannot be performed
-    {
-      m_cannotSendBecauseDutyCycle (packet);
-    }
 }
 
 void
@@ -411,22 +404,7 @@ JammerLoraMac::GetChannelForTx (void)
 
       NS_LOG_DEBUG ("Frequency of the current channel: " << frequency);
 
-      // Verify that we can send the packet
-      Time waitingTime = m_channelHelper.GetWaitingTime (logicalChannel);
-
-      NS_LOG_DEBUG ("Waiting time for current channel = " <<
-                    waitingTime.GetSeconds ());
-
-      // Send immediately if we can
-      if (waitingTime == Seconds (0))
-        {
           return *it;
-        }
-      else
-        {
-          NS_LOG_DEBUG ("Packet cannot be immediately transmitted on " <<
-                        "the current channel because of duty cycle limitations");
-        }
     }
   return 0; // In this case, no suitable channel was found
 }

@@ -28,7 +28,6 @@
 #include "ns3/mobility-model.h"
 #include "ns3/node.h"
 #include "ns3/lora-phy.h"
-#include "ns3/app-jammer.h"
 
 namespace ns3 {
 
@@ -106,6 +105,9 @@ public:
   virtual void Send (Ptr<Packet> packet, LoraTxParameters txParams,
                      double frequencyMHz, double txPowerDbm);
 
+  virtual void DirectSend (Ptr<Packet> packet, LoraTxParameters txParams,
+          double frequencyMHz, double txPowerDbm);
+
   // Implementation of LoraPhy's pure virtual functions
   virtual bool IsOnFrequency (double frequencyMHz);
 
@@ -121,16 +123,33 @@ public:
    * \param The frequency [MHz] to listen to.
    */
   void SetFrequency (double frequencyMHz);
-
   /**
-   * Set the Spreading Factor this EndDevice will listen for.
    *
-   * The JammerLoraPhy object will not be able to lock on transmissions that
-   * use a different SF than the one it's listening for.
+   * \param sf The frequency to listen for.
+   */
+
+  void SetPacketSize (uint16_t PacketSize);
+  /**
+   *
+   * \param sf The packet size this jammer will use to send.
+   */
+
+  void SetTxPower (double frequencyMHz);
+  /**
    *
    * \param sf The spreading factor to listen for.
    */
   void SetSpreadingFactor (uint8_t sf);
+
+ /**
+   * \param sf The spreading factor to listen for randomly.
+   */
+
+  void SetRandomSF (void);
+
+  void SetAllSF (void);
+
+  void SetRandomSpreadingFactor (void);
 
   /**
    * Get the Spreading Factor this EndDevice is listening for.
@@ -160,15 +179,10 @@ public:
    * Standard End-Device's Battery Capacity in
    */
 
-  //TracedCallback<Ptr<Packet>, double, uint8_t, Time, double> m_receive;
-
-  //AppJammer m_receive;
-
   static const double battery_capacity;
   static const double voltage;
 
 private:
-
 
   /**
    * Switch to the RX state
@@ -199,12 +213,21 @@ private:
 
   double m_frequency; //!< The frequency this device is listening on
 
+  double m_txpower; //!< The tx power this device is transmitting
+
   uint8_t m_sf; //!< The Spreading Factor this device is listening for
 
   Time m_preamble;
 
   double m_jamType;
 
+  uint16_t m_packetsize;
+
+  bool m_randomsf;
+
+  bool m_allsf;
+
+  Ptr<UniformRandomVariable> m_uniformRV;
 
 };
 

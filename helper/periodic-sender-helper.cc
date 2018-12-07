@@ -34,9 +34,7 @@ NS_LOG_COMPONENT_DEFINE ("PeriodicSenderHelper");
 PeriodicSenderHelper::PeriodicSenderHelper ()
 {
   m_factory.SetTypeId ("ns3::PeriodicSender");
-
   m_initialDelay = CreateObject<UniformRandomVariable> ();
-  m_initialDelay->SetAttribute ("Min", DoubleValue (0));
   m_size = 10;
 }
 
@@ -77,24 +75,23 @@ PeriodicSenderHelper::InstallPriv (Ptr<Node> node) const
 
   Time interval;
 
-
   interval = m_period;
 
   app->SetInterval (interval);
 
-  NS_LOG_DEBUG ("Created an application with interval = " <<
-                interval.GetMinutes () << " minutes");
+  NS_LOG_DEBUG ("Created an application with interval = " << interval.GetMinutes () << " minutes");
 
-  //app->SetInitialDelay (Seconds (m_initialDelay->GetValue (0, interval.GetSeconds ())));
+  double m_interval = interval.GetSeconds();
 
-  app->SetInitialDelay (Seconds (0));
+  app->SetInitialDelay (Seconds (m_initialDelay->GetValue (0, 36000)));
+
+  //app->SetInitialDelay (Seconds (0));
 
   app->SetNode (node);
 
   node->AddApplication (app);
 
   app->SetPktSize (m_size);
-
 
   return app;
 }

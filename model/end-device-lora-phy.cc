@@ -240,6 +240,12 @@ EndDeviceLoraPhy::StartReceive (Ptr<Packet> packet, double rxPowerDbm,
   Ptr<LoraInterferenceHelper::Event> event;
   event = m_interference.Add (duration, rxPowerDbm, sf, packet, frequencyMHz);
 
+  // Update the packet's LoraTag
+  LoraTag tag;
+  packet->RemovePacketTag (tag);
+  uint32_t SenderID = tag.GetSenderID();
+  packet->AddPacketTag (tag);
+
   // Switch on the current PHY state
   switch (m_state)
     {
@@ -334,11 +340,11 @@ EndDeviceLoraPhy::StartReceive (Ptr<Packet> packet, double rxPowerDbm,
             // Fire the trace source for this event.
             if (m_device)
               {
-                m_underSensitivity (packet, m_device->GetNode ()->GetId ());
+                m_underSensitivity (packet, m_device->GetNode ()->GetId (), SenderID, frequencyMHz, sf);
               }
             else
               {
-                m_underSensitivity (packet, 0);
+                m_underSensitivity (packet, 0, SenderID, frequencyMHz, sf);
               }
 
             canLockOnPacket = false;
@@ -410,11 +416,11 @@ EndDeviceLoraPhy::EndReceive (Ptr<Packet> packet,
 
       if (m_device)
         {
-    	  m_interferedPacket (packet, m_device->GetNode ()->GetId () , SenderID, colsf, colstart, colend, OnThePreamble);
+    	  m_interferedPacket (packet, m_device->GetNode ()->GetId () , SenderID, event->GetFrequency (), colsf, colstart, colend, OnThePreamble);
         }
       else
         {
-          m_interferedPacket (packet, 0, SenderID, colsf, colstart, colend, OnThePreamble);
+          m_interferedPacket (packet, 0, SenderID, colsf, event->GetFrequency (), colstart, colend, OnThePreamble);
         }
 
     }

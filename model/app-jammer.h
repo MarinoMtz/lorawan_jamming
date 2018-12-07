@@ -24,7 +24,6 @@
 #include "ns3/application.h"
 #include "ns3/nstime.h"
 #include "ns3/lora-mac.h"
-#include "ns3/jammer-lora-phy.h"
 #include "ns3/jammer-lora-mac.h"
 #include "ns3/attribute.h"
 
@@ -34,53 +33,8 @@ class AppJammer : public Application {
 
 public:
 
-	  class Event : public SimpleRefCount<AppJammer::Event>
-	  {
-
-	public:
-
-	  Event (Ptr<Packet> packet, double rxPowerDbm,
-		        uint8_t sf, Time duration, double frequencyMHz, double Type);
-	  ~Event ();
-
-	private:
-
-	  /**
-	    * The packet this event was generated for.
-	    */
-	  Ptr<Packet> m_packet;
-
-	  /**
-	   * The power of this event in dBm (at the device).
-	   */
-	  double m_rxPowerdBm;
-
-	  /**
-	   * The spreading factor of this signal.
-	   */
-	  uint8_t m_sf;
-
-	  /**
-	   * Duration of the packet.
-	   */
-	  Time m_duration;
-
-	  /**
-	   * The frequency this event was on.
-	   */
-	  double m_frequencyMHz;
-
-	  };
-
   AppJammer ();
   ~AppJammer ();
-
-  Ptr<AppJammer::Event> Add (Ptr<Packet> packet,
-		  	  	  	  	  	 double rxPowerDbm,
-							 uint8_t sf,
-							 Time duration,
-							 double frequencyMHz,
-							 double Type);
 
   static TypeId GetTypeId (void);
 
@@ -121,17 +75,6 @@ public:
    */
   void SetPktSize  (uint16_t size);
 
-  /**
-   * Set Jammer type
-   */
-
-  void SelectType (Ptr<Packet> packet, double rxPowerDbm,
-  		  	  	uint8_t sf, Time duration, double frequencyMHz, double Type);
-
-  void JammerI (Ptr<Packet> packet, double rxPowerDbm,
-  		  	  	uint8_t sf, Time duration, double frequencyMHz);
-
-
 private:
 
   /**
@@ -152,7 +95,7 @@ private:
   /**
    * The MAC layer of this node
    */
-  Ptr<JammerLoraMac> m_mac;
+  Ptr<LoraMac> m_mac;
 
   /**
    * The PHY layer of this node
@@ -168,6 +111,8 @@ private:
    * Jammer type
    */
   uint8_t m_jammer_type;
+
+  Ptr<UniformRandomVariable> m_randomdelay;
 
 
 };

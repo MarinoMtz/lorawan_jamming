@@ -55,6 +55,7 @@ PeriodicSender::PeriodicSender () :
   m_pktSize (0)
 {
 //  NS_LOG_FUNCTION_NOARGS ();
+  m_randomdelay = CreateObject<UniformRandomVariable> ();
 }
 
 PeriodicSender::~PeriodicSender ()
@@ -101,15 +102,23 @@ PeriodicSender::SendPacket (void)
   uint16_t size = 0;
   Ptr<Packet> packet;
 
+  double ppm = 30;
+  double error = ppm/1e6;
+
+  NS_LOG_DEBUG ("error " << error << " seconds");
+
   size = m_pktSize;
   packet = Create<Packet>(size);
 
   m_mac->Send (packet);
 
-  // Schedule the next SendPacket event
-  m_sendEvent = Simulator::Schedule (m_interval, &PeriodicSender::SendPacket, this);
+  double interval = m_interval.GetSeconds() + m_randomdelay->GetValue (-m_interval.GetSeconds()*error, m_interval.GetSeconds()*error);
+  NS_LOG_DEBUG ("Next event at " << interval);
 
-  NS_LOG_DEBUG ("Sent a packet of size " << packet->GetSize ());
+  // Schedule the next SendPacket event
+  m_sendEvent = Simulator::Schedule (Seconds (interval), &PeriodicSender::SendPacket, this);
+  //m_sendEvent = Simulator::Schedule (m_interval, &PeriodicSender::SendPacket, this);
+
 }
 
 void

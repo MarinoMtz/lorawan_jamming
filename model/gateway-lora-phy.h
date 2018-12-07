@@ -197,7 +197,8 @@ private:
    *
    * \see class CallBackTraceSource
    */
-  TracedCallback<Ptr<const Packet>, uint32_t,  uint32_t> m_noMoreDemodulators;
+
+  TracedCallback<Ptr<const Packet>, uint32_t, uint32_t, double, uint8_t> m_noMoreDemodulators;
 
   bool m_isTransmitting; //!< Flag indicating whether a transmission is going on
 };

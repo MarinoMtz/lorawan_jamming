@@ -57,7 +57,19 @@ public:
 						uint8_t minDataRate,
 						uint8_t maxDataRate);
 
+	void ConfigureBand (NodeContainer Jammers);
+
+	void SetRandomSF (NodeContainer Jammers);
+
+	void SetAllSF (NodeContainer Jammers);
+
 	void SetType (NodeContainer Jammers, double type);
+
+	void SetFrequency(NodeContainer Jammers,double Frequency);
+
+	void SetPacketSize (NodeContainer Jammers,uint16_t PacketSize);
+
+
 };
 
 } //namespace ns3

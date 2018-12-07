@@ -43,10 +43,43 @@ AttackHelper::SetSF (NodeContainer Jammers, uint8_t dataRate)
       NS_ASSERT (loraNetDevice != 0);
       Ptr<JammerLoraMac> mac = loraNetDevice->GetMac ()->GetObject<JammerLoraMac> ();
       NS_ASSERT (mac != 0);
-
       mac->SetDataRate (dataRate);
-
     }
+}
+
+void
+AttackHelper::SetRandomSF (NodeContainer Jammers)
+{
+  NS_LOG_FUNCTION_NOARGS ();
+
+  for (NodeContainer::Iterator j = Jammers.Begin (); j != Jammers.End (); ++j)
+    {
+      Ptr<Node> object = *j;
+      Ptr<NetDevice> netDevice = object->GetDevice (0);
+      Ptr<LoraNetDevice> loraNetDevice = netDevice->GetObject<LoraNetDevice> ();
+      NS_ASSERT (loraNetDevice != 0);
+      Ptr<JammerLoraPhy> phy = loraNetDevice->GetPhy ()->GetObject<JammerLoraPhy> ();
+      NS_ASSERT (phy != 0);
+      phy->SetRandomSF ();
+    }
+}
+
+void
+AttackHelper::SetAllSF (NodeContainer Jammers)
+{
+  NS_LOG_FUNCTION_NOARGS ();
+
+  for (NodeContainer::Iterator j = Jammers.Begin (); j != Jammers.End (); ++j)
+    {
+      Ptr<Node> object = *j;
+      Ptr<NetDevice> netDevice = object->GetDevice (0);
+      Ptr<LoraNetDevice> loraNetDevice = netDevice->GetObject<LoraNetDevice> ();
+      NS_ASSERT (loraNetDevice != 0);
+      Ptr<JammerLoraPhy> phy = loraNetDevice->GetPhy ()->GetObject<JammerLoraPhy> ();
+      NS_ASSERT (phy != 0);
+      phy->SetAllSF ();
+    }
+
 }
 
 void
@@ -67,7 +100,6 @@ AttackHelper::SetType (NodeContainer Jammers, double type)
       Ptr<JammerLoraPhy> phy = loraNetDevice->GetPhy ()->GetObject<JammerLoraPhy> ();
       NS_ASSERT (phy != 0);
       phy->SetType (type);
-
     }
 }
 
@@ -86,8 +118,11 @@ AttackHelper::SetTxPower (NodeContainer Jammers, double txpower)
 	      Ptr<JammerLoraMac> mac = loraNetDevice->GetMac ()->GetObject<JammerLoraMac> ();
 	      NS_ASSERT (mac != 0);
 	      mac->SetTxPower (txpower);
-	    }
 
+	      Ptr<JammerLoraPhy> phy = loraNetDevice->GetPhy ()->GetObject<JammerLoraPhy> ();
+	      NS_ASSERT (phy != 0);
+	      phy->SetTxPower (txpower);
+	    }
 }
 
 void
@@ -149,6 +184,27 @@ AttackHelper::ConfigureBand (NodeContainer Jammers,
 
   for (NodeContainer::Iterator j = Jammers.Begin (); j != Jammers.End (); ++j)
 	  {
+      	  Ptr<Node> object = *j;
+      	  Ptr<NetDevice> netDevice = object->GetDevice (0);
+      	  Ptr<LoraNetDevice> loraNetDevice = netDevice->GetObject<LoraNetDevice> ();
+      	  NS_ASSERT (loraNetDevice != 0);
+      	  Ptr<JammerLoraMac> mac = loraNetDevice->GetMac ()->GetObject<JammerLoraMac> ();
+
+      	  LogicalLoraChannelHelper channelHelper;
+      	  channelHelper.AddSubBand (firstFrequency, lastFrequency, dutyCycle, maxTxPowerDbm);
+      	  Ptr<LogicalLoraChannel> lc1 = CreateObject<LogicalLoraChannel> (frequency, minDataRate, maxDataRate);
+      	  channelHelper.AddChannel (lc1);
+      	  mac->SetLogicalLoraChannelHelper (channelHelper);
+	  }
+}
+
+void
+AttackHelper::ConfigureBand (NodeContainer Jammers)
+{
+  NS_LOG_FUNCTION_NOARGS ();
+
+  for (NodeContainer::Iterator j = Jammers.Begin (); j != Jammers.End (); ++j)
+	  {
 
       	  Ptr<Node> object = *j;
       	  Ptr<NetDevice> netDevice = object->GetDevice (0);
@@ -156,15 +212,61 @@ AttackHelper::ConfigureBand (NodeContainer Jammers,
       	  NS_ASSERT (loraNetDevice != 0);
       	  Ptr<JammerLoraMac> mac = loraNetDevice->GetMac ()->GetObject<JammerLoraMac> ();
 
+      	  //////////////
+      	  // SubBands //
+      	  //////////////
 
       	  LogicalLoraChannelHelper channelHelper;
-      	  channelHelper.AddSubBand (firstFrequency, lastFrequency, dutyCycle, maxTxPowerDbm);
-      	  Ptr<LogicalLoraChannel> lc1 = CreateObject<LogicalLoraChannel> (frequency, minDataRate, maxDataRate);
+      	  channelHelper.AddSubBand (868, 868.6, 0.01, 14);
+      	  channelHelper.AddSubBand (868.7, 869.2, 0.001, 14);
+      	  channelHelper.AddSubBand (869.4, 869.65, 0.1, 27);
+
+      	  //////////////////////
+      	  // Default channels //
+      	  //////////////////////
+      	  Ptr<LogicalLoraChannel> lc1 = CreateObject<LogicalLoraChannel> (868.1, 0, 5);
+      	  Ptr<LogicalLoraChannel> lc2 = CreateObject<LogicalLoraChannel> (868.3, 0, 5);
+      	  Ptr<LogicalLoraChannel> lc3 = CreateObject<LogicalLoraChannel> (868.5, 0, 5);
       	  channelHelper.AddChannel (lc1);
+      	  channelHelper.AddChannel (lc2);
+      	  channelHelper.AddChannel (lc3);
       	  mac->SetLogicalLoraChannelHelper (channelHelper);
 
 	  }
 }
+
+void
+AttackHelper::SetFrequency(NodeContainer Jammers,double Frequency)
+{
+	for (NodeContainer::Iterator j = Jammers.Begin (); j != Jammers.End (); ++j)
+	    {
+	      Ptr<Node> object = *j;
+	      Ptr<NetDevice> netDevice = object->GetDevice (0);
+	      Ptr<LoraNetDevice> loraNetDevice = netDevice->GetObject<LoraNetDevice> ();
+	      NS_ASSERT (loraNetDevice != 0);
+
+	      Ptr<JammerLoraPhy> phy = loraNetDevice->GetPhy ()->GetObject<JammerLoraPhy> ();
+	      NS_ASSERT (phy != 0);
+	      phy->SetFrequency (Frequency);
+
+	    }
 }
 
+void
+AttackHelper::SetPacketSize (NodeContainer Jammers,uint16_t PacketSize)
+{
+	for (NodeContainer::Iterator j = Jammers.Begin (); j != Jammers.End (); ++j)
+	    {
+	      Ptr<Node> object = *j;
+	      Ptr<NetDevice> netDevice = object->GetDevice (0);
+	      Ptr<LoraNetDevice> loraNetDevice = netDevice->GetObject<LoraNetDevice> ();
+	      NS_ASSERT (loraNetDevice != 0);
+
+	      Ptr<JammerLoraPhy> phy = loraNetDevice->GetPhy ()->GetObject<JammerLoraPhy> ();
+	      NS_ASSERT (phy != 0);
+	      phy->SetPacketSize (PacketSize);
+
+	    }
+}
+}
 

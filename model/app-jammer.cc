@@ -50,43 +50,6 @@ AppJammer::GetTypeId (void)
   return tid;
 }
 
-
-// Event Constructor
-AppJammer::Event::Event(Ptr<Packet> packet, double rxPowerDbm,
-        uint8_t sf, Time duration, double frequencyMHz, double Type) :
-
-  m_packet (packet),
-  m_rxPowerdBm (rxPowerDbm),
-  m_sf (sf),
-  m_duration (duration),
-  m_frequencyMHz (frequencyMHz)
-{
-
-	// NS_LOG_FUNCTION_NOARGS ();
-}
-
-// Event Destructor
-AppJammer::Event::~Event ()
-{
-  // NS_LOG_FUNCTION_NOARGS ();
-}
-
-
-Ptr<AppJammer::Event>
-AppJammer::Add (Ptr<Packet> packet, double rxPowerDbm, uint8_t sf, Time duration, double frequencyMHz, double Type)
-{
-  // Create an event based on the parameters
-  Ptr<AppJammer::Event> event = Create<AppJammer::Event> (packet, rxPowerDbm, sf, duration, frequencyMHz, Type);
-
-  NS_LOG_DEBUG ("Receive event created " << sf);
-
-  //StartApplication ();
-
-  SelectType (packet, rxPowerDbm, sf, duration, frequencyMHz, Type);
-
-  return event;
-}
-
 AppJammer::AppJammer () :
   m_interval (Seconds (0)),
   m_initialDelay (Seconds (0)),
@@ -94,6 +57,8 @@ AppJammer::AppJammer () :
   m_jammer_type (0)
 {
 //  NS_LOG_FUNCTION_NOARGS ();
+  m_randomdelay = CreateObject<UniformRandomVariable> ();
+
 }
 
 AppJammer::~AppJammer ()
@@ -134,19 +99,26 @@ AppJammer::SetPktSize (uint16_t size)
 void
 AppJammer::SendPacket (void)
 {
-  // NS_LOG_FUNCTION (this);
-  // Create and send a new packet
+// NS_LOG_FUNCTION (this);
+// Create and send a new packet
 
   uint16_t size = 0;
   Ptr<Packet> packet;
+
+  double ppm = 30;
+  double error = ppm/1e6;
+
+  NS_LOG_DEBUG ("error " << error << " seconds");
 
   size = m_pktSize;
   packet = Create<Packet>(size);
 
   m_mac->Send (packet);
-  // Schedule the next SendPacket event
-  m_sendEvent = Simulator::Schedule (m_interval, &AppJammer::SendPacket, this);
 
+  double interval = m_interval.GetSeconds() + m_randomdelay->GetValue (-m_interval.GetSeconds()*error, m_interval.GetSeconds()*error);
+  NS_LOG_DEBUG ("Next event at " << interval);
+
+  m_sendEvent = Simulator::Schedule (m_interval, &AppJammer::SendPacket, this);
   NS_LOG_DEBUG ("Sent a packet of size " << packet->GetSize ());
 }
 
@@ -160,17 +132,8 @@ AppJammer::StartApplication (void)
     {
       // Assumes there's only one device
       Ptr<LoraNetDevice> loraNetDevice = m_node->GetDevice (0)->GetObject<LoraNetDevice> ();
-      m_mac = loraNetDevice->GetMac ()->GetObject<JammerLoraMac> ();
+      m_mac = loraNetDevice->GetMac ();
       NS_ASSERT (m_mac != 0);
-      m_jammer_type = m_mac -> GetType ();
-    }
-
-  if (m_phy == 0)
-    {
-      // Assumes there's only one device
-      Ptr<LoraNetDevice> loraNetDevice = m_node->GetDevice (0)->GetObject<LoraNetDevice> ();
-      m_phy = loraNetDevice->GetPhy ()->GetObject<JammerLoraPhy> ();
-      NS_ASSERT (m_phy != 0);
     }
 
 	// Schedule the next SendPacket event
@@ -182,27 +145,6 @@ AppJammer::StartApplication (void)
 	m_sendEvent = Simulator::Schedule (m_initialDelay, &AppJammer::SendPacket, this);
 	NS_LOG_DEBUG ("Event Id: " << m_sendEvent.GetUid ());
 
-}
-
-void
-AppJammer::SelectType (Ptr<Packet> packet, double rxPowerDbm, uint8_t sf, Time duration, double frequencyMHz, double Type)
-{
-
-	NS_LOG_DEBUG ("SelectType " << Type);
-
-	if (Type == 1)
-	{
-		JammerI (packet, rxPowerDbm, sf, duration, frequencyMHz);
-	}
-
-}
-
-void
-AppJammer::JammerI (Ptr<Packet> packet, double rxPowerDbm, uint8_t sf, Time duration, double frequencyMHz)
-{
-	NS_LOG_DEBUG ("Jammer Type I ");
-	SetPktSize(10);
-	//StartApplication ();
 }
 
 void

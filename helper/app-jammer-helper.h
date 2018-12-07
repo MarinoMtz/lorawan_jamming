@@ -70,11 +70,10 @@ private:
 
   Ptr<UniformRandomVariable> m_initialDelay;
 
-  Ptr<UniformRandomVariable> m_intervalProb;
-
   Time m_period; //!< The period with which the application will be set to send
                  // messages
   uint16_t m_size;
+
 
 };
 
