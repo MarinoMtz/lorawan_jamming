@@ -321,6 +321,7 @@ JammerLoraPhy::StartReceive (Ptr<Packet> packet, double rxPowerDbm,
   // Update the packet's LoraTag
   LoraTag tag;
   packet->RemovePacketTag (tag);
+  uint8_t jamm = tag.GetJammer();
   uint32_t SenderID = tag.GetSenderID();
   packet->AddPacketTag (tag);
 
@@ -392,11 +393,13 @@ JammerLoraPhy::StartReceive (Ptr<Packet> packet, double rxPowerDbm,
 
         else if (m_jamType == 1)
         	{
+        		if (jamm == 1)
+        		{
+        			return;
+        		}
         		Ptr<Packet> jampacket;
         		jampacket = Create<Packet>(m_packetsize);
         		Simulator::Schedule (jamduration, &JammerLoraPhy::DirectSend, this, jampacket, txParams, frequencyMHz, m_txpower);
-
-        		//DirectSend (jampacket, txParams, frequencyMHz, m_txpower);
         	}
 
         // Check frequency
@@ -422,6 +425,10 @@ JammerLoraPhy::StartReceive (Ptr<Packet> packet, double rxPowerDbm,
 
         else if (m_jamType == 2)
         	{
+    			if (jamm == 1)
+    			{
+    				return;
+    			}
     			Ptr<Packet> jampacket;
     			jampacket = Create<Packet>(m_packetsize);
         		Simulator::Schedule (jamduration, &JammerLoraPhy::DirectSend, this, jampacket, txParams, frequencyMHz, m_txpower);
