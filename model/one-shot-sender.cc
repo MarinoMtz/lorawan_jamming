@@ -20,7 +20,7 @@
 
 #include "ns3/one-shot-sender.h"
 #include "ns3/end-device-lora-mac.h"
-#include "ns3/Jammer-lora-mac.h"
+#include "ns3/jammer-lora-mac.h"
 #include "ns3/gateway-lora-mac.h"
 #include "ns3/pointer.h"
 #include "ns3/log.h"
