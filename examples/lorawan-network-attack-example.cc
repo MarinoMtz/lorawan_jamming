@@ -51,13 +51,14 @@ double side = 7500;
 Ptr<UniformRandomVariable> rnd_alloc = CreateObject<UniformRandomVariable> ();
 
 double simulationTime = 600;
-int appPeriodSeconds = 300;
+double appPeriodSeconds = 300;
 
-int appPeriodJamSeconds = 10;
+double appPeriodJamSeconds = 10;
 uint32_t nJammers = 1;
 double JammerType = 1;
 double JammerFrequency = 868.3;
 double JammerTxPower = 14;
+double JammerDutyCycle;
 
 
 double noMoreReceivers = 0;
@@ -147,8 +148,7 @@ EDTransmissionCallback (Ptr<Packet const> packet, uint32_t systemId, double freq
   //NS_LOG_INFO ("T " << systemId);
 
   NS_LOG_INFO ("T " << systemId << " " << packet->GetSize () << " " << frequencyMHz << " " << unsigned(sf) << " " << Simulator::Now ().GetSeconds ());
-  //PrintTrace (ET, systemId, 0, packet->GetSize (), frequencyMHz, sf, Seconds(0), Seconds(0), 0, "scratch/Trace.dat");
-
+  PrintTrace (ET, systemId, 0, packet->GetSize (), frequencyMHz, sf, Seconds(0), Seconds(0), 0, "scratch/Trace.dat");
 	  edsent += 1;
 }
 
@@ -157,7 +157,7 @@ JMTransmissionCallback (Ptr<Packet const> packet, uint32_t systemId, double freq
 {
 
   NS_LOG_INFO ( "J " << systemId << " " << packet->GetSize () << " " << frequencyMHz << " " << unsigned(sf) << " " << Simulator::Now ().GetSeconds ());
-  //PrintTrace (JT, systemId, 0, packet->GetSize (), frequencyMHz, sf, Seconds(0), Seconds (0), 0, "scratch/Trace.dat");
+  PrintTrace (JT, systemId, 0, packet->GetSize (), frequencyMHz, sf, Seconds(0), Seconds (0), 0, "scratch/Trace.dat");
   jmsent += 1;
 
 }
@@ -244,8 +244,6 @@ NoMoreReceiversCallback (Ptr<Packet const> packet, uint32_t systemId, uint32_t S
   {
 	  dropped += 1;
   }
-
-
 }
 
 void
@@ -264,7 +262,6 @@ UnderSensitivityCallback (Ptr<Packet const> packet, uint32_t systemId, uint32_t 
   {
 	  underSensitivity +=1 ;
   }
-
 }
 
 void
@@ -282,7 +279,6 @@ DeadDeviceCallback (uint32_t NodeId, double cumulative_tx_conso, double cumulati
 {
   // NS_LOG_INFO ("The Node " << NodeId << "was dead at " << dead_time.GetSeconds () << "at " << Simulator::Now ().GetSeconds ());
 		//Conso Type: 1 for TX, 2 for RX, 3 for Standby and 4 Sleep
-
 }
 
 void
@@ -351,6 +347,8 @@ int main (int argc, char *argv[])
   cmd.AddValue ("JammerTxPower", "Jammer TX Poxer in dBm ", JammerTxPower);
   cmd.AddValue ("Random_SF", "Boolean variable to set whether the Jammer select a random SF to transmit", Random_SF);
   cmd.AddValue ("All_SF", "Boolean variable to set whether the Jammer transmits in all SF at the same time (Jammers 3 and 4)", All_SF);
+  cmd.AddValue ("JammerDutyCycle", "Jammer duty cycle", JammerDutyCycle);
+
 
   cmd.Parse (argc, argv);
 
@@ -378,7 +376,7 @@ int main (int argc, char *argv[])
 //  LogComponentEnable("LoraMacHeader", LOG_LEVEL_ALL);
 //  LogComponentEnable("LoraFrameHeader", LOG_LEVEL_ALL);
 //	LogComponentEnable("LoraMacHeader", LOG_LEVEL_ALL);
- // LogComponentEnable("LoraEnergyConsumptionHelper", LOG_LEVEL_ALL);
+//  LogComponentEnable("LoraEnergyConsumptionHelper", LOG_LEVEL_ALL);
 
 
   /**********
@@ -468,7 +466,6 @@ int main (int argc, char *argv[])
                                          MakeCallback (&EnDeviceReceiveCallback));
     }
 
-
   /************************
   *  Create Jammers  *
   ************************/
@@ -509,7 +506,6 @@ int main (int argc, char *argv[])
       phy->TraceConnectWithoutContext ("StartSending",
                                        MakeCallback (&JMTransmissionCallback));
     }
-
 
   /*********************
   *  Create Gateways  *
@@ -590,7 +586,7 @@ int main (int argc, char *argv[])
 
   AttackProfile.SetType (Jammers, JammerType);
   AttackProfile.ConfigureForEuRegionJm (Jammers);
-  AttackProfile.ConfigureBand (Jammers, 868, 868.6, 1, 14, 802.3, 0, 5);
+  AttackProfile.ConfigureBand (Jammers, 868, 868.6, JammerDutyCycle, 14, 802.3, 0, 5);
   AttackProfile.SetFrequency(Jammers,JammerFrequency);
   AttackProfile.SetTxPower(Jammers,JammerTxPower);
   AttackProfile.SetPacketSize (Jammers,PayloadJamSize);
@@ -620,13 +616,13 @@ int main (int argc, char *argv[])
 
 	  if (JammerType == 3)
 	  {
-    	  AttackProfile.ConfigureBand (Jammers, 868, 868.6, 1, 14, JammerFrequency, 0, 5);
+    	  AttackProfile.ConfigureBand (Jammers, 868, 868.6, JammerDutyCycle, 14, JammerFrequency, 0, 5);
     	  appJamHelper.SetPeriod (Seconds (appPeriodJamSeconds));
     	  appJamHelper.SetPacketSize (PayloadJamSize);
 
 	  } else {
 
-		  AttackProfile.ConfigureBand (Jammers);
+		  AttackProfile.ConfigureBand (Jammers, JammerDutyCycle);
     	  appJamHelper.SetPeriod (Seconds (appPeriodJamSeconds));
     	  appJamHelper.SetPacketSize (PayloadJamSize);
 	  }
@@ -711,12 +707,9 @@ int main (int argc, char *argv[])
 
   //std::cout << edsent << " " << gwreceived << " " << collision << " " << dropped << " " << noMoreReceiversProb << " " << underSensitivityProb << std::endl;
 
-  std::cout << nGateways << " " << nDevices << " " << nJammers << " " << receivedProb << " " << collisionProb << " " << noMoreReceiversProb << " " << underSensitivityProb << std::endl;
+  std::cout << nGateways << " " << nDevices << " " << nJammers << " " << receivedProb << " " << collisionProb << " " << noMoreReceiversProb << " " << underSensitivityProb << " " << gwreceived << " " << edsent << " " << PayloadSize << std::endl;
 
-  PrintResults ( nGateways, nDevices, nJammers, receivedProb, collisionProb, noMoreReceiversProb, underSensitivityProb, "scratch/Results.dat");
+  PrintResults ( nGateways, nDevices, nJammers, receivedProb, collisionProb, noMoreReceiversProb, underSensitivityProb , "scratch/Results.dat");
 
   return 0;
-
-
-
 }

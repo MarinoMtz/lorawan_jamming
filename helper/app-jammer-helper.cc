@@ -80,9 +80,9 @@ AppJammerHelper::InstallPriv (Ptr<Node> node) const
 
   NS_LOG_DEBUG ("Created an application with interval = " <<interval.GetMinutes () << " minutes");
 
-  app->SetInitialDelay (Seconds (unsigned (m_initialDelay->GetValue (0, 36000))));
+  app->SetInitialDelay (Seconds (unsigned (m_initialDelay->GetValue (0, 3600))));
 
- // app->SetInitialDelay (Seconds (0));
+  //app->SetInitialDelay (Seconds (0));
   app->SetNode (node);
 
   node->AddApplication (app);

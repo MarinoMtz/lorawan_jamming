@@ -57,7 +57,7 @@ public:
 						uint8_t minDataRate,
 						uint8_t maxDataRate);
 
-	void ConfigureBand (NodeContainer Jammers);
+	void ConfigureBand (NodeContainer Jammers, double DutyCicle);
 
 	void SetRandomSF (NodeContainer Jammers);
 

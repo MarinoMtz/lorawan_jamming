@@ -199,7 +199,7 @@ AttackHelper::ConfigureBand (NodeContainer Jammers,
 }
 
 void
-AttackHelper::ConfigureBand (NodeContainer Jammers)
+AttackHelper::ConfigureBand (NodeContainer Jammers, double DutyCycle)
 {
   NS_LOG_FUNCTION_NOARGS ();
 
@@ -217,9 +217,9 @@ AttackHelper::ConfigureBand (NodeContainer Jammers)
       	  //////////////
 
       	  LogicalLoraChannelHelper channelHelper;
-      	  channelHelper.AddSubBand (868, 868.6, 0.01, 14);
-      	  channelHelper.AddSubBand (868.7, 869.2, 0.001, 14);
-      	  channelHelper.AddSubBand (869.4, 869.65, 0.1, 27);
+      	  channelHelper.AddSubBand (868, 868.6, DutyCycle, 14);
+      	  channelHelper.AddSubBand (868.7, 869.2, DutyCycle, 14);
+      	  channelHelper.AddSubBand (869.4, 869.65, DutyCycle, 27);
 
       	  //////////////////////
       	  // Default channels //
