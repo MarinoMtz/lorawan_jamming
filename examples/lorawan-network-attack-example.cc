@@ -98,6 +98,8 @@ enum PrintType {
 };
 
 
+std::string Filename;
+std::string Path;
 
 /**********************
  *  Global Callbacks  *
@@ -133,12 +135,12 @@ PrintTrace (int Type, uint32_t NodeId, uint32_t SenderID, uint32_t Size, double 
 }
 
 void
-PrintResults(uint32_t nGateways, uint32_t nDevices, uint32_t nJammers, double receivedProb, double collisionProb,  double noMoreReceiversProb, double underSensitivityProb, std::string filename)
+PrintResults(uint32_t nGateways, uint32_t nDevices, uint32_t nJammers, double receivedProb, double collisionProb,  double noMoreReceiversProb, double underSensitivityProb, double gwreceived, double edsent, double PayloadSize, std::string filename)
 {
 	const char * c = filename.c_str ();
 	std::ofstream Plot;
 	Plot.open (c, std::ios::app);
-	Plot <<  nGateways << " " << nDevices << " " << nJammers << " " << receivedProb << " " << collisionProb << " " << noMoreReceiversProb << " " << underSensitivityProb << std::endl;
+	Plot << nGateways << " " << nDevices << " " << nJammers << " " << receivedProb << " " << collisionProb << " " << noMoreReceiversProb << " " << underSensitivityProb << " " << gwreceived << " " << edsent << " " << PayloadSize << std::endl;
 	Plot.close ();
 }
 
@@ -348,6 +350,8 @@ int main (int argc, char *argv[])
   cmd.AddValue ("Random_SF", "Boolean variable to set whether the Jammer select a random SF to transmit", Random_SF);
   cmd.AddValue ("All_SF", "Boolean variable to set whether the Jammer transmits in all SF at the same time (Jammers 3 and 4)", All_SF);
   cmd.AddValue ("JammerDutyCycle", "Jammer duty cycle", JammerDutyCycle);
+  cmd.AddValue ("Filename", "Filename", Filename);
+  cmd.AddValue ("Path", "Path", Path);
 
 
   cmd.Parse (argc, argv);
@@ -701,6 +705,7 @@ int main (int argc, char *argv[])
   double noMoreReceiversProb = dropped/edsent;
   double underSensitivityProb = underSensitivity/edsent;
 
+
 //  double receivedProbGivenAboveSensitivity = gwreceived/(edsent - underSensitivity);
 //  double interferedProbGivenAboveSensitivity = collision/(edsent - underSensitivity);
 //  double noMoreReceiversProbGivenAboveSensitivity = noMoreReceivers/(edsent - underSensitivity);
@@ -709,7 +714,11 @@ int main (int argc, char *argv[])
 
   std::cout << nGateways << " " << nDevices << " " << nJammers << " " << receivedProb << " " << collisionProb << " " << noMoreReceiversProb << " " << underSensitivityProb << " " << gwreceived << " " << edsent << " " << PayloadSize << std::endl;
 
-  PrintResults ( nGateways, nDevices, nJammers, receivedProb, collisionProb, noMoreReceiversProb, underSensitivityProb , "scratch/Results.dat");
+  std::string Result_File = Path + "/" + Filename;
+
+
+  //PrintResults ( nGateways, nDevices, nJammers, receivedProb, collisionProb, noMoreReceiversProb, underSensitivityProb , "scratch/Results.dat");
+  PrintResults ( nGateways, nDevices, nJammers, receivedProb, collisionProb, noMoreReceiversProb, underSensitivityProb , gwreceived, edsent, PayloadSize, Result_File);
 
   return 0;
 }
