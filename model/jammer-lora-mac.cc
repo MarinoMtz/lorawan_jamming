@@ -137,6 +137,7 @@ JammerLoraMac::Send (Ptr<Packet> packet)
   Ptr<LogicalLoraChannel> txChannel = GetChannelForTx ();
 
   SetRandomDataRate();
+
   //SetDataRate(uint8_t(5));
   uint8_t DR = GetDataRate();
   uint8_t sf = GetSfFromDataRate (DR);
