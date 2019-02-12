@@ -189,7 +189,7 @@ LoraInterferenceHelper::Add (Time duration, double rxPower,
   m_events.push_back (event);
 
   // Clean the event list
-  if (m_events.size () > 100)
+  if (m_events.size () > 1100)
     {
       CleanOldEvents ();
     }

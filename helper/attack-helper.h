@@ -39,8 +39,7 @@ public:
 
 	AttackHelper ();
 
-	static void SetSF (NodeContainer Jammers,
-					   uint8_t dataRate);
+	static void SetRandomDataRate (NodeContainer Jammers);
 
 
 	static void SetTxPower (NodeContainer Jammers,

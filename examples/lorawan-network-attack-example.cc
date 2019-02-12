@@ -45,7 +45,7 @@ NS_LOG_COMPONENT_DEFINE ("LorawanNetworkAttackExample");
 // Network settings
 uint32_t nDevices = 1;
 uint32_t nGateways = 1;
-double side = 7500;
+double radius = 7500;
 
 // Uniform random variable to allocate nodes
 Ptr<UniformRandomVariable> rnd_alloc = CreateObject<UniformRandomVariable> ();
@@ -62,18 +62,22 @@ double JammerDutyCycle;
 
 
 double noMoreReceivers = 0;
-double collision = 0;
+double collision_jm = 0;
+double collision_ed = 0;
 double edreceived = 0;
-double gwreceived = 0;
-double underSensitivity = 0;
+double gwreceived_jm = 0;
+double gwreceived_ed = 0;
+double underSensitivity_jm = 0;
+double underSensitivity_ed = 0;
 double edsent = 0;
 double gwsent = 0;
 double jmsent = 0;
-double dropped = 0;
+double dropped_jm = 0;
+double dropped_ed = 0;
 
 int PayloadSize=20;
 
-uint16_t PayloadJamSize=20;
+double PayloadJamSize=20;
 
 
 bool Conf_UP = false;
@@ -135,13 +139,17 @@ PrintTrace (int Type, uint32_t NodeId, uint32_t SenderID, uint32_t Size, double 
 }
 
 void
-PrintResults(uint32_t nGateways, uint32_t nDevices, uint32_t nJammers, double receivedProb, double collisionProb,  double noMoreReceiversProb, double underSensitivityProb, double gwreceived, double edsent, double PayloadSize, std::string filename)
+PrintResults(uint32_t nGateways, uint32_t nDevices, uint32_t nJammers, double receivedProb_ed, double collisionProb_ed,  double noMoreReceiversProb_ed, double underSensitivityProb_ed, double receivedProb_jm, double collisionProb_jm,  double noMoreReceiversProb_jm, double underSensitivityProb_jm, double gwreceived_ed, double gwreceived_jm, double edsent, double jmsent, std::string filename)
 {
-	const char * c = filename.c_str ();
-	std::ofstream Plot;
-	Plot.open (c, std::ios::app);
-	Plot << nGateways << " " << nDevices << " " << nJammers << " " << receivedProb << " " << collisionProb << " " << noMoreReceiversProb << " " << underSensitivityProb << " " << gwreceived << " " << edsent << " " << PayloadSize << std::endl;
-	Plot.close ();
+	if (Simulator::Now ().GetSeconds () >= 10000)
+		{
+			const char * c = filename.c_str ();
+			std::ofstream Plot;
+			Plot.open (c, std::ios::app);
+			Plot << nGateways << " " << nDevices << " " << nJammers << " " << receivedProb_ed << " " << collisionProb_ed << " " << noMoreReceiversProb_ed << " " << underSensitivityProb_ed << " " << receivedProb_jm << " " << collisionProb_jm << " " << noMoreReceiversProb_jm << " " << underSensitivityProb_jm << " " << gwreceived_ed << " " << gwreceived_jm<< " " << edsent << " " << jmsent << std::endl;
+			Plot.close ();
+		}
+
 }
 
 void
@@ -150,7 +158,7 @@ EDTransmissionCallback (Ptr<Packet const> packet, uint32_t systemId, double freq
   //NS_LOG_INFO ("T " << systemId);
 
   NS_LOG_INFO ("T " << systemId << " " << packet->GetSize () << " " << frequencyMHz << " " << unsigned(sf) << " " << Simulator::Now ().GetSeconds ());
-  PrintTrace (ET, systemId, 0, packet->GetSize (), frequencyMHz, sf, Seconds(0), Seconds(0), 0, "scratch/Trace.dat");
+//  PrintTrace (ET, systemId, 0, packet->GetSize (), frequencyMHz, sf, Seconds(0), Seconds(0), 0, "scratch/Trace.dat");
 	  edsent += 1;
 }
 
@@ -159,7 +167,7 @@ JMTransmissionCallback (Ptr<Packet const> packet, uint32_t systemId, double freq
 {
 
   NS_LOG_INFO ( "J " << systemId << " " << packet->GetSize () << " " << frequencyMHz << " " << unsigned(sf) << " " << Simulator::Now ().GetSeconds ());
-  PrintTrace (JT, systemId, 0, packet->GetSize (), frequencyMHz, sf, Seconds(0), Seconds (0), 0, "scratch/Trace.dat");
+//  PrintTrace (JT, systemId, 0, packet->GetSize (), frequencyMHz, sf, Seconds(0), Seconds (0), 0, "scratch/Trace.dat");
   jmsent += 1;
 
 }
@@ -190,8 +198,14 @@ GatewayReceiveCallback (Ptr<Packet const> packet, uint32_t systemId, uint32_t Se
 
   if (jammer == uint8_t(0))
   {
-	  gwreceived += 1;
+	  gwreceived_ed += 1;
   }
+
+  else
+  {
+	  gwreceived_jm += 1;
+  }
+
 
 }
 
@@ -221,11 +235,15 @@ CollisionCallback (Ptr<Packet const> packet, uint32_t systemId, uint32_t SenderI
   uint8_t jammer = tag_1.GetJammer ();
   //packet->AddPacketTag (tag);
 
-  if (jammer == uint8_t(0))
-  {
-	  collision += 1;
-  }
+     if (jammer == uint8_t(0))
+	  {
+		  collision_ed += 1;
+	  }
 
+	 else
+	  {
+		  collision_jm += 1;
+	  }
 }
 
 void
@@ -236,16 +254,22 @@ NoMoreReceiversCallback (Ptr<Packet const> packet, uint32_t systemId, uint32_t S
   NS_LOG_INFO ( "D " << systemId << " " << SenderID << " " << packet->GetSize () << " " << frequencyMHz << " " << unsigned(sf) << " " << Simulator::Now ().GetSeconds ());
   //PrintTrace (GD, systemId, SenderID, packet->GetSize (), frequencyMHz, sf, Seconds(0), Seconds(0), 0, "scratch/Trace.dat");
 
-
   LoraTag tag;
   packet->PeekPacketTag (tag);
   uint8_t jammer = tag.GetJammer ();
   //packet->AddPacketTag (tag);
 
   if (jammer == uint8_t(0))
-  {
-	  dropped += 1;
-  }
+	  {
+	  	  dropped_ed += 1;
+	  }
+
+  else
+	  {
+		 dropped_jm += 1;
+	  }
+
+
 }
 
 void
@@ -260,10 +284,15 @@ UnderSensitivityCallback (Ptr<Packet const> packet, uint32_t systemId, uint32_t 
   uint8_t jammer = tag.GetJammer ();
   //packet->AddPacketTag (tag);
 
-  if (jammer == uint8_t(0))
-  {
-	  underSensitivity +=1 ;
-  }
+	  if (jammer == uint8_t(0))
+		  {
+		  	  underSensitivity_ed += 1;
+		  }
+
+	  else
+		  {
+		  	  underSensitivity_jm += 1;
+		  }
 }
 
 void
@@ -337,7 +366,7 @@ int main (int argc, char *argv[])
   cmd.AddValue ("nDevices", "Number of end devices to include in the simulation", nDevices);
   cmd.AddValue ("nJammers", "Number of Jammers to include in the simulation", nJammers);
   cmd.AddValue ("Conf_UP", "Confirmed data UP", Conf_UP);
-  cmd.AddValue ("side", "side of the square where nodes will be deployed", side);
+  cmd.AddValue ("radius", "radius of the disc where nodes will be deployed", radius);
   cmd.AddValue ("simulationTime", "The time for which to simulate", simulationTime);
   cmd.AddValue ("appPeriod", "The period in seconds to be used by periodically transmitting applications", appPeriodSeconds);
   cmd.AddValue ("appPeriodJam", "The period in seconds to be used by periodically transmitting applications", appPeriodJamSeconds);
@@ -393,7 +422,15 @@ int main (int argc, char *argv[])
 
   // Mobility
   MobilityHelper mobility;
+
+  mobility.SetPositionAllocator ("ns3::UniformDiscPositionAllocator",
+                                 "rho", DoubleValue (radius),
+                                 "X", DoubleValue (0.0),
+                                 "Y", DoubleValue (0.0));
+
   mobility.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
+
+
 
   /************************
   *  Create the channel  *
@@ -402,7 +439,7 @@ int main (int argc, char *argv[])
   // Create the lora channel object
   Ptr<LogDistancePropagationLossModel> loss = CreateObject<LogDistancePropagationLossModel> ();
   loss->SetPathLossExponent (3.76);
-  loss->SetReference (1, 8.1);
+  loss->SetReference (1, 7.7);
 
   Ptr<PropagationDelayModel> delay = CreateObject<ConstantSpeedPropagationDelayModel> ();
   Ptr<LoraChannel> channel = CreateObject<LoraChannel> (loss, delay);
@@ -441,10 +478,9 @@ int main (int argc, char *argv[])
       Vector position = mobility->GetPosition ();
 
       position.z = 10;
-      position.x = rnd_alloc ->GetValue (0,side);
-      position.y = rnd_alloc ->GetValue (0,side);
       mobility->SetPosition (position);
     }
+
 
 // Create the LoraNetDevices of the end devices
   phyHelper.SetDeviceType (LoraPhyHelper::ED);
@@ -488,8 +524,6 @@ int main (int argc, char *argv[])
       Ptr<MobilityModel> mobility = (*j)->GetObject<MobilityModel> ();
       Vector position = mobility->GetPosition ();
       position.z = 1;
-      position.x = rnd_alloc ->GetValue (0,side);
-      position.y = rnd_alloc ->GetValue (0,side);
       mobility->SetPosition (position);
     }
 
@@ -529,8 +563,9 @@ int main (int argc, char *argv[])
     {
       Ptr<MobilityModel> mobility = (*j)->GetObject<MobilityModel> ();
       Vector position = mobility->GetPosition ();
-      position.x = side/2;
-      position.y = side/2;
+      position.x = 0;
+      position.y = 0;
+      position.z = 1;
       mobility->SetPosition (position);
     }
 
@@ -595,7 +630,6 @@ int main (int argc, char *argv[])
   AttackProfile.SetTxPower(Jammers,JammerTxPower);
   AttackProfile.SetPacketSize (Jammers,PayloadJamSize);
 
-
   /*********************************************
   *  Install applications on the Jammer *
   *********************************************/
@@ -605,18 +639,9 @@ int main (int argc, char *argv[])
   {
 	  Time appJamStopTime = Seconds (simulationTime);
 	  AppJammerHelper appJamHelper = AppJammerHelper ();
+	  AttackProfile.SetRandomDataRate(Jammers);
 
-	  if (Random_SF)
-	  {
-		  AttackProfile.SetRandomSF (Jammers);
-		  All_SF = false;
-	  }
-
-	  if (All_SF)
-	  {
-		  AttackProfile.SetAllSF (Jammers);
-		  Random_SF = false;
-	  }
+	  //AttackProfile.SetRandomSF (Jammers);
 
 	  if (JammerType == 3)
 	  {
@@ -629,10 +654,11 @@ int main (int argc, char *argv[])
 		  AttackProfile.ConfigureBand (Jammers, JammerDutyCycle);
     	  appJamHelper.SetPeriod (Seconds (appPeriodJamSeconds));
     	  appJamHelper.SetPacketSize (PayloadJamSize);
-	  }
+      }
 
 	  ApplicationContainer appJamContainer = appJamHelper.Install (Jammers);
 	  appJamContainer.Start (Seconds (0));
+
 	  appJamContainer.Stop (appJamStopTime);
 
   }
@@ -677,17 +703,17 @@ int main (int argc, char *argv[])
    * Print output files *
    *********************/
 
-  if (printEDs)
-    {
-	  PrintEndDevices (endDevices, Jammers, gateways, "scratch/Devices.dat");
-    }
+  //if (printEDs)
+  //  {
+  //  PrintEndDevices (endDevices, Jammers, gateways, "scratch/Devices.dat");
+  //  }
 
 
   /****************
   *  Simulation  *
   ****************/
 
-  Simulator::Stop (Seconds (simulationTime));
+  Simulator::Stop (Seconds (simulationTime*3));
 
   // PrintSimulationTime ();
 
@@ -700,11 +726,15 @@ int main (int argc, char *argv[])
 // *************
 
 
-  double receivedProb = gwreceived/edsent;
-  double collisionProb = collision/edsent;
-  double noMoreReceiversProb = dropped/edsent;
-  double underSensitivityProb = underSensitivity/edsent;
+  double receivedProb_ed = gwreceived_ed/(edsent);
+  double collisionProb_ed = collision_ed/(edsent);
+  double noMoreReceiversProb_ed = dropped_ed/(edsent);
+  double underSensitivityProb_ed = underSensitivity_ed/(edsent);
 
+  double receivedProb_jm = gwreceived_jm/(jmsent);
+  double collisionProb_jm = collision_jm/(jmsent);
+  double noMoreReceiversProb_jm = dropped_jm/(jmsent);
+  double underSensitivityProb_jm = underSensitivity_jm/(jmsent);
 
 //  double receivedProbGivenAboveSensitivity = gwreceived/(edsent - underSensitivity);
 //  double interferedProbGivenAboveSensitivity = collision/(edsent - underSensitivity);
@@ -712,13 +742,14 @@ int main (int argc, char *argv[])
 
   //std::cout << edsent << " " << gwreceived << " " << collision << " " << dropped << " " << noMoreReceiversProb << " " << underSensitivityProb << std::endl;
 
-  std::cout << nGateways << " " << nDevices << " " << nJammers << " " << receivedProb << " " << collisionProb << " " << noMoreReceiversProb << " " << underSensitivityProb << " " << gwreceived << " " << edsent << " " << PayloadSize << std::endl;
 
-  std::string Result_File = Path + "/" + Filename;
+	  std::cout << nDevices <<  " " << collision_ed << " " << dropped_ed << " " << gwreceived_ed << " " << underSensitivity_ed << " " << edsent << " "  << collision_ed + dropped_ed + gwreceived_ed + underSensitivity_ed  << " " << collisionProb_ed << " " << noMoreReceiversProb_ed  << " " << receivedProb_ed << std::endl;
 
+	  std::cout << nJammers  << " " << collision_jm << " " << dropped_jm << " " << gwreceived_jm << " " << underSensitivity_jm << " " << jmsent << " "  << collision_jm + dropped_jm + gwreceived_jm + underSensitivity_jm  << " " << collisionProb_jm << " " << noMoreReceiversProb_jm  << " " << receivedProb_jm << std::endl;
 
-  //PrintResults ( nGateways, nDevices, nJammers, receivedProb, collisionProb, noMoreReceiversProb, underSensitivityProb , "scratch/Results.dat");
-  PrintResults ( nGateways, nDevices, nJammers, receivedProb, collisionProb, noMoreReceiversProb, underSensitivityProb , gwreceived, edsent, PayloadSize, Result_File);
+	  std::string Result_File = Path + "/" + Filename;
+
+	  PrintResults ( nGateways, nDevices, nJammers, receivedProb_ed, collisionProb_ed, noMoreReceiversProb_ed, underSensitivityProb_ed, receivedProb_jm, collisionProb_jm, noMoreReceiversProb_jm, underSensitivityProb_jm, gwreceived_ed, gwreceived_jm, edsent, jmsent, Result_File);
 
   return 0;
 }

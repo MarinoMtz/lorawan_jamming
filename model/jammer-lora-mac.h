@@ -100,6 +100,7 @@ public:
      * Devices, this value is assumed to be fixed, and can be modified via MAC
      * commands issued by the GW.
      */
+  void SetRandomDataRate (void);
 
   void SetTxPower (double txPower);
 
@@ -262,6 +263,12 @@ public:
   void AddSubBand (double startFrequency, double endFrequency, double dutyCycle,
                    double maxTxPowerDbm);
 
+
+  void SetAppFinish (void);
+
+  bool GetAppFinish (void);
+
+
 private:
 
   /**
@@ -304,6 +311,8 @@ private:
    * Whether or not the header is disabled for communications by this device.
    */
   bool m_headerDisabled;
+
+  bool m_appFinish;
 
   /**
    * The interval between when a packet is done sending and when the first

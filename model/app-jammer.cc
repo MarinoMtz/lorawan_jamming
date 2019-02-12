@@ -115,11 +115,11 @@ AppJammer::SendPacket (void)
 
   m_mac->Send (packet);
 
-  double interval = m_interval.GetSeconds() + m_randomdelay->GetValue (-m_interval.GetSeconds()*error, m_interval.GetSeconds()*error);
-  NS_LOG_DEBUG ("Next event at " << interval);
+  //double interval = m_interval.GetSeconds() + m_randomdelay->GetValue (-m_interval.GetSeconds()*error, m_interval.GetSeconds()*error);
+  //NS_LOG_DEBUG ("Next event at " << interval);
 
-  m_sendEvent = Simulator::Schedule (m_interval, &AppJammer::SendPacket, this);
-  NS_LOG_DEBUG ("Sent a packet of size " << packet->GetSize ());
+  //m_sendEvent = Simulator::Schedule (m_interval, &AppJammer::SendPacket, this);
+  //NS_LOG_DEBUG ("Sent a packet of size " << packet->GetSize ());
 }
 
 void
@@ -152,5 +152,10 @@ AppJammer::StopApplication (void)
 {
   NS_LOG_FUNCTION_NOARGS ();
   Simulator::Cancel (m_sendEvent);
+
+  Ptr<LoraNetDevice> loraNetDevice = m_node->GetDevice (0)->GetObject<LoraNetDevice> ();
+  m_mac = loraNetDevice->GetMac ();
+  Ptr<JammerLoraMac> m_mac = loraNetDevice->GetMac ()->GetObject<JammerLoraMac> ();
+  m_mac->SetAppFinish();
 }
 }

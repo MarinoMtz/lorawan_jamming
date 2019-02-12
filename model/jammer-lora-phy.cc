@@ -64,7 +64,7 @@ JammerLoraPhy::JammerLoraPhy () :
   m_state (STANDBY),
   m_frequency (868.3),
   m_txpower (14),
-  m_sf (12),
+  m_sf (7),
   m_preamble (0.012544),
   m_jamType (0),
   m_packetsize (0),
@@ -144,62 +144,8 @@ JammerLoraPhy::Send (Ptr<Packet> packet, LoraTxParameters txParams,
       return;
     }
 
-  if (m_allsf)
-  {
-	for (uint8_t j = 7; j != 13; ++j)
-	    {
-		  txParams.sf = j;
+	NS_LOG_INFO (unsigned(txParams.sf));
 
-		  // Compute the duration of the transmission
-		  Time duration = GetOnAirTime (packet, txParams);
-
-		  // Compute the duration preamble, this will be used for the interference helper
-		  Time preamble = GetPreambleTime (txParams.sf, txParams.bandwidthHz, txParams.nPreamble);
-
-		  // Tag the packet with information about its Spreading Factor, the preamble and the sender ID
-		  LoraTag tag;
-		  packet->RemovePacketTag (tag);
-		  tag.SetSpreadingFactor (txParams.sf);
-		  tag.SetPreamble(preamble.ToDouble(Time::S));
-		  tag.SetSenderID (m_device->GetNode ()->GetId ());
-		  tag.SetJammer (uint8_t (1));
-		  packet->AddPacketTag (tag);
-
-		  // Send the packet over the channel
-		  NS_LOG_INFO ("Sending the packet in the channel");
-
-		  m_channel->Send (this, packet, txPowerDbm, txParams, duration, frequencyMHz);
-		  Simulator::Schedule (duration, &JammerLoraPhy::SwitchToStandby, this);
-
-		  // Schedule the txFinished callback, if it was set
-		  // The call is scheduled just after the switch to standby in case the upper
-		  // layer wishes to change the state. This ensures that it will find a PHY in
-		  // STANDBY mode.
-		  if (!m_txFinishedCallback.IsNull ())
-		    {
-		      Simulator::Schedule (duration + NanoSeconds (10),
-		                           &JammerLoraPhy::m_txFinishedCallback, this,
-		                           packet);
-		    }
-
-		  NS_LOG_FUNCTION (this << duration);
-
-		  // Call the trace source
-		  if (m_device)
-		    {
-		      m_startSending (packet, m_device->GetNode ()->GetId (), frequencyMHz, txParams.sf);
-		    }
-		  else
-		    {
-		      m_startSending (packet, 0, 0, 0);
-		    }
-	    }
-  }
-
-  else if (m_randomsf)
-  {
-	SetRandomSpreadingFactor ();
-	txParams.sf = GetSpreadingFactor ();
 	// We can send the packet: switch to the TX state
 	SwitchToTx ();
 
@@ -231,7 +177,7 @@ JammerLoraPhy::Send (Ptr<Packet> packet, LoraTxParameters txParams,
 
 	if (!m_txFinishedCallback.IsNull ())
 	   {
-	   Simulator::Schedule (duration + NanoSeconds (10), &JammerLoraPhy::m_txFinishedCallback, this, packet);
+		Simulator::Schedule (duration + NanoSeconds (10), &JammerLoraPhy::m_txFinishedCallback, this, packet);
 	   }
 
 	   NS_LOG_FUNCTION (this << duration);
@@ -244,7 +190,7 @@ JammerLoraPhy::Send (Ptr<Packet> packet, LoraTxParameters txParams,
 	   else {
 		   m_startSending (packet, 0, 0, 0);
 	   }
-   }
+
 }
 
 void
@@ -263,7 +209,7 @@ JammerLoraPhy::DirectSend (Ptr<Packet> packet, LoraTxParameters txParams,
 	     return;
 	   }
 
-	//SwitchToTx ();
+	SwitchToTx ();
 
 	// Compute the duration of the transmission
 	Time duration = GetOnAirTime (packet, txParams);
@@ -335,7 +281,7 @@ JammerLoraPhy::StartReceive (Ptr<Packet> packet, double rxPowerDbm,
   // still incoming.
 
   Ptr<LoraInterferenceHelper::Event> event;
-  event = m_interference.Add (duration, rxPowerDbm, sf, packet, frequencyMHz);
+  //event = m_interference.Add (duration, rxPowerDbm, sf, packet, frequencyMHz);
 
   // Switch on the current PHY state
   switch (m_state)
@@ -522,7 +468,6 @@ void
 JammerLoraPhy::SwitchToStandby (void)
 {
   NS_LOG_FUNCTION_NOARGS ();
-
   m_state = STANDBY;
   NS_LOG_FUNCTION (this << "STB" << Simulator::Now ().GetSeconds ());
 }

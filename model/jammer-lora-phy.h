@@ -98,6 +98,9 @@ public:
                              uint8_t sf, Time duration, double frequencyMHz);
 
   // Implementation of LoraPhy's pure virtual functions
+  // virtual void EndReceive (Ptr<Packet> packet,
+  //                         Ptr<LoraInterferenceHelper::Event> event);
+
   virtual void EndReceive (Ptr<Packet> packet,
                            Ptr<LoraInterferenceHelper::Event> event);
 

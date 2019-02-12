@@ -87,7 +87,8 @@ JammerLoraMac::JammerLoraMac () :
   m_lastKnownGatewayCount (0),
   m_aggregatedDutyCycle (1),
   m_mType (LoraMacHeader::UNCONFIRMED_DATA_DOWN),
-  m_jamType (uint8_t (0))
+  m_jamType (uint8_t (0)),
+  m_appFinish(false)
 {
   NS_LOG_FUNCTION (this);
 
@@ -126,14 +127,21 @@ JammerLoraMac::Send (Ptr<Packet> packet)
 
 
   // Check that we can transmit according to the aggregate duty cycle timer
-  if (m_channelHelper.GetAggregatedWaitingTime () != Seconds (0))
-    {
-      NS_LOG_WARN ("Attempting to send, but the aggregate duty cycle won't allow it");
-      return;
-    }
+  //if (m_channelHelper.GetAggregatedWaitingTime () != Seconds (0))
+    //{
+  //    NS_LOG_WARN ("Attempting to send, but the aggregate duty cycle won't allow it");
+    //  return;
+    //}
 
   // Pick a channel on which to transmit the packet
   Ptr<LogicalLoraChannel> txChannel = GetChannelForTx ();
+
+  SetRandomDataRate();
+  //SetDataRate(uint8_t(5));
+  uint8_t DR = GetDataRate();
+  uint8_t sf = GetSfFromDataRate (DR);
+  m_phy->GetObject<JammerLoraPhy> ()->SetSpreadingFactor (sf);
+
 
   if (txChannel) // Proceed with transmission
     {
@@ -157,10 +165,10 @@ JammerLoraMac::Send (Ptr<Packet> packet)
 
       // Craft LoraTxParameters object
       LoraTxParameters params;
-      params.sf = GetSfFromDataRate (m_dataRate);
+      params.sf = GetSfFromDataRate (DR);
       params.headerDisabled = m_headerDisabled;
       params.codingRate = m_codingRate;
-      params.bandwidthHz = GetBandwidthFromDataRate (m_dataRate);
+      params.bandwidthHz = GetBandwidthFromDataRate (DR);
       params.nPreamble = m_nPreambleSymbols;
       params.crcEnabled = 1;
       params.lowDataRateOptimizationEnabled = 0;
@@ -175,7 +183,7 @@ JammerLoraMac::Send (Ptr<Packet> packet)
 
       // Make sure we can transmit at the current power on this channel
       //NS_ASSERT (m_txPower <= m_channelHelper.GetTxPowerForChannel (txChannel));
-      m_phy->GetObject<JammerLoraPhy> ()->SwitchToStandby ();
+      //m_phy->GetObject<JammerLoraPhy> ()->SwitchToStandby ();
       m_phy->Send (packet, params, txChannel->GetFrequency (), m_txPower);
 
       //////////////////////////////////////////////
@@ -188,7 +196,7 @@ JammerLoraMac::Send (Ptr<Packet> packet)
       // Register the sent packet into the DutyCycleHelper
       m_channelHelper.AddEvent (duration, txChannel);
 
-     }
+           }
 }
 
 void
@@ -393,6 +401,28 @@ void
 JammerLoraMac::TxFinished (Ptr<const Packet> packet)
 {
   NS_LOG_FUNCTION_NOARGS ();
+  // Switch the PHY to sleep
+  m_phy->GetObject<JammerLoraPhy> ()->SwitchToStandby ();
+
+  GetAppFinish ();
+
+  if (m_appFinish == false && m_jamType == 4)
+		{
+	  	  Ptr<Packet> pa = packet->Copy();
+	  	  Send(pa);
+		}
+}
+
+void
+JammerLoraMac::SetAppFinish (void)
+{
+   m_appFinish = true;
+}
+
+bool
+JammerLoraMac::GetAppFinish (void)
+{
+   return m_appFinish;
 }
 
 Ptr<LogicalLoraChannel>
@@ -416,21 +446,21 @@ JammerLoraMac::GetChannelForTx (void)
       NS_LOG_DEBUG ("Frequency of the current channel: " << frequency);
 
       // Verify that we can send the packet
-      Time waitingTime = m_channelHelper.GetWaitingTime (logicalChannel);
+      // Time waitingTime = m_channelHelper.GetWaitingTime (logicalChannel);
 
-      NS_LOG_DEBUG ("Waiting time for current channel = " <<
-                    waitingTime.GetSeconds ());
+      // NS_LOG_DEBUG ("Waiting time for current channel = " <<
+      //              waitingTime.GetSeconds ());
 
       // Send immediately if we can
-      if (waitingTime == Seconds (0))
-        {
+      //if (waitingTime == Seconds (0))
+      //  {
           return *it;
-        }
-      else
-        {
-          NS_LOG_DEBUG ("Packet cannot be immediately transmitted on " <<
-                        "the current channel because of duty cycle limitations");
-        }
+      //  }
+      //else
+      //  {
+      //    NS_LOG_DEBUG ("Packet cannot be immediately transmitted on " <<
+      //                  "the current channel because of duty cycle limitations");
+      // }
     }
   return 0; // In this case, no suitable channel was found
 }
@@ -463,6 +493,15 @@ JammerLoraMac::SetDataRate (uint8_t dataRate)
   NS_LOG_FUNCTION (this << unsigned (dataRate));
 
   m_dataRate = dataRate;
+}
+
+void
+JammerLoraMac::SetRandomDataRate (void)
+{
+  NS_LOG_FUNCTION (this);
+  uint8_t random = std::floor (m_uniformRV->GetValue (0, 5));
+  m_dataRate = random;
+
 }
 
 void

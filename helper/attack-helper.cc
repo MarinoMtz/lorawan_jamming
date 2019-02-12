@@ -31,7 +31,7 @@ AttackHelper::AttackHelper ()
 }
 
 void
-AttackHelper::SetSF (NodeContainer Jammers, uint8_t dataRate)
+AttackHelper::SetRandomDataRate (NodeContainer Jammers)
 {
   NS_LOG_FUNCTION_NOARGS ();
 
@@ -43,7 +43,7 @@ AttackHelper::SetSF (NodeContainer Jammers, uint8_t dataRate)
       NS_ASSERT (loraNetDevice != 0);
       Ptr<JammerLoraMac> mac = loraNetDevice->GetMac ()->GetObject<JammerLoraMac> ();
       NS_ASSERT (mac != 0);
-      mac->SetDataRate (dataRate);
+      mac->SetRandomDataRate ();
     }
 }
 
