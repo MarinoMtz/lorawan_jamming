@@ -212,6 +212,11 @@ AttackHelper::ConfigureBand (NodeContainer Jammers, double DutyCycle)
       	  NS_ASSERT (loraNetDevice != 0);
       	  Ptr<JammerLoraMac> mac = loraNetDevice->GetMac ()->GetObject<JammerLoraMac> ();
 
+
+	      Ptr<JammerLoraPhy> phy = loraNetDevice->GetPhy ()->GetObject<JammerLoraPhy> ();
+	      NS_ASSERT (phy != 0);
+	      phy->SetDutyCycle (DutyCycle);
+
       	  //////////////
       	  // SubBands //
       	  //////////////

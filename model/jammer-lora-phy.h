@@ -28,6 +28,7 @@
 #include "ns3/mobility-model.h"
 #include "ns3/node.h"
 #include "ns3/lora-phy.h"
+#include "ns3/core-module.h"
 
 namespace ns3 {
 
@@ -154,6 +155,12 @@ public:
 
   void SetRandomSpreadingFactor (void);
 
+  void SetDutyCycle (double DutyCyle);
+
+  double GetDutyCycle (void);
+
+  void AppFinish (void);
+
   /**
    * Get the Spreading Factor this EndDevice is listening for.
    *
@@ -231,6 +238,10 @@ private:
   bool m_allsf;
 
   Ptr<UniformRandomVariable> m_uniformRV;
+
+  double m_dutycycle;
+
+  bool m_appfinish;
 
 };
 

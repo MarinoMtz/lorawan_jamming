@@ -141,14 +141,14 @@ PrintTrace (int Type, uint32_t NodeId, uint32_t SenderID, uint32_t Size, double 
 void
 PrintResults(uint32_t nGateways, uint32_t nDevices, uint32_t nJammers, double receivedProb_ed, double collisionProb_ed,  double noMoreReceiversProb_ed, double underSensitivityProb_ed, double receivedProb_jm, double collisionProb_jm,  double noMoreReceiversProb_jm, double underSensitivityProb_jm, double gwreceived_ed, double gwreceived_jm, double edsent, double jmsent, std::string filename)
 {
-	if (Simulator::Now ().GetSeconds () >= 10000)
-		{
+//	if (Simulator::Now ().GetSeconds () >= 10000)
+//		{
 			const char * c = filename.c_str ();
 			std::ofstream Plot;
 			Plot.open (c, std::ios::app);
 			Plot << nGateways << " " << nDevices << " " << nJammers << " " << receivedProb_ed << " " << collisionProb_ed << " " << noMoreReceiversProb_ed << " " << underSensitivityProb_ed << " " << receivedProb_jm << " " << collisionProb_jm << " " << noMoreReceiversProb_jm << " " << underSensitivityProb_jm << " " << gwreceived_ed << " " << gwreceived_jm<< " " << edsent << " " << jmsent << std::endl;
 			Plot.close ();
-		}
+//		}
 
 }
 
@@ -268,8 +268,6 @@ NoMoreReceiversCallback (Ptr<Packet const> packet, uint32_t systemId, uint32_t S
 	  {
 		 dropped_jm += 1;
 	  }
-
-
 }
 
 void
@@ -382,7 +380,6 @@ int main (int argc, char *argv[])
   cmd.AddValue ("Filename", "Filename", Filename);
   cmd.AddValue ("Path", "Path", Path);
 
-
   cmd.Parse (argc, argv);
 
 //	Set up logging
@@ -429,7 +426,6 @@ int main (int argc, char *argv[])
                                  "Y", DoubleValue (0.0));
 
   mobility.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
-
 
 
   /************************
@@ -625,7 +621,7 @@ int main (int argc, char *argv[])
 
   AttackProfile.SetType (Jammers, JammerType);
   AttackProfile.ConfigureForEuRegionJm (Jammers);
-  AttackProfile.ConfigureBand (Jammers, 868, 868.6, JammerDutyCycle, 14, 802.3, 0, 5);
+  //AttackProfile.ConfigureBand (Jammers, 868, 868.6, JammerDutyCycle, 14, 802.3, 0, 5);
   AttackProfile.SetFrequency(Jammers,JammerFrequency);
   AttackProfile.SetTxPower(Jammers,JammerTxPower);
   AttackProfile.SetPacketSize (Jammers,PayloadJamSize);
@@ -641,24 +637,14 @@ int main (int argc, char *argv[])
 	  AppJammerHelper appJamHelper = AppJammerHelper ();
 	  AttackProfile.SetRandomDataRate(Jammers);
 
-	  //AttackProfile.SetRandomSF (Jammers);
+	  AttackProfile.ConfigureBand (Jammers, JammerDutyCycle);
 
-	  if (JammerType == 3)
-	  {
-    	  AttackProfile.ConfigureBand (Jammers, 868, 868.6, JammerDutyCycle, 14, JammerFrequency, 0, 5);
-    	  appJamHelper.SetPeriod (Seconds (appPeriodJamSeconds));
-    	  appJamHelper.SetPacketSize (PayloadJamSize);
-
-	  } else {
-
-		  AttackProfile.ConfigureBand (Jammers, JammerDutyCycle);
-    	  appJamHelper.SetPeriod (Seconds (appPeriodJamSeconds));
-    	  appJamHelper.SetPacketSize (PayloadJamSize);
-      }
+	  appJamHelper.SetPacketSize (PayloadJamSize);
+   	  appJamHelper.SetPeriod (Seconds (appPeriodJamSeconds));
 
 	  ApplicationContainer appJamContainer = appJamHelper.Install (Jammers);
-	  appJamContainer.Start (Seconds (0));
 
+	  appJamContainer.Start (Seconds (0));
 	  appJamContainer.Stop (appJamStopTime);
 
   }
@@ -708,7 +694,6 @@ int main (int argc, char *argv[])
   //  PrintEndDevices (endDevices, Jammers, gateways, "scratch/Devices.dat");
   //  }
 
-
   /****************
   *  Simulation  *
   ****************/
@@ -718,8 +703,8 @@ int main (int argc, char *argv[])
   // PrintSimulationTime ();
 
   Simulator::Run ();
-
   Simulator::Destroy ();
+
 
 // *************
 // *  Results  *
@@ -752,4 +737,6 @@ int main (int argc, char *argv[])
 	  PrintResults ( nGateways, nDevices, nJammers, receivedProb_ed, collisionProb_ed, noMoreReceiversProb_ed, underSensitivityProb_ed, receivedProb_jm, collisionProb_jm, noMoreReceiversProb_jm, underSensitivityProb_jm, gwreceived_ed, gwreceived_jm, edsent, jmsent, Result_File);
 
   return 0;
+
+
 }

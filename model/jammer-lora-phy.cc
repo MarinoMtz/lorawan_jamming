@@ -24,6 +24,7 @@
 #include "ns3/nstime.h"
 #include "ns3/lora-tag.h"
 #include "ns3/log.h"
+#include "ns3/stats-module.h"
 
 namespace ns3 {
 
@@ -69,7 +70,9 @@ JammerLoraPhy::JammerLoraPhy () :
   m_jamType (0),
   m_packetsize (0),
   m_randomsf(false),
-  m_allsf(false)
+  m_allsf(false),
+  m_dutycycle (1),
+  m_appfinish (false)
 {
   m_uniformRV = CreateObject<UniformRandomVariable> ();
 }
@@ -127,6 +130,27 @@ JammerLoraPhy::SetType (double type)
   m_jamType = type;
   NS_LOG_INFO ("Jammer Type: " << type);
 }
+
+void
+JammerLoraPhy::SetDutyCycle (double DutyCycle)
+{
+  m_dutycycle = DutyCycle;
+  NS_LOG_INFO ("DutyCyle: " << DutyCycle);
+}
+
+double
+JammerLoraPhy::GetDutyCycle (void)
+{
+  return m_dutycycle;
+}
+
+void
+JammerLoraPhy::AppFinish (void)
+{
+  m_appfinish=true;
+}
+
+
 
 void
 JammerLoraPhy::Send (Ptr<Packet> packet, LoraTxParameters txParams,
@@ -190,6 +214,18 @@ JammerLoraPhy::Send (Ptr<Packet> packet, LoraTxParameters txParams,
 	   else {
 		   m_startSending (packet, 0, 0, 0);
 	   }
+
+	if (m_jamType == 3 && m_appfinish == false)
+	{
+		//NS_LOG_INFO ("Sending a packet " << duration.GetSeconds()*(1-m_dutycycle)*100);
+		NS_LOG_INFO ("Sending a packet " << duration.GetSeconds());
+
+		SetRandomSpreadingFactor ();
+		txParams.sf=m_sf;
+
+		double jamtime = duration.GetSeconds()*(1/m_dutycycle-1);
+		Simulator::Schedule (duration+Seconds(jamtime)+NanoSeconds(15), &JammerLoraPhy::Send, this, packet, txParams, frequencyMHz, txPowerDbm);
+	}
 
 }
 

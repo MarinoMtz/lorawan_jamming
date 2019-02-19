@@ -27,6 +27,7 @@
 #include "ns3/random-variable-stream.h"
 #include "ns3/lora-device-address.h"
 #include "ns3/traced-value.h"
+#include "ns3/stats-module.h"
 
 namespace ns3 {
 
@@ -46,7 +47,6 @@ public:
   virtual void SetType (double type);
 
   virtual double GetType (void);
-
 
   /////////////////////////////////
   // Sending / receiving methods //
@@ -267,7 +267,6 @@ public:
   void SetAppFinish (void);
 
   bool GetAppFinish (void);
-
 
 private:
 
