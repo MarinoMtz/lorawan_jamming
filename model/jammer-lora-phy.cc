@@ -85,6 +85,7 @@ JammerLoraPhy::~JammerLoraPhy ()
 // {SF7, SF8, SF9, SF10, SF11, SF12}
 // These sensitivites are for a bandwidth of 125000 Hz
 
+
 const double JammerLoraPhy::sensitivity[6] =
 {-124, -127, -130, -133, -135, -137};
 

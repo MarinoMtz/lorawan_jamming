@@ -25,7 +25,6 @@
 #include "ns3/attack-helper.h"
 #include "ns3/app-jammer.h"
 #include "ns3/app-jammer-helper.h"
-
 #include "ns3/rng-seed-manager.h"
 #include "ns3/network-server-helper.h"
 #include "ns3/forwarder-helper.h"
@@ -59,7 +58,6 @@ double JammerType = 1;
 double JammerFrequency = 868.3;
 double JammerTxPower = 14;
 double JammerDutyCycle;
-
 
 double noMoreReceivers = 0;
 double collision_jm = 0;
