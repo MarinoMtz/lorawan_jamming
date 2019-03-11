@@ -183,13 +183,13 @@ LoraMacHelper::ConfigureForEuRegion (Ptr<GatewayLoraMac> gwMac) const
 
       std::vector<double> frequencies;
       frequencies.push_back (868.1);
-      frequencies.push_back (868.3);
-      frequencies.push_back (868.5);
+      //frequencies.push_back (868.3);
+      //frequencies.push_back (868.5);
 
       std::vector<double>::iterator it = frequencies.begin ();
 
       int receptionPaths = 0;
-      int maxReceptionPaths = 8;
+      int maxReceptionPaths = 1;
       while (receptionPaths < maxReceptionPaths)
         {
           if (it == frequencies.end ())
@@ -222,8 +222,8 @@ LoraMacHelper::ApplyCommonEuConfigurations (Ptr<LoraMac> loraMac) const
   Ptr<LogicalLoraChannel> lc2 = CreateObject<LogicalLoraChannel> (868.3, 0, 5);
   Ptr<LogicalLoraChannel> lc3 = CreateObject<LogicalLoraChannel> (868.5, 0, 5);
   channelHelper.AddChannel (lc1);
-  channelHelper.AddChannel (lc2);
-  channelHelper.AddChannel (lc3);
+  //channelHelper.AddChannel (lc2);
+  //channelHelper.AddChannel (lc3);
 
   loraMac->SetLogicalLoraChannelHelper (channelHelper);
 

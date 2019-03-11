@@ -125,25 +125,11 @@ JammerLoraMac::Send (Ptr<Packet> packet)
 {
   NS_LOG_FUNCTION (this << packet);
 
-
-//  double Type = GetType ();
-//
-//  if (Type == 3)
-//  {
-//	  //Check that we can transmit according to the aggregate duty cycle timer
-//	  if (m_channelHelper.GetAggregatedWaitingTime () != Seconds (0))
-//	    {
-//		  NS_LOG_DEBUG ("Attempting to send, but the aggregate duty cycle won't allow it");
-//
-//	      return;
-//	    }
-//  }
-
   // Pick a channel on which to transmit the packet
   Ptr<LogicalLoraChannel> txChannel = GetChannelForTx ();
 
   SetRandomDataRate();
-  //SetDataRate(uint8_t(3));
+  //SetDataRate(uint8_t(5));
   uint8_t DR = GetDataRate();
   uint8_t sf = GetSfFromDataRate (DR);
   m_phy->GetObject<JammerLoraPhy> ()->SetSpreadingFactor (sf);

@@ -66,6 +66,7 @@ public:
   void SetType (uint8_t);
 
 private:
+
   Ptr<Application> InstallPriv (Ptr<Node> node) const;
 
   ObjectFactory m_factory;

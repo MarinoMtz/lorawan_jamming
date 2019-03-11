@@ -63,7 +63,7 @@ JammerLoraPhy::GetTypeId (void)
 JammerLoraPhy::JammerLoraPhy () :
 
   m_state (STANDBY),
-  m_frequency (868.3),
+  m_frequency (868.1),
   m_txpower (14),
   m_sf (7),
   m_preamble (0.012544),
@@ -295,7 +295,7 @@ JammerLoraPhy::StartReceive (Ptr<Packet> packet, double rxPowerDbm,
                                 uint8_t sf, Time duration, double frequencyMHz)
 {
   LoraTxParameters txParams;
-  Time jamduration = GetCAD (txParams);
+  Time jamduration = GetReceiveWindowTime (txParams,1);
 
   NS_LOG_FUNCTION (this << packet << rxPowerDbm << unsigned (sf) << duration << frequencyMHz);
   NS_LOG_INFO ("Jammer receive");
@@ -307,7 +307,6 @@ JammerLoraPhy::StartReceive (Ptr<Packet> packet, double rxPowerDbm,
   uint8_t jamm = tag.GetJammer();
   uint32_t SenderID = tag.GetSenderID();
   packet->AddPacketTag (tag);
-
 
   // Notify the LoraInterferenceHelper of the impinging signal, and remember
   // the event it creates. This will be used then to correctly handle the end
@@ -382,7 +381,7 @@ JammerLoraPhy::StartReceive (Ptr<Packet> packet, double rxPowerDbm,
         		}
         		Ptr<Packet> jampacket;
         		jampacket = Create<Packet>(m_packetsize);
-        		Simulator::Schedule (jamduration, &JammerLoraPhy::DirectSend, this, jampacket, txParams, frequencyMHz, m_txpower);
+        		Simulator::Schedule (jamduration + NanoSeconds(11), &JammerLoraPhy::DirectSend, this, jampacket, txParams, frequencyMHz, m_txpower);
         	}
 
         // Check frequency
@@ -412,9 +411,10 @@ JammerLoraPhy::StartReceive (Ptr<Packet> packet, double rxPowerDbm,
     			{
     				return;
     			}
+
     			Ptr<Packet> jampacket;
     			jampacket = Create<Packet>(m_packetsize);
-        		Simulator::Schedule (jamduration, &JammerLoraPhy::DirectSend, this, jampacket, txParams, frequencyMHz, m_txpower);
+        		Simulator::Schedule (jamduration + NanoSeconds(11), &JammerLoraPhy::DirectSend, this, jampacket, txParams, frequencyMHz, m_txpower);
     			//DirectSend (jampacket, txParams, frequencyMHz, m_txpower);
         	}
 
@@ -447,11 +447,11 @@ JammerLoraPhy::StartReceive (Ptr<Packet> packet, double rxPowerDbm,
             // EndReceive will handle the switch back to STANDBY state
             SwitchToRx ();
 
-            // Schedule the end of the reception of the packet
+            // Schedule the end of the reception of the preamble, Time necessary to detect and send back a jam-packet
             NS_LOG_INFO ("Scheduling reception of a packet. End in " <<
-                         duration.GetSeconds () << " seconds");
+            		     jamduration.GetSeconds () << " seconds");
 
-            Simulator::Schedule (duration, &LoraPhy::EndReceive, this, packet,
+            Simulator::Schedule (jamduration, &LoraPhy::EndReceive, this, packet,
                                  event);
 
             // Fire the beginning of reception trace source

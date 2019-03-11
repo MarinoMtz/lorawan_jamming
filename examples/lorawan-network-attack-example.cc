@@ -385,14 +385,14 @@ int main (int argc, char *argv[])
 //  LogComponentEnable("LoraChannel", LOG_LEVEL_INFO);
 //  LogComponentEnable("LoraPhy", LOG_LEVEL_ALL);
 //  LogComponentEnable("EndDeviceLoraPhy", LOG_LEVEL_ALL);
-//  LogComponentEnable("JammerLoraPhy", LOG_LEVEL_ALL);
+  LogComponentEnable("JammerLoraPhy", LOG_LEVEL_ALL);
 //  LogComponentEnable("GatewayLoraPhy", LOG_LEVEL_ALL);
 //  LogComponentEnable("SimpleNetworkServer", LOG_LEVEL_ALL);
 //  LogComponentEnable("AppJammer", LOG_LEVEL_ALL);
 //  LogComponentEnable("LoraInterferenceHelper", LOG_LEVEL_ALL);
 //  LogComponentEnable("LoraMac", LOG_LEVEL_ALL);
 //  LogComponentEnable("EndDeviceLoraMac", LOG_LEVEL_ALL);
-//  LogComponentEnable("JammerLoraMac", LOG_LEVEL_ALL);
+  LogComponentEnable("JammerLoraMac", LOG_LEVEL_ALL);
 //  LogComponentEnable("GatewayLoraMac", LOG_LEVEL_ALL);
 //  LogComponentEnable("LogicalLoraChannelHelper", LOG_LEVEL_ALL);
 //  LogComponentEnable("LogicalLoraChannel", LOG_LEVEL_ALL);
@@ -619,7 +619,7 @@ int main (int argc, char *argv[])
 
   AttackProfile.SetType (Jammers, JammerType);
   AttackProfile.ConfigureForEuRegionJm (Jammers);
-  //AttackProfile.ConfigureBand (Jammers, 868, 868.6, JammerDutyCycle, 14, 802.3, 0, 5);
+  AttackProfile.ConfigureBand (Jammers, 868, 868.6, JammerDutyCycle, 14, 802.3, 0, 5);
   AttackProfile.SetFrequency(Jammers,JammerFrequency);
   AttackProfile.SetTxPower(Jammers,JammerTxPower);
   AttackProfile.SetPacketSize (Jammers,PayloadJamSize);

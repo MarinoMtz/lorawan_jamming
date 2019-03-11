@@ -280,6 +280,8 @@ protected:
    */
   TracedCallback<Ptr<const Packet>, uint32_t, uint32_t, double, uint8_t> m_successfullyReceivedPacket;
 
+  TracedCallback<Ptr<const Packet>, Time, uint32_t, uint32_t, double, uint8_t> m_packetduration;
+
   /**
    * The trace source fired when a packet cannot be received because its power
    * is below the sensitivity threshold.

@@ -284,6 +284,8 @@ GatewayLoraPhy::StartReceive (Ptr<Packet> packet, double rxPowerDbm,
               Simulator::Schedule (duration, &LoraPhy::EndReceive, this,
                                    packet, event);
 
+              m_packetduration(packet, duration ,m_device->GetNode ()->GetId (), SenderID, event->GetFrequency (), event->GetSpreadingFactor () );
+
               // Make sure we don't go on searching for other ReceivePaths
               return;
             }

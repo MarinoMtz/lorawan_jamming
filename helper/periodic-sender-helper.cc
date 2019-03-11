@@ -83,7 +83,7 @@ PeriodicSenderHelper::InstallPriv (Ptr<Node> node) const
 
   double m_interval = interval.GetSeconds();
 
-  app->SetInitialDelay (Seconds (m_initialDelay->GetValue (0, 10000)));
+  app->SetInitialDelay (Seconds (m_initialDelay->GetValue (0, 1000)));
 
   //app->SetInitialDelay (Seconds (0));
 

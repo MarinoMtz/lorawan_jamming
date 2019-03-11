@@ -74,7 +74,10 @@ LoraPhy::GetTypeId (void)
 					 MakeTraceSourceAccessor (&LoraPhy::m_consumption))
 	.AddTraceSource ("DeadDeviceCallback",
 					 "Trace source indicating that an end-device is discharged",
-					 MakeTraceSourceAccessor (&LoraPhy::m_dead_device));
+					 MakeTraceSourceAccessor (&LoraPhy::m_dead_device))
+	.AddTraceSource ("DurationCallback",
+					 "Trace source indicating the duration of a packet treated by a GW",
+					 MakeTraceSourceAccessor (&LoraPhy::m_packetduration));
 
   return tid;
 }
