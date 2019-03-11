@@ -25,6 +25,7 @@
 #include "ns3/attack-helper.h"
 #include "ns3/app-jammer.h"
 #include "ns3/app-jammer-helper.h"
+
 #include "ns3/rng-seed-manager.h"
 #include "ns3/network-server-helper.h"
 #include "ns3/forwarder-helper.h"
@@ -55,9 +56,10 @@ double appPeriodSeconds = 300;
 double appPeriodJamSeconds = 10;
 uint32_t nJammers = 1;
 double JammerType = 1;
-double JammerFrequency = 868.3;
+double JammerFrequency = 868.1;
 double JammerTxPower = 14;
 double JammerDutyCycle;
+
 
 double noMoreReceivers = 0;
 double collision_jm = 0;
@@ -72,6 +74,8 @@ double gwsent = 0;
 double jmsent = 0;
 double dropped_jm = 0;
 double dropped_ed = 0;
+double cumulative_time_jm = 0;
+double cumulative_time_ed = 0;
 
 int PayloadSize=20;
 
@@ -87,6 +91,10 @@ bool printEDs = true;
 bool Trans = true;
 bool SimTime = true;
 bool buildingsEnabled = false;
+
+std::vector<int> pkt_success(nDevices+nJammers,0);
+std::vector<int> pkt_drop(nDevices+nJammers,0);
+std::vector<int> pkt_loss(nDevices+nJammers,0);
 
 enum PrintType {
 	GR,
@@ -137,16 +145,14 @@ PrintTrace (int Type, uint32_t NodeId, uint32_t SenderID, uint32_t Size, double 
 }
 
 void
-PrintResults(uint32_t nGateways, uint32_t nDevices, uint32_t nJammers, double receivedProb_ed, double collisionProb_ed,  double noMoreReceiversProb_ed, double underSensitivityProb_ed, double receivedProb_jm, double collisionProb_jm,  double noMoreReceiversProb_jm, double underSensitivityProb_jm, double gwreceived_ed, double gwreceived_jm, double edsent, double jmsent, std::string filename)
+PrintResults(uint32_t nGateways, uint32_t nDevices, uint32_t nJammers, double receivedProb_ed, double collisionProb_ed,  double noMoreReceiversProb_ed, double underSensitivityProb_ed, double receivedProb_jm, double collisionProb_jm,  double noMoreReceiversProb_jm, double underSensitivityProb_jm, double gwreceived_ed, double gwreceived_jm, double edsent, double jmsent, double cumulative_time_ed, double cumulative_time_jm, std::string filename)
 {
-//	if (Simulator::Now ().GetSeconds () >= 10000)
-//		{
+
 			const char * c = filename.c_str ();
 			std::ofstream Plot;
 			Plot.open (c, std::ios::app);
-			Plot << nGateways << " " << nDevices << " " << nJammers << " " << receivedProb_ed << " " << collisionProb_ed << " " << noMoreReceiversProb_ed << " " << underSensitivityProb_ed << " " << receivedProb_jm << " " << collisionProb_jm << " " << noMoreReceiversProb_jm << " " << underSensitivityProb_jm << " " << gwreceived_ed << " " << gwreceived_jm<< " " << edsent << " " << jmsent << std::endl;
+			Plot << nGateways << " " << nDevices << " " << nJammers << " " << receivedProb_ed << " " << collisionProb_ed << " " << noMoreReceiversProb_ed << " " << underSensitivityProb_ed << " " << receivedProb_jm << " " << collisionProb_jm << " " << noMoreReceiversProb_jm << " " << underSensitivityProb_jm << " " << gwreceived_ed << " " << gwreceived_jm << " " << edsent << " " << jmsent << " " << cumulative_time_ed << " " << cumulative_time_jm << std::endl;
 			Plot.close ();
-//		}
 
 }
 
@@ -181,6 +187,32 @@ GWTransmissionCallback (Ptr<Packet const> packet, uint32_t systemId, double freq
 }
 
 void
+GWReceivedurationCallback( Ptr<Packet const> packet, Time duration, uint32_t systemId, uint32_t SenderID, double frequencyMHz, uint8_t sf)
+{
+
+  NS_LOG_INFO ("DU " << systemId << " " << packet->GetSize () << " " << frequencyMHz << " " << unsigned(sf) << " " << Simulator::Now ().GetSeconds ());
+
+  double time_on_air = 0;
+
+  time_on_air = duration.GetSeconds();
+
+  LoraTag tag;
+  packet->PeekPacketTag (tag);
+  uint8_t jammer = tag.GetJammer ();
+
+  if (jammer == uint8_t(0))
+  {
+	  cumulative_time_ed += time_on_air;
+  }
+
+  else
+  {
+	  cumulative_time_jm += time_on_air;
+  }
+
+}
+
+void
 GatewayReceiveCallback (Ptr<Packet const> packet, uint32_t systemId, uint32_t SenderID, double frequencyMHz, uint8_t sf)
 {
   // Remove the successfully received packet from the list of sent ones
@@ -194,6 +226,13 @@ GatewayReceiveCallback (Ptr<Packet const> packet, uint32_t systemId, uint32_t Se
   uint8_t jammer = tag.GetJammer ();
   //packet->AddPacketTag (tag);
 
+
+  if (Seconds (simulationTime) > 1000)
+	{
+	  pkt_success [SenderID] += 1;
+	}
+
+
   if (jammer == uint8_t(0))
   {
 	  gwreceived_ed += 1;
@@ -203,7 +242,6 @@ GatewayReceiveCallback (Ptr<Packet const> packet, uint32_t systemId, uint32_t Se
   {
 	  gwreceived_jm += 1;
   }
-
 
 }
 
@@ -233,6 +271,9 @@ CollisionCallback (Ptr<Packet const> packet, uint32_t systemId, uint32_t SenderI
   uint8_t jammer = tag_1.GetJammer ();
   //packet->AddPacketTag (tag);
 
+  pkt_loss [SenderID] += 1;
+
+
      if (jammer == uint8_t(0))
 	  {
 		  collision_ed += 1;
@@ -256,6 +297,8 @@ NoMoreReceiversCallback (Ptr<Packet const> packet, uint32_t systemId, uint32_t S
   packet->PeekPacketTag (tag);
   uint8_t jammer = tag.GetJammer ();
   //packet->AddPacketTag (tag);
+
+  pkt_drop [SenderID] += 1;
 
   if (jammer == uint8_t(0))
 	  {
@@ -326,7 +369,9 @@ PrintEndDevices (NodeContainer endDevices, NodeContainer Jammers, NodeContainer 
       Ptr<EndDeviceLoraMac> mac = loraNetDevice->GetMac ()->GetObject<EndDeviceLoraMac> ();
       int sf = int(mac->GetDataRate ());
       Vector pos = position->GetPosition ();
-      Plot << "ED " << pos.x << " " << pos.y << " " << sf << std::endl;
+      uint32_t DeviceID = object->GetId();
+      Plot << "ED " << DeviceID << " " << pos.x << " " << pos.y << " " << sf << " " << pkt_success [DeviceID] << " " << pkt_loss [DeviceID] << " " << pkt_drop [DeviceID]<< std::endl;
+
     }
 
   for (NodeContainer::Iterator j = Jammers.Begin (); j != Jammers.End (); ++j)
@@ -340,7 +385,9 @@ PrintEndDevices (NodeContainer endDevices, NodeContainer Jammers, NodeContainer 
       Ptr<JammerLoraMac> mac = loraNetDevice->GetMac ()->GetObject<JammerLoraMac> ();
       int sf = int(mac->GetDataRate ());
       Vector pos = position->GetPosition ();
-      Plot <<"JM " << pos.x << " " << pos.y << " " << sf << std::endl;
+      uint32_t DeviceID = object->GetId();
+      Plot << "JM " << DeviceID << " " << pos.x << " " << pos.y << " " << sf << " " << pkt_success [DeviceID] << " " << pkt_loss [DeviceID] << " " << pkt_drop [DeviceID]<< std::endl;
+
     }
 
   // Also print the gateways
@@ -349,7 +396,7 @@ PrintEndDevices (NodeContainer endDevices, NodeContainer Jammers, NodeContainer 
       Ptr<Node> object = *j;
       Ptr<MobilityModel> position = object->GetObject<MobilityModel> ();
       Vector pos = position->GetPosition ();
-      Plot <<"GW " << pos.x << " " << pos.y << std::endl;
+      //Plot <<"GW " << pos.x << " " << pos.y << std::endl;
     }
   Plot.close ();
 }
@@ -380,19 +427,24 @@ int main (int argc, char *argv[])
 
   cmd.Parse (argc, argv);
 
+  pkt_success.resize(nDevices+nJammers, 0);
+  pkt_drop.resize(nDevices+nJammers, 0);
+  pkt_loss.resize(nDevices+nJammers, 0);
+
+
 //	Set up logging
 //  LogComponentEnable ("LorawanNetworkAttackExample", LOG_LEVEL_ALL);
-//  LogComponentEnable("LoraChannel", LOG_LEVEL_INFO);
+//  LogComponentEnable("LoraChannel", LOG_LEVEL_ALL);
 //  LogComponentEnable("LoraPhy", LOG_LEVEL_ALL);
 //  LogComponentEnable("EndDeviceLoraPhy", LOG_LEVEL_ALL);
-  LogComponentEnable("JammerLoraPhy", LOG_LEVEL_ALL);
+//  LogComponentEnable("JammerLoraPhy", LOG_LEVEL_ALL);
 //  LogComponentEnable("GatewayLoraPhy", LOG_LEVEL_ALL);
 //  LogComponentEnable("SimpleNetworkServer", LOG_LEVEL_ALL);
 //  LogComponentEnable("AppJammer", LOG_LEVEL_ALL);
 //  LogComponentEnable("LoraInterferenceHelper", LOG_LEVEL_ALL);
 //  LogComponentEnable("LoraMac", LOG_LEVEL_ALL);
 //  LogComponentEnable("EndDeviceLoraMac", LOG_LEVEL_ALL);
-  LogComponentEnable("JammerLoraMac", LOG_LEVEL_ALL);
+//  LogComponentEnable("JammerLoraMac", LOG_LEVEL_ALL);
 //  LogComponentEnable("GatewayLoraMac", LOG_LEVEL_ALL);
 //  LogComponentEnable("LogicalLoraChannelHelper", LOG_LEVEL_ALL);
 //  LogComponentEnable("LogicalLoraChannel", LOG_LEVEL_ALL);
@@ -477,6 +529,7 @@ int main (int argc, char *argv[])
 
 
 // Create the LoraNetDevices of the end devices
+
   phyHelper.SetDeviceType (LoraPhyHelper::ED);
   macHelper.SetDeviceType (LoraMacHelper::ED);
   helper.Install (phyHelper, macHelper, endDevices);
@@ -598,9 +651,10 @@ int main (int argc, char *argv[])
                                          MakeCallback (&NoMoreReceiversCallback));
       gwPhy->TraceConnectWithoutContext ("LostPacketBecauseUnderSensitivity",
                                          MakeCallback (&UnderSensitivityCallback));
-      gwPhy->TraceConnectWithoutContext ("StartSending",
-                                       MakeCallback (&GWTransmissionCallback));
+      gwPhy->TraceConnectWithoutContext ("DurationCallback",
+                                       MakeCallback (&GWReceivedurationCallback));
     }
+
 
   /**********************************************
   *  Set up the end device's spreading factor  *
@@ -619,7 +673,7 @@ int main (int argc, char *argv[])
 
   AttackProfile.SetType (Jammers, JammerType);
   AttackProfile.ConfigureForEuRegionJm (Jammers);
-  AttackProfile.ConfigureBand (Jammers, 868, 868.6, JammerDutyCycle, 14, 802.3, 0, 5);
+  //AttackProfile.ConfigureBand (Jammers, 868, 868.6, JammerDutyCycle, 14, 802.3, 0, 5);
   AttackProfile.SetFrequency(Jammers,JammerFrequency);
   AttackProfile.SetTxPower(Jammers,JammerTxPower);
   AttackProfile.SetPacketSize (Jammers,PayloadJamSize);
@@ -683,15 +737,6 @@ int main (int argc, char *argv[])
 	  forwarderHelper.Install (gateways);
   }
 
-  /**********************
-   * Print output files *
-   *********************/
-
-  //if (printEDs)
-  //  {
-  //  PrintEndDevices (endDevices, Jammers, gateways, "scratch/Devices.dat");
-  //  }
-
   /****************
   *  Simulation  *
   ****************/
@@ -701,6 +746,12 @@ int main (int argc, char *argv[])
   // PrintSimulationTime ();
 
   Simulator::Run ();
+
+  if (printEDs)
+    {
+	  PrintEndDevices (endDevices, Jammers, gateways, "scratch/Devices.dat");
+    }
+
   Simulator::Destroy ();
 
 
@@ -732,9 +783,23 @@ int main (int argc, char *argv[])
 
 	  std::string Result_File = Path + "/" + Filename;
 
-	  PrintResults ( nGateways, nDevices, nJammers, receivedProb_ed, collisionProb_ed, noMoreReceiversProb_ed, underSensitivityProb_ed, receivedProb_jm, collisionProb_jm, noMoreReceiversProb_jm, underSensitivityProb_jm, gwreceived_ed, gwreceived_jm, edsent, jmsent, Result_File);
+	  std::cout << "Enviados ed" << edsent << std::endl;
+	  std::cout << "Enviados jm" << jmsent << std::endl;
+	  std::cout << "Success ed" << gwreceived_ed << std::endl;
+	  std::cout << "Success jm" << gwreceived_jm << std::endl;
+
+	  std::cout << "cumulative_time_ed " << cumulative_time_ed << std::endl;
+	  std::cout << "cumulative_time_jm " << cumulative_time_jm << std::endl;
+
+
+//	    for(int i = 0; i < pkt_success.size(); i++)
+//	    {
+//	    	std:: cout << pkt_success[i] << std::endl;
+//	    }
+
+	  PrintResults ( nGateways, nDevices, nJammers, receivedProb_ed, collisionProb_ed, noMoreReceiversProb_ed, underSensitivityProb_ed, receivedProb_jm, collisionProb_jm, noMoreReceiversProb_jm, underSensitivityProb_jm, gwreceived_ed, gwreceived_jm, edsent, jmsent, cumulative_time_ed, cumulative_time_jm, Result_File);
+
 
   return 0;
-
 
 }
