@@ -87,7 +87,8 @@ JammerLoraPhy::~JammerLoraPhy ()
 
 
 const double JammerLoraPhy::sensitivity[6] =
-{-124, -127, -130, -133, -135, -137};
+//{-124, -127, -130, -133, -135, -137};
+{-114, -117, -120, -123, -135, -127};
 
 /**
  * An uniform random variable, used to select the SF when it is not fixed.
@@ -421,23 +422,23 @@ JammerLoraPhy::StartReceive (Ptr<Packet> packet, double rxPowerDbm,
 
         // Check Spreading Factor
         /////////////////////////
-        if (sf != m_sf)
-          {
-            NS_LOG_INFO ("Packet lost because it's using SF" << unsigned(sf) <<
-                         ", while we are listening for SF" << unsigned(m_sf));
+        //if (sf != m_sf)
+        //  {
+        //    NS_LOG_INFO ("Packet lost because it's using SF" << unsigned(sf) <<
+        //                 ", while we are listening for SF" << unsigned(m_sf));
 
             // Fire the trace source for this event.
-            if (m_device)
-              {
-                m_wrongSf (packet, m_device->GetNode ()->GetId ());
-              }
-            else
-              {
-                m_wrongSf (packet, 0);
-              }
+        //    if (m_device)
+        //      {
+        //        m_wrongSf (packet, m_device->GetNode ()->GetId ());
+        //      }
+        //    else
+        //      {
+        //        m_wrongSf (packet, 0);
+        //      }
 
-            canLockOnPacket = false;
-          }
+        //    canLockOnPacket = false;
+        //  }
 
         // Check if one of the above failed
         ///////////////////////////////////

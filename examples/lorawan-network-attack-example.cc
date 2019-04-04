@@ -76,9 +76,10 @@ double dropped_jm = 0;
 double dropped_ed = 0;
 double cumulative_time_jm = 0;
 double cumulative_time_ed = 0;
+double ce_ed = 0;
+double ce_jm = 0;
 
 int PayloadSize=20;
-
 double PayloadJamSize=20;
 
 
@@ -87,7 +88,7 @@ bool Random_SF = false;
 bool All_SF = false;
 
 // Output control
-bool printEDs = true;
+bool printEDs = false;
 bool Trans = true;
 bool SimTime = true;
 bool buildingsEnabled = false;
@@ -95,6 +96,7 @@ bool buildingsEnabled = false;
 std::vector<int> pkt_success(nDevices+nJammers,0);
 std::vector<int> pkt_drop(nDevices+nJammers,0);
 std::vector<int> pkt_loss(nDevices+nJammers,0);
+std::vector<int> pkt_send(nDevices+nJammers,0);
 
 enum PrintType {
 	GR,
@@ -145,14 +147,15 @@ PrintTrace (int Type, uint32_t NodeId, uint32_t SenderID, uint32_t Size, double 
 }
 
 void
-PrintResults(uint32_t nGateways, uint32_t nDevices, uint32_t nJammers, double receivedProb_ed, double collisionProb_ed,  double noMoreReceiversProb_ed, double underSensitivityProb_ed, double receivedProb_jm, double collisionProb_jm,  double noMoreReceiversProb_jm, double underSensitivityProb_jm, double gwreceived_ed, double gwreceived_jm, double edsent, double jmsent, double cumulative_time_ed, double cumulative_time_jm, std::string filename)
+PrintResults(uint32_t nGateways, uint32_t nDevices, uint32_t nJammers, double receivedProb_ed, double collisionProb_ed,  double noMoreReceiversProb_ed, double underSensitivityProb_ed, double receivedProb_jm, double collisionProb_jm,  double noMoreReceiversProb_jm, double underSensitivityProb_jm, double gwreceived_ed, double gwreceived_jm, double edsent, double jmsent, double cumulative_time_ed, double cumulative_time_jm, double ce_ed, double ce_jm, std::string filename)
 {
 
-			const char * c = filename.c_str ();
-			std::ofstream Plot;
-			Plot.open (c, std::ios::app);
-			Plot << nGateways << " " << nDevices << " " << nJammers << " " << receivedProb_ed << " " << collisionProb_ed << " " << noMoreReceiversProb_ed << " " << underSensitivityProb_ed << " " << receivedProb_jm << " " << collisionProb_jm << " " << noMoreReceiversProb_jm << " " << underSensitivityProb_jm << " " << gwreceived_ed << " " << gwreceived_jm << " " << edsent << " " << jmsent << " " << cumulative_time_ed << " " << cumulative_time_jm << std::endl;
-			Plot.close ();
+	const char * c = filename.c_str ();
+	std::ofstream Plot;
+	Plot.open (c, std::ios::app);
+	Plot << nGateways << " " << nDevices << " " << nJammers << " " << receivedProb_ed << " " << collisionProb_ed << " " << noMoreReceiversProb_ed << " " << underSensitivityProb_ed << " " << receivedProb_jm << " " << collisionProb_jm << " " << noMoreReceiversProb_jm << " " << underSensitivityProb_jm << " " << gwreceived_ed << " " << gwreceived_jm << " " << edsent << " " << jmsent << " " << std::endl;
+    //cumulative_time_ed << " " << cumulative_time_jm << std::endl;
+	Plot.close ();
 
 }
 
@@ -164,6 +167,8 @@ EDTransmissionCallback (Ptr<Packet const> packet, uint32_t systemId, double freq
   NS_LOG_INFO ("T " << systemId << " " << packet->GetSize () << " " << frequencyMHz << " " << unsigned(sf) << " " << Simulator::Now ().GetSeconds ());
 //  PrintTrace (ET, systemId, 0, packet->GetSize (), frequencyMHz, sf, Seconds(0), Seconds(0), 0, "scratch/Trace.dat");
 	  edsent += 1;
+
+	  pkt_send [systemId] += 1;
 }
 
 void
@@ -174,6 +179,7 @@ JMTransmissionCallback (Ptr<Packet const> packet, uint32_t systemId, double freq
 //  PrintTrace (JT, systemId, 0, packet->GetSize (), frequencyMHz, sf, Seconds(0), Seconds (0), 0, "scratch/Trace.dat");
   jmsent += 1;
 
+  pkt_send [systemId] += 1;
 }
 
 void
@@ -190,7 +196,7 @@ void
 GWReceivedurationCallback( Ptr<Packet const> packet, Time duration, uint32_t systemId, uint32_t SenderID, double frequencyMHz, uint8_t sf)
 {
 
-  NS_LOG_INFO ("DU " << systemId << " " << packet->GetSize () << " " << frequencyMHz << " " << unsigned(sf) << " " << Simulator::Now ().GetSeconds ());
+  //NS_LOG_INFO ("DU " << systemId << " " << packet->GetSize () << " " << frequencyMHz << " " << unsigned(sf) << " " << Simulator::Now ().GetSeconds ());
 
   double time_on_air = 0;
 
@@ -213,6 +219,27 @@ GWReceivedurationCallback( Ptr<Packet const> packet, Time duration, uint32_t sys
 }
 
 void
+GWCaptureEffectCallback (Ptr<Packet const> packet, uint32_t systemId, uint32_t SenderID, double frequencyMHz, bool CE)
+{
+	NS_LOG_INFO ("CE " << systemId << " " << SenderID << " " << frequencyMHz << " " << Simulator::Now ().GetSeconds ());
+
+	LoraTag tag;
+	packet->PeekPacketTag (tag);
+	uint8_t jammer = tag.GetJammer ();
+
+	if (jammer == uint8_t(0))
+	  {
+		  ce_ed += 1;
+	  }
+
+	else
+	  {
+		  ce_jm += 1;
+	  }
+}
+
+
+void
 GatewayReceiveCallback (Ptr<Packet const> packet, uint32_t systemId, uint32_t SenderID, double frequencyMHz, uint8_t sf)
 {
   // Remove the successfully received packet from the list of sent ones
@@ -227,10 +254,10 @@ GatewayReceiveCallback (Ptr<Packet const> packet, uint32_t systemId, uint32_t Se
   //packet->AddPacketTag (tag);
 
 
-  if (Seconds (simulationTime) > 1000)
-	{
+//  if (Seconds (simulationTime) > 1000)
+	//{
 	  pkt_success [SenderID] += 1;
-	}
+	//}
 
 
   if (jammer == uint8_t(0))
@@ -370,7 +397,7 @@ PrintEndDevices (NodeContainer endDevices, NodeContainer Jammers, NodeContainer 
       int sf = int(mac->GetDataRate ());
       Vector pos = position->GetPosition ();
       uint32_t DeviceID = object->GetId();
-      Plot << "ED " << DeviceID << " " << pos.x << " " << pos.y << " " << sf << " " << pkt_success [DeviceID] << " " << pkt_loss [DeviceID] << " " << pkt_drop [DeviceID]<< std::endl;
+      Plot << "ED " << DeviceID << " " << pos.x << " " << pos.y << " " << sf << " " << 	pkt_send [DeviceID] << " "<< pkt_success [DeviceID] << " " << pkt_loss [DeviceID] << " " << pkt_drop [DeviceID]<< std::endl;
 
     }
 
@@ -386,7 +413,7 @@ PrintEndDevices (NodeContainer endDevices, NodeContainer Jammers, NodeContainer 
       int sf = int(mac->GetDataRate ());
       Vector pos = position->GetPosition ();
       uint32_t DeviceID = object->GetId();
-      Plot << "JM " << DeviceID << " " << pos.x << " " << pos.y << " " << sf << " " << pkt_success [DeviceID] << " " << pkt_loss [DeviceID] << " " << pkt_drop [DeviceID]<< std::endl;
+      Plot << "JM " << DeviceID << " " << pos.x << " " << pos.y << " " << sf << " " << pkt_send [DeviceID] << " " << pkt_success [DeviceID] << " " << pkt_loss [DeviceID] << " " << pkt_drop [DeviceID]<< std::endl;
 
     }
 
@@ -430,6 +457,7 @@ int main (int argc, char *argv[])
   pkt_success.resize(nDevices+nJammers, 0);
   pkt_drop.resize(nDevices+nJammers, 0);
   pkt_loss.resize(nDevices+nJammers, 0);
+  pkt_send.resize(nDevices+nJammers, 0);
 
 
 //	Set up logging
@@ -524,6 +552,8 @@ int main (int argc, char *argv[])
       Vector position = mobility->GetPosition ();
 
       position.z = 10;
+      position.x = 100;
+      position.y = 100;
       mobility->SetPosition (position);
     }
 
@@ -571,6 +601,8 @@ int main (int argc, char *argv[])
       Ptr<MobilityModel> mobility = (*j)->GetObject<MobilityModel> ();
       Vector position = mobility->GetPosition ();
       position.z = 1;
+      position.x = 100;
+      position.y = -100;
       mobility->SetPosition (position);
     }
 
@@ -653,6 +685,8 @@ int main (int argc, char *argv[])
                                          MakeCallback (&UnderSensitivityCallback));
       gwPhy->TraceConnectWithoutContext ("DurationCallback",
                                        MakeCallback (&GWReceivedurationCallback));
+      gwPhy->TraceConnectWithoutContext ("CaptureEffectCallback",
+                                       MakeCallback (&GWCaptureEffectCallback));
     }
 
 
@@ -777,16 +811,16 @@ int main (int argc, char *argv[])
   //std::cout << edsent << " " << gwreceived << " " << collision << " " << dropped << " " << noMoreReceiversProb << " " << underSensitivityProb << std::endl;
 
 
-	  std::cout << nDevices <<  " " << collision_ed << " " << dropped_ed << " " << gwreceived_ed << " " << underSensitivity_ed << " " << edsent << " "  << collision_ed + dropped_ed + gwreceived_ed + underSensitivity_ed  << " " << collisionProb_ed << " " << noMoreReceiversProb_ed  << " " << receivedProb_ed << std::endl;
+//	  std::cout << nDevices <<  " " << collision_ed << " " << dropped_ed << " " << gwreceived_ed << " " << underSensitivity_ed << " " << edsent << " "  << collision_ed + dropped_ed + gwreceived_ed + underSensitivity_ed  << " " << collisionProb_ed << " " << noMoreReceiversProb_ed  << " " << receivedProb_ed << std::endl;
 
-	  std::cout << nJammers  << " " << collision_jm << " " << dropped_jm << " " << gwreceived_jm << " " << underSensitivity_jm << " " << jmsent << " "  << collision_jm + dropped_jm + gwreceived_jm + underSensitivity_jm  << " " << collisionProb_jm << " " << noMoreReceiversProb_jm  << " " << receivedProb_jm << std::endl;
+//	  std::cout << nJammers  << " " << collision_jm << " " << dropped_jm << " " << gwreceived_jm << " " << underSensitivity_jm << " " << jmsent << " "  << collision_jm + dropped_jm + gwreceived_jm + underSensitivity_jm  << " " << collisionProb_jm << " " << noMoreReceiversProb_jm  << " " << receivedProb_jm << std::endl;
 
 	  std::string Result_File = Path + "/" + Filename;
 
-	  std::cout << "Enviados ed" << edsent << std::endl;
-	  std::cout << "Enviados jm" << jmsent << std::endl;
-	  std::cout << "Success ed" << gwreceived_ed << std::endl;
-	  std::cout << "Success jm" << gwreceived_jm << std::endl;
+	  std::cout << "Enviados ed " << edsent << std::endl;
+	  std::cout << "Enviados jm " << jmsent << std::endl;
+	  std::cout << "Success ed " << gwreceived_ed << std::endl;
+	  std::cout << "Success jm " << gwreceived_jm << std::endl;
 
 	  std::cout << "cumulative_time_ed " << cumulative_time_ed << std::endl;
 	  std::cout << "cumulative_time_jm " << cumulative_time_jm << std::endl;
@@ -797,7 +831,10 @@ int main (int argc, char *argv[])
 //	    	std:: cout << pkt_success[i] << std::endl;
 //	    }
 
-	  PrintResults ( nGateways, nDevices, nJammers, receivedProb_ed, collisionProb_ed, noMoreReceiversProb_ed, underSensitivityProb_ed, receivedProb_jm, collisionProb_jm, noMoreReceiversProb_jm, underSensitivityProb_jm, gwreceived_ed, gwreceived_jm, edsent, jmsent, cumulative_time_ed, cumulative_time_jm, Result_File);
+	  PrintResults ( nGateways, nDevices, nJammers, receivedProb_ed, collisionProb_ed, noMoreReceiversProb_ed,
+			  underSensitivityProb_ed, receivedProb_jm, collisionProb_jm, noMoreReceiversProb_jm,
+			  underSensitivityProb_jm, gwreceived_ed, gwreceived_jm, edsent, jmsent, cumulative_time_ed,
+			  cumulative_time_jm, ce_ed, ce_jm, Result_File);
 
 
   return 0;

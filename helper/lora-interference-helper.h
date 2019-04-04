@@ -194,6 +194,10 @@ private:
   bool OnThePreamble (Ptr< LoraInterferenceHelper:: Event> event1,
                        Ptr<LoraInterferenceHelper:: Event> event2);
 
+  bool GetFirst (Ptr<LoraInterferenceHelper::Event> event1,
+                 Ptr<LoraInterferenceHelper::Event> event2);
+
+
   /**
    * Delete all events in the LoraInterferenceHelper.
    */
@@ -213,9 +217,13 @@ private:
 
   uint8_t GetSF (void);
 
+  bool  GetCE (void);
+
   void CleanParameters(void);
 
   bool m_onthepreamble;
+  bool m_preamble;
+  bool m_ce;
   Time m_colstart;
   Time m_colend;
   uint8_t m_colsf;

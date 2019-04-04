@@ -85,7 +85,7 @@ PeriodicSenderHelper::InstallPriv (Ptr<Node> node) const
 
   app->SetInitialDelay (Seconds (m_initialDelay->GetValue (0, 1000)));
 
-  //app->SetInitialDelay (Seconds (0));
+  //app->SetInitialDelay (MilliSeconds (0));
 
   app->SetNode (node);
 

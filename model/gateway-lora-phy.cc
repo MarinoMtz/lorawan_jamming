@@ -358,9 +358,15 @@ GatewayLoraPhy::EndReceive (Ptr<Packet> packet, Ptr<LoraInterferenceHelper::Even
     }
   else   // Reception was correct
     {
-      NS_LOG_INFO ("Packet with SF " <<
-                   unsigned(event->GetSpreadingFactor ()) <<
-                   " received correctly");
+	  bool CE = m_interference.GetCE ();
+      NS_LOG_INFO ("Packet with SF " << unsigned(event->GetSpreadingFactor ()) << " received correctly");
+      NS_LOG_INFO ("CE ? " << CE);
+
+      if (CE){
+
+    	  m_packetce (packet, m_device->GetNode ()->GetId (), SenderID, event->GetFrequency (),CE);
+
+      }
 
       // Fire the trace source
       if (m_device)

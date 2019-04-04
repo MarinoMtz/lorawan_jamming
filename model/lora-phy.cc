@@ -77,7 +77,11 @@ LoraPhy::GetTypeId (void)
 					 MakeTraceSourceAccessor (&LoraPhy::m_dead_device))
 	.AddTraceSource ("DurationCallback",
 					 "Trace source indicating the duration of a packet treated by a GW",
-					 MakeTraceSourceAccessor (&LoraPhy::m_packetduration));
+					 MakeTraceSourceAccessor (&LoraPhy::m_packetduration))
+	.AddTraceSource ("CaptureEffectCallback",
+					 "Trace source indicating if a packet was received thanks to CE",
+					 MakeTraceSourceAccessor (&LoraPhy::m_packetce));
+
 
   return tid;
 }

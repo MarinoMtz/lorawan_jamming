@@ -282,6 +282,9 @@ protected:
 
   TracedCallback<Ptr<const Packet>, Time, uint32_t, uint32_t, double, uint8_t> m_packetduration;
 
+  TracedCallback<Ptr<const Packet>, uint32_t, uint32_t, double, bool> m_packetce;
+
+
   /**
    * The trace source fired when a packet cannot be received because its power
    * is below the sensitivity threshold.
