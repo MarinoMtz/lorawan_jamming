@@ -382,7 +382,9 @@ LoraInterferenceHelper::IsDestroyedByInterference
 
   if (first_counter == interferer_counter){
 	  if (preamble_counter == 0) {
-		  if (signalEnergy > cumulativeInterferenceEnergy.at (unsigned(sf)-7)) {
+		  double snirIsolation = collisionSnir [unsigned(sf)-7][unsigned(sf)-7];
+		  double snir = 10*log10 (signalEnergy/cumulativeInterferenceEnergy.at (unsigned(sf)-7));
+		  if (snir >= snirIsolation) {
 			  interferred = false;
 			  m_ce = true;
 			  NS_LOG_DEBUG ("Packet survive due to CE ");

@@ -153,7 +153,9 @@ PrintResults(uint32_t nGateways, uint32_t nDevices, uint32_t nJammers, double re
 	const char * c = filename.c_str ();
 	std::ofstream Plot;
 	Plot.open (c, std::ios::app);
-	Plot << nGateways << " " << nDevices << " " << nJammers << " " << receivedProb_ed << " " << collisionProb_ed << " " << noMoreReceiversProb_ed << " " << underSensitivityProb_ed << " " << receivedProb_jm << " " << collisionProb_jm << " " << noMoreReceiversProb_jm << " " << underSensitivityProb_jm << " " << gwreceived_ed << " " << gwreceived_jm << " " << edsent << " " << jmsent << " " << std::endl;
+	Plot << nGateways << " " << nDevices << " " << nJammers << " " << receivedProb_ed << " " << collisionProb_ed << " " << noMoreReceiversProb_ed
+			<< " " << underSensitivityProb_ed << " " << receivedProb_jm << " " << collisionProb_jm << " " << noMoreReceiversProb_jm
+			<< " " << underSensitivityProb_jm << " " << gwreceived_ed << " " << gwreceived_jm << " " << edsent << " " << jmsent << " " << std::endl;
     //cumulative_time_ed << " " << cumulative_time_jm << std::endl;
 	Plot.close ();
 

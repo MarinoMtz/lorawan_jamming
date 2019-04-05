@@ -139,6 +139,11 @@ public:
 
   void  SetJammer (uint8_t jammer);
 
+  uint32_t GetPktID (void);
+
+  void  SetPktID (uint32_t pktid);
+
+
 private:
   uint8_t m_sf; //!< The Spreading Factor used by the packet.
   uint8_t m_destroyedBy; //!< The Spreading Factor that destroyed the packet.
@@ -150,6 +155,9 @@ private:
   uint32_t m_senderid;
 
   uint8_t m_jammer;
+
+  uint8_t m_pktid;
+
 
 
 };

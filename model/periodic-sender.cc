@@ -52,7 +52,8 @@ PeriodicSender::GetTypeId (void)
 PeriodicSender::PeriodicSender () :
   m_interval (Seconds (0)),
   m_initialDelay (Seconds (0)),
-  m_pktSize (0)
+  m_pktSize (0),
+  m_pktID (0)
 {
 //  NS_LOG_FUNCTION_NOARGS ();
   m_randomdelay = CreateObject<UniformRandomVariable> ();
@@ -93,6 +94,7 @@ PeriodicSender::SetPktSize (uint16_t size)
 
 }
 
+
 void
 PeriodicSender::SendPacket (void)
 {
@@ -100,6 +102,7 @@ PeriodicSender::SendPacket (void)
   // Create and send a new packet
 
   uint16_t size = 0;
+  uint32_t ID = 0;
   Ptr<Packet> packet;
 
   double ppm = 30;
@@ -109,6 +112,15 @@ PeriodicSender::SendPacket (void)
 
   size = m_pktSize;
   packet = Create<Packet>(size);
+
+  m_pktID=+1;
+  ID = m_pktID;
+
+  // Tag the packet with the Application Packet ID
+  LoraTag tag;
+  packet->RemovePacketTag (tag);
+  tag.SetPktID (ID);
+  packet->AddPacketTag (tag);
 
   m_mac->Send (packet);
 

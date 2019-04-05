@@ -99,6 +99,10 @@ private:
    */
   uint16_t m_pktSize;
 
+  uint16_t m_pktID;
+
+
+
   Ptr<UniformRandomVariable> m_randomdelay;
 
 };
