@@ -552,10 +552,7 @@ int main (int argc, char *argv[])
     {
       Ptr<MobilityModel> mobility = (*j)->GetObject<MobilityModel> ();
       Vector position = mobility->GetPosition ();
-
       position.z = 10;
-      position.x = 100;
-      position.y = 100;
       mobility->SetPosition (position);
     }
 
@@ -603,8 +600,6 @@ int main (int argc, char *argv[])
       Ptr<MobilityModel> mobility = (*j)->GetObject<MobilityModel> ();
       Vector position = mobility->GetPosition ();
       position.z = 1;
-      position.x = 100;
-      position.y = -100;
       mobility->SetPosition (position);
     }
 
@@ -819,14 +814,20 @@ int main (int argc, char *argv[])
 
 	  std::string Result_File = Path + "/" + Filename;
 
-	  std::cout << "Enviados ed " << edsent << std::endl;
-	  std::cout << "Enviados jm " << jmsent << std::endl;
+	  std::cout << "Jammer Type " << JammerType << std::endl;
+	  std::cout << "Jammer DutyCycle " << JammerDutyCycle << std::endl;
+	  std::cout << "Number of Jammers " << nJammers << std::endl;
+	  std::cout << "Number of Devices " << nDevices << std::endl;
+	  std::cout << "Sent ed " << edsent << std::endl;
+	  std::cout << "Sent jm " << jmsent << std::endl;
 	  std::cout << "Success ed " << gwreceived_ed << std::endl;
 	  std::cout << "Success jm " << gwreceived_jm << std::endl;
-
-	  std::cout << "cumulative_time_ed " << cumulative_time_ed << std::endl;
-	  std::cout << "cumulative_time_jm " << cumulative_time_jm << std::endl;
-
+	  std::cout << "collision ed " << collision_ed << std::endl;
+	  std::cout << "collision jm " << collision_jm << std::endl;
+	  std::cout << "underSensitivity ed " << underSensitivity_ed << std::endl;
+	  std::cout << "underSensitivity jm " << underSensitivity_jm << std::endl;
+	  std::cout << "cumulative time ed " << cumulative_time_ed << std::endl;
+	  std::cout << "cumulative time jm " << cumulative_time_jm << std::endl;
 
 //	    for(int i = 0; i < pkt_success.size(); i++)
 //	    {
