@@ -40,6 +40,13 @@ public:
    * Set the sending interval
    * \param interval the interval between two packet sendings
    */
+
+  void IncreasePacketID (void);
+
+  void DecreasePacketID (void);
+
+  uint32_t GetPacketID (void);
+
   void SetInterval (Time interval);
 
   /**
@@ -99,9 +106,7 @@ private:
    */
   uint16_t m_pktSize;
 
-  uint16_t m_pktID;
-
-
+  uint32_t m_pktID;
 
   Ptr<UniformRandomVariable> m_randomdelay;
 

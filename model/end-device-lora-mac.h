@@ -53,7 +53,7 @@ public:
    *
    * \param packet the packet to send
    */
-  virtual void Send (Ptr<Packet> packet);
+  virtual bool Send (Ptr<Packet> packet);
 
   /**
    * Receive a packet.

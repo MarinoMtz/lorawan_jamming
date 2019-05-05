@@ -50,7 +50,7 @@ GatewayLoraMac::~GatewayLoraMac ()
   NS_LOG_FUNCTION (this);
 }
 
-void
+bool
 GatewayLoraMac::Send (Ptr<Packet> packet)
 {
   NS_LOG_FUNCTION (this << packet);

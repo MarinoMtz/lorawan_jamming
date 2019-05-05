@@ -120,7 +120,7 @@ JammerLoraMac::GetType ()
   return m_jamType;
 }
 
-void
+bool
 JammerLoraMac::Send (Ptr<Packet> packet)
 {
   NS_LOG_FUNCTION (this << packet);

@@ -68,7 +68,7 @@ public:
    *
    * \param packet The packet to send.
    */
-  virtual void Send (Ptr<Packet> packet) = 0;
+  virtual bool Send (Ptr<Packet> packet) = 0;
 
   /**
    * Receive a packet from the lower layer.

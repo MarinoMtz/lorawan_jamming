@@ -170,6 +170,12 @@ SimpleNetworkServer::Receive (Ptr<NetDevice> device, Ptr<const Packet> packet,
   LoraTag tag;
   myPacket->RemovePacketTag (tag);
 
+  // Get the packet counter
+
+  uint32_t pkt_ID = tag.GetPktID();
+
+  NS_LOG_INFO ("Packet ID" << unsigned(pkt_ID));
+
   // Register which gateway this packet came from
   double rcvPower = tag.GetReceivePower ();
   m_deviceStatuses.at (frameHdr.GetAddress ()).UpdateGatewayData (address,

@@ -65,6 +65,24 @@ PeriodicSender::~PeriodicSender ()
 }
 
 void
+PeriodicSender::IncreasePacketID (void)
+{
+	m_pktID ++;
+}
+
+void
+PeriodicSender::DecreasePacketID (void)
+{
+	m_pktID --;
+}
+
+uint32_t
+PeriodicSender::GetPacketID (void)
+{
+	return m_pktID;
+}
+
+void
 PeriodicSender::SetInterval (Time interval)
 {
 //  NS_LOG_FUNCTION (this << interval);
@@ -113,16 +131,23 @@ PeriodicSender::SendPacket (void)
   size = m_pktSize;
   packet = Create<Packet>(size);
 
-  m_pktID=+1;
-  ID = m_pktID;
+  IncreasePacketID();
+  ID = GetPacketID();
 
   // Tag the packet with the Application Packet ID
   LoraTag tag;
   packet->RemovePacketTag (tag);
   tag.SetPktID (ID);
+  NS_LOG_DEBUG("Packet ID " << ID);
   packet->AddPacketTag (tag);
 
-  m_mac->Send (packet);
+  bool sent;
+  sent = m_mac->Send (packet);
+
+  if (not sent)
+  {
+	  DecreasePacketID();
+  }
 
   double interval = m_interval.GetSeconds() + m_randomdelay->GetValue (-m_interval.GetSeconds()*error, m_interval.GetSeconds()*error);
   NS_LOG_DEBUG ("Next event at " << interval);

@@ -36,7 +36,7 @@ public:
   virtual ~GatewayLoraMac();
 
   // Implementation of the LoraMac interface
-  virtual void Send (Ptr<Packet> packet);
+  virtual bool Send (Ptr<Packet> packet);
 
   // Implementation of the LoraMac interface
   bool IsTransmitting (void);

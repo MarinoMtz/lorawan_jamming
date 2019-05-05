@@ -106,14 +106,19 @@ EndDeviceLoraMac::~EndDeviceLoraMac ()
   NS_LOG_FUNCTION_NOARGS ();
 }
 
-void
+bool
 EndDeviceLoraMac::Send (Ptr<Packet> packet)
 {
   NS_LOG_FUNCTION (this << packet);
 
+  bool sent;
+
   if (m_phy->GetObject<EndDeviceLoraPhy> ()->IsDead ()) {
 	  NS_LOG_INFO ("Cannot send because end-device is DEAD");
-	  return;
+	  //return;
+
+	  sent = false;
+	  return sent;
   }
 
   // Check that there are no scheduled receive windows.
@@ -123,7 +128,10 @@ EndDeviceLoraMac::Send (Ptr<Packet> packet)
     {
       NS_LOG_WARN ("Attempting to send when there are receive windows" <<
                    " Transmission canceled");
-      return;
+      //return;
+
+	  sent = false;
+	  return sent;
     }
 
   // Check that payload length is below the allowed maximum
@@ -132,14 +140,19 @@ EndDeviceLoraMac::Send (Ptr<Packet> packet)
       NS_LOG_WARN ("Attempting to send a packet larger than the maximum allowed"
                    << " size at this DataRate (DR" << unsigned(m_dataRate) <<
                    "). Transmission canceled.");
-      return;
+      //return;
+	  sent = false;
+	  return sent;
+
     }
 
   // Check that we can transmit according to the aggregate duty cycle timer
   if (m_channelHelper.GetAggregatedWaitingTime () != Seconds (0))
     {
       NS_LOG_WARN ("Attempting to send, but the aggregate duty cycle won't allow it");
-      return;
+      //return;
+	  sent = false;
+	  return sent;
     }
 
   // Pick a channel on which to transmit the packet
@@ -214,10 +227,15 @@ EndDeviceLoraMac::Send (Ptr<Packet> packet)
       m_phy->GetObject<EndDeviceLoraPhy> ()->SetSpreadingFactor
         (GetSfFromDataRate (replyDataRate));
 
+	  sent = false;
+	  return sent;
     }
   else // Transmission cannot be performed
     {
       m_cannotSendBecauseDutyCycle (packet);
+
+      sent = false;
+	  return sent;
     }
 }
 
