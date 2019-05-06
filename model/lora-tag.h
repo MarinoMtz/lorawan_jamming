@@ -143,6 +143,9 @@ public:
 
   void  SetPktID (uint32_t pktid);
 
+  uint32_t GetGWid (void);
+
+  void SetGWid (uint32_t gwid);
 
 private:
   uint8_t m_sf; //!< The Spreading Factor used by the packet.
@@ -153,10 +156,9 @@ private:
   double m_frequency; //!< The frequency of this packet
   double m_preamble; //!< The preamble time of this packet
   uint32_t m_senderid;
-
   uint8_t m_jammer;
-
-  uint8_t m_pktid;
+  uint32_t m_pktid;
+  uint32_t m_gwid;
 
 
 

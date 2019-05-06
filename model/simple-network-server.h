@@ -115,6 +115,13 @@ public:
    */
   Address GetGatewayForReply (LoraDeviceAddress deviceAddress, double frequency);
 
+  /**
+   * Trace source that is fired when a packet arrives at the NS, it contains information about
+   * the Packet ID, ED and GW, and the time stamp.
+   */
+
+  TracedCallback<uint32_t, uint32_t, uint32_t, double> m_packetrx;
+
 protected:
   std::map<LoraDeviceAddress,DeviceStatus> m_deviceStatuses;
 

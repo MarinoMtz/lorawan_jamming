@@ -90,6 +90,7 @@ GatewayLoraMac::Send (Ptr<Packet> packet)
 
   // Send the packet to the PHY layer to send it on the channel
   m_phy->Send (packet, params, frequency, sendingPower);
+  return true;
 }
 
 bool

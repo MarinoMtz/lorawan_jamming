@@ -323,6 +323,7 @@ GatewayLoraPhy::EndReceive (Ptr<Packet> packet, Ptr<LoraInterferenceHelper::Even
   LoraTag tag;
   packet->RemovePacketTag (tag);
   uint32_t SenderID = tag.GetSenderID();
+  tag.SetGWid (m_device->GetNode ()->GetId ());
   packet->AddPacketTag (tag);
 
   uint8_t packetDestroyed = m_interference.IsDestroyedByInterference (event);

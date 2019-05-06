@@ -38,7 +38,14 @@ SimpleNetworkServer::GetTypeId (void)
   static TypeId tid = TypeId ("ns3::SimpleNetworkServer")
     .SetParent<Application> ()
     .AddConstructor<SimpleNetworkServer> ()
-    .SetGroupName ("lorawan");
+    .SetGroupName ("lorawan")
+	.AddTraceSource ("ReceivePacket",
+                   "Trace source indicating a packet"
+                   "reception with information concerning"
+                   "PktID, EDID, GWID and time stamp",
+                   MakeTraceSourceAccessor
+                     (&SimpleNetworkServer::m_packetrx),
+                   "ns3::Packet::TracedCallback");
   return tid;
 }
 
@@ -170,16 +177,19 @@ SimpleNetworkServer::Receive (Ptr<NetDevice> device, Ptr<const Packet> packet,
   LoraTag tag;
   myPacket->RemovePacketTag (tag);
 
-  // Get the packet counter
-
+  // Get the packet ID and Gw ID
   uint32_t pkt_ID = tag.GetPktID();
+  uint32_t gw_ID = tag.GetGWid();
+  uint32_t ed_ID = tag.GetSenderID();
 
-  NS_LOG_INFO ("Packet ID" << unsigned(pkt_ID));
+
+  NS_LOG_INFO ("Packet ID " << unsigned(pkt_ID));
+  NS_LOG_INFO ("Gateway ID " << unsigned(gw_ID));
+  NS_LOG_INFO ("End-Device ID " << unsigned(ed_ID));
 
   // Register which gateway this packet came from
   double rcvPower = tag.GetReceivePower ();
-  m_deviceStatuses.at (frameHdr.GetAddress ()).UpdateGatewayData (address,
-                                                                  rcvPower);
+  m_deviceStatuses.at (frameHdr.GetAddress ()).UpdateGatewayData (address, rcvPower);
 
   // Determine whether the packet requires a reply
   if (macHdr.GetMType () == LoraMacHeader::CONFIRMED_DATA_UP

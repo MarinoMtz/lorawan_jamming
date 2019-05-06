@@ -227,7 +227,7 @@ EndDeviceLoraMac::Send (Ptr<Packet> packet)
       m_phy->GetObject<EndDeviceLoraPhy> ()->SetSpreadingFactor
         (GetSfFromDataRate (replyDataRate));
 
-	  sent = false;
+	  sent = true;
 	  return sent;
     }
   else // Transmission cannot be performed
