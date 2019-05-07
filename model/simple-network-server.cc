@@ -44,12 +44,15 @@ SimpleNetworkServer::GetTypeId (void)
                    "reception with information concerning"
                    "PktID, EDID, GWID and time stamp",
                    MakeTraceSourceAccessor
-                     (&SimpleNetworkServer::m_packetrx),
-                   "ns3::Packet::TracedCallback");
+                     (&SimpleNetworkServer::m_packetrx))
+	;
   return tid;
 }
 
-SimpleNetworkServer::SimpleNetworkServer()
+SimpleNetworkServer::SimpleNetworkServer():
+
+		m_devices(0,0),
+		m_gateways(0,0)
 {
   NS_LOG_FUNCTION_NOARGS ();
 }
@@ -121,6 +124,10 @@ SimpleNetworkServer::AddNodes (NodeContainer nodes)
     {
       AddNode (*it);
     }
+
+  NS_LOG_INFO ("Number of ED " << nodes.GetN ());
+  m_devices.resize(nodes.GetN (), 0);
+  NS_LOG_INFO ("Number of ED " << m_devices.size ());
 }
 
 void
@@ -182,10 +189,14 @@ SimpleNetworkServer::Receive (Ptr<NetDevice> device, Ptr<const Packet> packet,
   uint32_t gw_ID = tag.GetGWid();
   uint32_t ed_ID = tag.GetSenderID();
 
+  //PacketCounter(pkt_ID,gw_ID,ed_ID);
 
-  NS_LOG_INFO ("Packet ID " << unsigned(pkt_ID));
-  NS_LOG_INFO ("Gateway ID " << unsigned(gw_ID));
   NS_LOG_INFO ("End-Device ID " << unsigned(ed_ID));
+  NS_LOG_INFO ("Gateway ID " << unsigned(gw_ID));
+  NS_LOG_INFO ("Packet ID " << unsigned(pkt_ID));
+
+
+  m_packetrx(ed_ID,gw_ID,pkt_ID,Simulator::Now ());
 
   // Register which gateway this packet came from
   double rcvPower = tag.GetReceivePower ();
@@ -196,33 +207,32 @@ SimpleNetworkServer::Receive (Ptr<NetDevice> device, Ptr<const Packet> packet,
 		  //&&      !m_deviceStatuses.at (frameHdr.GetAddress ()).HasReply ()
 		  )
     {
-      NS_LOG_DEBUG ("Scheduling a reply for this device");
+     NS_LOG_DEBUG ("Scheduling a reply for this device");
 
-      DeviceStatus::Reply reply;
-      reply.hasReply = true;
+     DeviceStatus::Reply reply;
+     reply.hasReply = true;
 
-      LoraMacHeader replyMacHdr = LoraMacHeader ();
-      replyMacHdr.SetMajor (0);
-      replyMacHdr.SetMType (LoraMacHeader::UNCONFIRMED_DATA_DOWN);
-      reply.macHeader = replyMacHdr;
+     LoraMacHeader replyMacHdr = LoraMacHeader ();
+     replyMacHdr.SetMajor (0);
+     replyMacHdr.SetMType (LoraMacHeader::UNCONFIRMED_DATA_DOWN);
+     reply.macHeader = replyMacHdr;
 
-      LoraFrameHeader replyFrameHdr = LoraFrameHeader ();
-      replyFrameHdr.SetAsDownlink ();
-      replyFrameHdr.SetAddress (frameHdr.GetAddress ());
-      replyFrameHdr.SetAck (true);
-      reply.frameHeader = replyFrameHdr;
+     LoraFrameHeader replyFrameHdr = LoraFrameHeader ();
+     replyFrameHdr.SetAsDownlink ();
+     replyFrameHdr.SetAddress (frameHdr.GetAddress ());
+     replyFrameHdr.SetAck (true);
+     reply.frameHeader = replyFrameHdr;
 
-      Ptr<Packet> replyPacket = Create<Packet> (10);
-      reply.packet = replyPacket;
+     Ptr<Packet> replyPacket = Create<Packet> (10);
+     reply.packet = replyPacket;
 
-      m_deviceStatuses.at (frameHdr.GetAddress ()).SetReply (reply);
-      m_deviceStatuses.at (frameHdr.GetAddress ()).SetFirstReceiveWindowFrequency (tag.GetFrequency ());
+     m_deviceStatuses.at (frameHdr.GetAddress ()).SetReply (reply);
+     m_deviceStatuses.at (frameHdr.GetAddress ()).SetFirstReceiveWindowFrequency (tag.GetFrequency ());
 
-      // Schedule a reply on the first receive window
-      Simulator::Schedule (Seconds (1), &SimpleNetworkServer::SendOnFirstWindow,
+     // Schedule a reply on the first receive window
+     Simulator::Schedule (Seconds (1), &SimpleNetworkServer::SendOnFirstWindow,
                            this, frameHdr.GetAddress ());
     }
-
   return true;
 }
 

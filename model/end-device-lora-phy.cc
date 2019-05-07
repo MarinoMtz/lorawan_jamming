@@ -67,7 +67,7 @@ EndDeviceLoraPhy::EndDeviceLoraPhy () :
   m_sf (7),
   m_last_time_stamp (Seconds(0)),
   m_last_state (4),
-  m_preamble (0.012544),
+  m_preamble (Seconds(0.012544)),
   m_battery_level (battery_capacity),
   m_cumulative_tx_conso (0),
   m_cumulative_rx_conso (0),

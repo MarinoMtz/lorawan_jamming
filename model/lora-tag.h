@@ -160,8 +160,6 @@ private:
   uint32_t m_pktid;
   uint32_t m_gwid;
 
-
-
 };
 } // namespace ns3
 #endif

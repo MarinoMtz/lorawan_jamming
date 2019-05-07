@@ -19,7 +19,6 @@
  */
 
 #include "ns3/network-server-helper.h"
-#include "ns3/simple-network-server.h"
 #include "ns3/double.h"
 #include "ns3/string.h"
 #include "ns3/trace-source-accessor.h"
@@ -77,6 +76,18 @@ NetworkServerHelper::Install (NodeContainer c)
   return apps;
 }
 
+void
+NetworkServerHelper::SetNS (Ptr<SimpleNetworkServer> app)
+{
+  m_ns = app;
+}
+
+Ptr<SimpleNetworkServer>
+NetworkServerHelper::GetNS (void)
+{
+  return m_ns;
+}
+
 Ptr<Application>
 NetworkServerHelper::InstallPriv (Ptr<Node> node)
 {
@@ -110,6 +121,8 @@ NetworkServerHelper::InstallPriv (Ptr<Node> node)
     }
 
   // Add the end devices
+
+  SetNS(app);
   app->AddNodes (m_endDevices);
 
   return app;

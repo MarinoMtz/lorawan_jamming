@@ -28,6 +28,7 @@
 #include "ns3/node-container.h"
 #include "ns3/application-container.h"
 #include "ns3/point-to-point-helper.h"
+#include "ns3/simple-network-server.h"
 #include <stdint.h>
 #include <string>
 
@@ -58,6 +59,13 @@ public:
    * Set which end devices will be managed by this NS.
    */
   void SetEndDevices (NodeContainer endDevices);
+
+  Ptr<SimpleNetworkServer> m_ns = 0;
+
+  void SetNS (Ptr<SimpleNetworkServer> app);
+
+  Ptr<SimpleNetworkServer> GetNS (void);
+
 
 private:
   Ptr<Application> InstallPriv (Ptr<Node> node);

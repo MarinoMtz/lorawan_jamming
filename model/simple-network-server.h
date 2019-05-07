@@ -120,7 +120,10 @@ public:
    * the Packet ID, ED and GW, and the time stamp.
    */
 
-  TracedCallback<uint32_t, uint32_t, uint32_t, double> m_packetrx;
+  TracedCallback<uint32_t, uint32_t, uint32_t, Time> m_packetrx;
+
+  std::vector<int> m_devices;
+  std::vector<int> m_gateways;
 
 protected:
   std::map<LoraDeviceAddress,DeviceStatus> m_deviceStatuses;

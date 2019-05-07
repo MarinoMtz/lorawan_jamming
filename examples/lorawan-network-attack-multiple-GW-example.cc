@@ -37,6 +37,8 @@
 #include <algorithm>
 #include <ctime>
 
+#include <ns3/simple-network-server.h>
+
 using namespace ns3;
 
 
@@ -289,33 +291,31 @@ EnDeviceReceiveCallback (Ptr<Packet const> packet, uint32_t systemId, uint32_t S
 
 }
 
-
 void
 CollisionCallback (Ptr<Packet const> packet, uint32_t systemId, uint32_t SenderID, uint8_t sf, double frequencyMHz, Time colstart, Time colend, bool onthepreable)
 
 {
-  //NS_LOG_INFO ("A packet was lost because of interference at gateway " << systemId);
+ //NS_LOG_INFO ("A packet was lost because of interference at gateway " << systemId);
 
-  NS_LOG_INFO( "C " << systemId << " " << SenderID  << " " << packet->GetSize () << " " << frequencyMHz << " " << unsigned(sf) << " " << colstart.GetSeconds() << " " << colend.GetSeconds() << " " << onthepreable);
-  //PrintTrace (C, systemId, SenderID, packet->GetSize (), frequencyMHz, sf, colstart, colend, onthepreable, "scratch/Trace.dat");
+ NS_LOG_INFO( "C " << systemId << " " << SenderID  << " " << packet->GetSize () << " " << frequencyMHz << " " << unsigned(sf) << " " << colstart.GetSeconds() << " " << colend.GetSeconds() << " " << onthepreable);
+ //PrintTrace (C, systemId, SenderID, packet->GetSize (), frequencyMHz, sf, colstart, colend, onthepreable, "scratch/Trace.dat");
 
-  LoraTag tag_1;
-  packet->PeekPacketTag (tag_1);
-  uint8_t jammer = tag_1.GetJammer ();
-  //packet->AddPacketTag (tag);
+ LoraTag tag_1;
+ packet->PeekPacketTag (tag_1);
+ uint8_t jammer = tag_1.GetJammer ();
+ //packet->AddPacketTag (tag);
 
-  pkt_loss [SenderID] += 1;
+ pkt_loss [SenderID] += 1;
 
+ if (jammer == uint8_t(0))
+  {
+	  collision_ed += 1;
+  }
 
-     if (jammer == uint8_t(0))
-	  {
-		  collision_ed += 1;
-	  }
-
-	 else
-	  {
-		  collision_jm += 1;
-	  }
+ else
+  {
+	  collision_jm += 1;
+  }
 }
 
 void
@@ -382,6 +382,12 @@ DeadDeviceCallback (uint32_t NodeId, double cumulative_tx_conso, double cumulati
 {
   // NS_LOG_INFO ("The Node " << NodeId << "was dead at " << dead_time.GetSeconds () << "at " << Simulator::Now ().GetSeconds ());
 		//Conso Type: 1 for TX, 2 for RX, 3 for Standby and 4 Sleep
+}
+
+void
+NSReceiveCallback (uint32_t ED_ID, uint32_t GW_ID, uint32_t PktID, Time time_stamp)
+{
+	NS_LOG_INFO ("ED_ID " << unsigned (ED_ID) << " GW_ID " << unsigned (GW_ID) << "time_stamp " << time_stamp.GetSeconds ());
 }
 
 void
@@ -468,7 +474,7 @@ int main (int argc, char *argv[])
 
 
 //	Set up logging
-//  LogComponentEnable ("LorawanNetworkAttackExample", LOG_LEVEL_ALL);
+  LogComponentEnable ("LorawanNetworkAttackExample", LOG_LEVEL_ALL);
 //  LogComponentEnable("LoraChannel", LOG_LEVEL_ALL);
 //  LogComponentEnable("LoraPhy", LOG_LEVEL_ALL);
 //  LogComponentEnable("EndDeviceLoraPhy", LOG_LEVEL_ALL);
@@ -779,6 +785,12 @@ int main (int argc, char *argv[])
 	  {
 		  macHelper.SetMType (endDevices, LoraMacHeader::UNCONFIRMED_DATA_UP);
 	  }
+
+	  Ptr<SimpleNetworkServer> ns = networkServerHelper.GetNS ();
+
+      ns->TraceConnectWithoutContext ("ReceivePacket",
+                                       MakeCallback (&NSReceiveCallback));
+
   }
 
   /****************
