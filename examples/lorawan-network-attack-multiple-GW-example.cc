@@ -229,7 +229,7 @@ GWReceivedurationCallback( Ptr<Packet const> packet, Time duration, uint32_t sys
 void
 GWCaptureEffectCallback (Ptr<Packet const> packet, uint32_t systemId, uint32_t SenderID, double frequencyMHz, bool CE)
 {
-	NS_LOG_INFO ("CE " << systemId << " " << SenderID << " " << frequencyMHz << " " << Simulator::Now ().GetSeconds ());
+	//NS_LOG_INFO ("CE " << systemId << " " << SenderID << " " << frequencyMHz << " " << Simulator::Now ().GetSeconds ());
 
 	LoraTag tag;
 	packet->PeekPacketTag (tag);
@@ -385,9 +385,9 @@ DeadDeviceCallback (uint32_t NodeId, double cumulative_tx_conso, double cumulati
 }
 
 void
-NSReceiveCallback (uint32_t ED_ID, uint32_t GW_ID, uint32_t PktID, Time time_stamp)
+NSReceiveCallback (vector<uint32_t> ED_RX, vector<uint32_t> ED_RXD)
 {
-	NS_LOG_INFO ("ED_ID " << unsigned (ED_ID) << " GW_ID " << unsigned (GW_ID) << "time_stamp " << time_stamp.GetSeconds ());
+	NS_LOG_INFO ("ED_ID " << unsigned(ED_RX[0]) << " GW_ID " << unsigned (ED_RXD[0]));
 }
 
 void
@@ -447,6 +447,7 @@ int main (int argc, char *argv[])
   CommandLine cmd;
   cmd.AddValue ("nDevices", "Number of end devices to include in the simulation", nDevices);
   cmd.AddValue ("nJammers", "Number of Jammers to include in the simulation", nJammers);
+  cmd.AddValue ("nGateways", "Number of Gateways to include in the simulation", nGateways);
   cmd.AddValue ("Conf_UP", "Confirmed data UP", Conf_UP);
   cmd.AddValue ("Net_Ser", "Network Server", Net_Ser);
   cmd.AddValue ("radius", "radius of the disc where nodes will be deployed", radius);
@@ -769,9 +770,11 @@ int main (int argc, char *argv[])
 
 	  // Install the SimpleNetworkServer application on the network server
 	  NetworkServerHelper networkServerHelper;
+	  networkServerHelper.SetStopTime (Seconds(simulationTime));
 	  networkServerHelper.SetGateways (gateways);
 	  networkServerHelper.SetEndDevices (endDevices);
 	  networkServerHelper.Install (networkServers);
+
 
 	  // Install the Forwarder application on the gateways
 	  ForwarderHelper forwarderHelper;
@@ -786,7 +789,7 @@ int main (int argc, char *argv[])
 		  macHelper.SetMType (endDevices, LoraMacHeader::UNCONFIRMED_DATA_UP);
 	  }
 
-	  Ptr<SimpleNetworkServer> ns = networkServerHelper.GetNS ();
+	  Ptr<SimpleNetworkServer> ns = networkServerHelper.GetNS();
 
       ns->TraceConnectWithoutContext ("ReceivePacket",
                                        MakeCallback (&NSReceiveCallback));

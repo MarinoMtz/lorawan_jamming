@@ -123,8 +123,18 @@ NetworkServerHelper::InstallPriv (Ptr<Node> node)
   // Add the end devices
 
   SetNS(app);
+  app->SetStopTime(m_stop_time);
   app->AddNodes (m_endDevices);
 
   return app;
-}
+  }
+
+  void
+  NetworkServerHelper::SetStopTime (Time Stop)
+  {
+	  m_stop_time = Stop;
+  }
+
+
+
 } // namespace ns3

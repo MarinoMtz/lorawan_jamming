@@ -66,6 +66,10 @@ public:
 
   Ptr<SimpleNetworkServer> GetNS (void);
 
+  void SetStopTime (Time stop);
+
+  Time m_stop_time = Seconds(0);
+
 
 private:
   Ptr<Application> InstallPriv (Ptr<Node> node);

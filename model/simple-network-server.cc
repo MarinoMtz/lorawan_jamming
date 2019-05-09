@@ -52,7 +52,8 @@ SimpleNetworkServer::SimpleNetworkServer():
 
 		m_devices(0),
 		m_gateways(0),
-		m_devices_pktid(0)
+		m_devices_pktid(0),
+		m_stop_time(0)
 {
   NS_LOG_FUNCTION_NOARGS ();
 }
@@ -72,6 +73,13 @@ void
 SimpleNetworkServer::StopApplication (void)
 {
   NS_LOG_FUNCTION_NOARGS ();
+}
+
+void
+SimpleNetworkServer::SetStopTime (Time Stop)
+{
+	  m_stop_time = Stop;
+	  //NS_LOG_INFO ("End-Device ID " << unsigned(ed_ID));
 }
 
 void
@@ -194,8 +202,6 @@ SimpleNetworkServer::Receive (Ptr<NetDevice> device, Ptr<const Packet> packet,
   uint32_t ed_ID = tag.GetSenderID();
 
   PacketCounter(pkt_ID,gw_ID,ed_ID);
-
-  m_packetrx(ed_ID,gw_ID,pkt_ID,Simulator::Now ());
 
   // Register which gateway this packet came from
   double rcvPower = tag.GetReceivePower ();
@@ -356,12 +362,12 @@ SimpleNetworkServer::PacketCounter(uint32_t pkt_ID, uint32_t gw_ID, uint32_t ed_
 
 	bool AR = AlreadyReceived(m_devices_pktid[ed_ID],pkt_ID);
 
-	//  increase the corresponding receive counter
+	// Increase the corresponding receive counter
 
 	if (not (AR))
 	m_devices_pktreceive[ed_ID] ++;
 	else
-	m_devices_pktduplicate[ed_ID] --;
+	m_devices_pktduplicate[ed_ID] ++;
 
 	// insert the Packet ID on the temporal memory
 
@@ -370,8 +376,7 @@ SimpleNetworkServer::PacketCounter(uint32_t pkt_ID, uint32_t gw_ID, uint32_t ed_
 		m_devices_pktid[ed_ID][i-1] = m_devices_pktid[ed_ID][i];
 	 }
 
-	m_devices_pktid[ed_ID][9] = pkt_ID;
-
+	m_devices_pktid[ed_ID][m_devices_pktid[ed_ID].size()-1] = pkt_ID;
 
 
 	for (uint32_t i = 0; i < m_devices_pktid[ed_ID].size(); i++)
@@ -379,6 +384,7 @@ SimpleNetworkServer::PacketCounter(uint32_t pkt_ID, uint32_t gw_ID, uint32_t ed_
 		NS_LOG_INFO ("pos " << unsigned(i) << " value " << m_devices_pktid[ed_ID][i]);
 	   }
 
+	m_packetrx(m_devices_pktreceive,m_devices_pktduplicate);
 }
 
 bool

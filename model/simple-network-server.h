@@ -67,6 +67,8 @@ public:
    */
   void StopApplication (void);
 
+  void SetStopTime (Time stop);
+
   /**
    * Inform the SimpleNetworkServer that these nodes are connected to the network
    * This method will create a DeviceStatus object for each new node, and add it to the list
@@ -121,12 +123,15 @@ public:
 
   void PacketCounter (uint32_t pkt_ID, uint32_t gw_ID, uint32_t ed_ID);
 
+
+  Time m_stop_time;
+
   /**
    * Trace source that is fired when a packet arrives at the NS, it contains information about
    * the Packet ID, ED and GW, and the time stamp.
    */
 
-  TracedCallback<uint32_t, uint32_t, uint32_t, Time> m_packetrx;
+  TracedCallback< vector<uint32_t>, vector<uint32_t> > m_packetrx;
 
   uint32_t m_devices;
   uint32_t m_gateways;
