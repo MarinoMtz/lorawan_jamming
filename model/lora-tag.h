@@ -132,19 +132,12 @@ public:
    */
 
   uint32_t GetSenderID (void);
-
   void SetSenderID (uint32_t senderid);
-
   uint8_t GetJammer (void);
-
   void  SetJammer (uint8_t jammer);
-
   uint32_t GetPktID (void);
-
   void  SetPktID (uint32_t pktid);
-
-  uint32_t GetGWid (void);
-
+  uint32_t GetGWID (void);
   void SetGWid (uint32_t gwid);
 
 private:

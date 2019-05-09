@@ -29,6 +29,10 @@
 #include "ns3/device-status.h"
 #include "ns3/gateway-status.h"
 #include "ns3/node-container.h"
+#include <vector>
+#include <algorithm>
+
+using namespace std;
 
 namespace ns3 {
 
@@ -115,6 +119,8 @@ public:
    */
   Address GetGatewayForReply (LoraDeviceAddress deviceAddress, double frequency);
 
+  void PacketCounter (uint32_t pkt_ID, uint32_t gw_ID, uint32_t ed_ID);
+
   /**
    * Trace source that is fired when a packet arrives at the NS, it contains information about
    * the Packet ID, ED and GW, and the time stamp.
@@ -122,8 +128,15 @@ public:
 
   TracedCallback<uint32_t, uint32_t, uint32_t, Time> m_packetrx;
 
-  std::vector<int> m_devices;
-  std::vector<int> m_gateways;
+  uint32_t m_devices;
+  uint32_t m_gateways;
+
+  vector<vector<uint32_t> > m_devices_pktid;
+
+  vector<uint32_t> m_devices_pktreceive;
+  vector<uint32_t> m_devices_pktduplicate;
+
+  bool  AlreadyReceived(vector<uint32_t> vec_pkt_ID, uint32_t pkt_ID);
 
 protected:
   std::map<LoraDeviceAddress,DeviceStatus> m_deviceStatuses;

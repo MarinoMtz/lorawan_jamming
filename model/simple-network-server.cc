@@ -44,15 +44,15 @@ SimpleNetworkServer::GetTypeId (void)
                    "reception with information concerning"
                    "PktID, EDID, GWID and time stamp",
                    MakeTraceSourceAccessor
-                     (&SimpleNetworkServer::m_packetrx))
-	;
+                     (&SimpleNetworkServer::m_packetrx));
   return tid;
 }
 
 SimpleNetworkServer::SimpleNetworkServer():
 
-		m_devices(0,0),
-		m_gateways(0,0)
+		m_devices(0),
+		m_gateways(0),
+		m_devices_pktid(0)
 {
   NS_LOG_FUNCTION_NOARGS ();
 }
@@ -126,8 +126,12 @@ SimpleNetworkServer::AddNodes (NodeContainer nodes)
     }
 
   NS_LOG_INFO ("Number of ED " << nodes.GetN ());
-  m_devices.resize(nodes.GetN (), 0);
-  NS_LOG_INFO ("Number of ED " << m_devices.size ());
+  m_devices = nodes.GetN ();
+
+  // Initialize the vectors
+  m_devices_pktid.resize(m_devices, vector<uint32_t>(10));
+  m_devices_pktreceive.resize(m_devices,0);
+  m_devices_pktduplicate.resize(m_devices,0);
 }
 
 void
@@ -186,15 +190,10 @@ SimpleNetworkServer::Receive (Ptr<NetDevice> device, Ptr<const Packet> packet,
 
   // Get the packet ID and Gw ID
   uint32_t pkt_ID = tag.GetPktID();
-  uint32_t gw_ID = tag.GetGWid();
+  uint32_t gw_ID = tag.GetGWID();
   uint32_t ed_ID = tag.GetSenderID();
 
-  //PacketCounter(pkt_ID,gw_ID,ed_ID);
-
-  NS_LOG_INFO ("End-Device ID " << unsigned(ed_ID));
-  NS_LOG_INFO ("Gateway ID " << unsigned(gw_ID));
-  NS_LOG_INFO ("Packet ID " << unsigned(pkt_ID));
-
+  PacketCounter(pkt_ID,gw_ID,ed_ID);
 
   m_packetrx(ed_ID,gw_ID,pkt_ID,Simulator::Now ());
 
@@ -345,4 +344,51 @@ SimpleNetworkServer::GetGatewayForReply (LoraDeviceAddress deviceAddress,
 
   return Address ();
 }
+
+void
+SimpleNetworkServer::PacketCounter(uint32_t pkt_ID, uint32_t gw_ID, uint32_t ed_ID)
+{
+	NS_LOG_INFO ("End-Device ID " << unsigned(ed_ID));
+	NS_LOG_INFO ("Gateway ID " << unsigned(gw_ID));
+	NS_LOG_INFO ("Packet ID " << unsigned(pkt_ID));
+
+	// Verify if the packet has been already received or not
+
+	bool AR = AlreadyReceived(m_devices_pktid[ed_ID],pkt_ID);
+
+	//  increase the corresponding receive counter
+
+	if (not (AR))
+	m_devices_pktreceive[ed_ID] ++;
+	else
+	m_devices_pktduplicate[ed_ID] --;
+
+	// insert the Packet ID on the temporal memory
+
+	for (uint32_t i = 1; i < m_devices_pktid[ed_ID].size(); i++)
+	 {
+		m_devices_pktid[ed_ID][i-1] = m_devices_pktid[ed_ID][i];
+	 }
+
+	m_devices_pktid[ed_ID][9] = pkt_ID;
+
+
+
+	for (uint32_t i = 0; i < m_devices_pktid[ed_ID].size(); i++)
+	   {
+		NS_LOG_INFO ("pos " << unsigned(i) << " value " << m_devices_pktid[ed_ID][i]);
+	   }
+
+}
+
+bool
+SimpleNetworkServer::AlreadyReceived (vector<uint32_t> vec_pkt_ID, uint32_t pkt_ID)
+{
+	std::vector<uint32_t>::iterator it = std::find(vec_pkt_ID.begin(), vec_pkt_ID.end(), pkt_ID);
+	if (it != vec_pkt_ID.end())
+		return true;
+	else
+		return false;
+}
+
 }

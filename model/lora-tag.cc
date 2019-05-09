@@ -216,7 +216,7 @@ LoraTag::SetPktID (uint32_t pktid)
 }
 
 uint32_t
-LoraTag::GetGWid (void)
+LoraTag::GetGWID (void)
 {
   return m_gwid;
 }
