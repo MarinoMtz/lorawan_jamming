@@ -34,6 +34,7 @@
 
 #include "ns3/command-line.h"
 #include "ns3/random-variable-stream.h"
+#include <vector>
 #include <algorithm>
 #include <ctime>
 
@@ -96,10 +97,15 @@ bool Trans = true;
 bool SimTime = true;
 bool buildingsEnabled = false;
 
-std::vector<int> pkt_success(nDevices+nJammers,0);
-std::vector<int> pkt_drop(nDevices+nJammers,0);
-std::vector<int> pkt_loss(nDevices+nJammers,0);
+std::vector<int> pkt_success_ed(nDevices+nJammers,0);
+std::vector<int> pkt_drop_ed(nDevices+nJammers,0);
+std::vector<int> pkt_loss_ed(nDevices+nJammers,0);
 std::vector<int> pkt_send(nDevices+nJammers,0);
+
+std::vector<int> pkt_loss_gw(nGateways,0);
+std::vector<int> pkt_drop_gw(nGateways,0);
+std::vector<int> pkt_success_gw(nGateways,0);
+
 
 enum PrintType {
 	GR,
@@ -261,13 +267,6 @@ GatewayReceiveCallback (Ptr<Packet const> packet, uint32_t systemId, uint32_t Se
   uint8_t jammer = tag.GetJammer ();
   //packet->AddPacketTag (tag);
 
-
-//  if (Seconds (simulationTime) > 1000)
-	//{
-	  pkt_success [SenderID] += 1;
-	//}
-
-
   if (jammer == uint8_t(0))
   {
 	  gwreceived_ed += 1;
@@ -305,7 +304,8 @@ CollisionCallback (Ptr<Packet const> packet, uint32_t systemId, uint32_t SenderI
  uint8_t jammer = tag_1.GetJammer ();
  //packet->AddPacketTag (tag);
 
- pkt_loss [SenderID] += 1;
+ pkt_loss_ed [SenderID] ++;
+ pkt_loss_gw [systemId-nDevices] ++;
 
  if (jammer == uint8_t(0))
   {
@@ -331,7 +331,8 @@ NoMoreReceiversCallback (Ptr<Packet const> packet, uint32_t systemId, uint32_t S
   uint8_t jammer = tag.GetJammer ();
   //packet->AddPacketTag (tag);
 
-  pkt_drop [SenderID] += 1;
+  pkt_drop_ed [SenderID] += 1;
+  pkt_drop_gw [systemId-nDevices] ++;
 
   if (jammer == uint8_t(0))
 	  {
@@ -385,9 +386,28 @@ DeadDeviceCallback (uint32_t NodeId, double cumulative_tx_conso, double cumulati
 }
 
 void
-NSReceiveCallback (vector<uint32_t> ED_RX, vector<uint32_t> ED_RXD)
+NSReceiveCallback (vector<uint32_t> ED_RX, vector<uint32_t> ED_RXD, vector<uint32_t> GW_RX, vector<uint32_t> GW_RXD)
 {
-	NS_LOG_INFO ("ED_ID " << unsigned(ED_RX[0]) << " GW_ID " << unsigned (ED_RXD[0]));
+	//NS_LOG_INFO ("ED_RX " << unsigned(ED_RX[0]) << " ED_RX " << unsigned (ED_RX[1]) << " GW_RX " << unsigned (GW_RX[0]) << " GW_RX " << unsigned (GW_RX[1]));
+
+
+	for (uint32_t i = 0; i != nGateways; i++)
+		pkt_success_gw[i] = GW_RX[i];
+
+	for (uint32_t i = 0; i != nDevices; i++)
+		pkt_success_ed [i] = ED_RX[i];
+		//}
+
+
+	for (uint32_t i = 0; i < ED_RX.size(); i++)
+	   {
+		NS_LOG_INFO ("pos dev " << unsigned(i) << " value " << ED_RX[i]);
+	   }
+
+	for (uint32_t i = 0; i < GW_RX.size(); i++)
+	   {
+		NS_LOG_INFO ("pos gate " << unsigned(i) << " value " << GW_RX[i]);
+	   }
 }
 
 void
@@ -409,7 +429,7 @@ PrintEndDevices (NodeContainer endDevices, NodeContainer Jammers, NodeContainer 
       int sf = int(mac->GetDataRate ());
       Vector pos = position->GetPosition ();
       uint32_t DeviceID = object->GetId();
-      Plot << "ED " << DeviceID << " " << pos.x << " " << pos.y << " " << sf << " " << 	pkt_send [DeviceID] << " "<< pkt_success [DeviceID] << " " << pkt_loss [DeviceID] << " " << pkt_drop [DeviceID]<< std::endl;
+      Plot << "ED " << DeviceID << " " << pos.x << " " << pos.y << " " << sf << " " << 	pkt_send [DeviceID] << " "<< pkt_success_ed [DeviceID] << " " << pkt_loss_ed [DeviceID] << " " << pkt_drop_ed [DeviceID]<< std::endl;
 
     }
 
@@ -425,7 +445,7 @@ PrintEndDevices (NodeContainer endDevices, NodeContainer Jammers, NodeContainer 
       int sf = int(mac->GetDataRate ());
       Vector pos = position->GetPosition ();
       uint32_t DeviceID = object->GetId();
-      Plot << "JM " << DeviceID << " " << pos.x << " " << pos.y << " " << sf << " " << pkt_send [DeviceID] << " " << pkt_success [DeviceID] << " " << pkt_loss [DeviceID] << " " << pkt_drop [DeviceID]<< std::endl;
+      Plot << "JM " << DeviceID << " " << pos.x << " " << pos.y << " " << sf << " " << pkt_send [DeviceID] << " " << pkt_success_ed [DeviceID] << " " << pkt_loss_ed [DeviceID] << " " << pkt_drop_ed [DeviceID]<< std::endl;
 
     }
 
@@ -468,14 +488,19 @@ int main (int argc, char *argv[])
 
   cmd.Parse (argc, argv);
 
-  pkt_success.resize(nDevices+nJammers, 0);
-  pkt_drop.resize(nDevices+nJammers, 0);
-  pkt_loss.resize(nDevices+nJammers, 0);
+  pkt_success_ed.resize(nDevices+nJammers, 0);
+  pkt_drop_ed.resize(nDevices+nJammers, 0);
+  pkt_loss_ed.resize(nDevices+nJammers, 0);
   pkt_send.resize(nDevices+nJammers, 0);
+
+  pkt_loss_gw.resize(nGateways,0);
+  pkt_drop_gw.resize(nGateways,0);
+  pkt_success_gw.resize(nGateways,0);
+
 
 
 //	Set up logging
-  LogComponentEnable ("LorawanNetworkAttackExample", LOG_LEVEL_ALL);
+//  LogComponentEnable ("LorawanNetworkAttackExample", LOG_LEVEL_ALL);
 //  LogComponentEnable("LoraChannel", LOG_LEVEL_ALL);
 //  LogComponentEnable("LoraPhy", LOG_LEVEL_ALL);
 //  LogComponentEnable("EndDeviceLoraPhy", LOG_LEVEL_ALL);
@@ -829,16 +854,15 @@ int main (int argc, char *argv[])
   double noMoreReceiversProb_jm = dropped_jm/(jmsent);
   double underSensitivityProb_jm = underSensitivity_jm/(jmsent);
 
-//  double receivedProbGivenAboveSensitivity = gwreceived/(edsent - underSensitivity);
-//  double interferedProbGivenAboveSensitivity = collision/(edsent - underSensitivity);
-//  double noMoreReceiversProbGivenAboveSensitivity = noMoreReceivers/(edsent - underSensitivity);
+  //  double receivedProbGivenAboveSensitivity = gwreceived/(edsent - underSensitivity);
+  //  double interferedProbGivenAboveSensitivity = collision/(edsent - underSensitivity);
+  //  double noMoreReceiversProbGivenAboveSensitivity = noMoreReceivers/(edsent - underSensitivity);
 
-  //std::cout << edsent << " " << gwreceived << " " << collision << " " << dropped << " " << noMoreReceiversProb << " " << underSensitivityProb << std::endl;
+  //  std::cout << edsent << " " << gwreceived << " " << collision << " " << dropped << " " << noMoreReceiversProb << " " << underSensitivityProb << std::endl;
 
+  //  std::cout << nDevices <<  " " << collision_ed << " " << dropped_ed << " " << gwreceived_ed << " " << underSensitivity_ed << " " << edsent << " "  << collision_ed + dropped_ed + gwreceived_ed + underSensitivity_ed  << " " << collisionProb_ed << " " << noMoreReceiversProb_ed  << " " << receivedProb_ed << std::endl;
 
-//	  std::cout << nDevices <<  " " << collision_ed << " " << dropped_ed << " " << gwreceived_ed << " " << underSensitivity_ed << " " << edsent << " "  << collision_ed + dropped_ed + gwreceived_ed + underSensitivity_ed  << " " << collisionProb_ed << " " << noMoreReceiversProb_ed  << " " << receivedProb_ed << std::endl;
-
-//	  std::cout << nJammers  << " " << collision_jm << " " << dropped_jm << " " << gwreceived_jm << " " << underSensitivity_jm << " " << jmsent << " "  << collision_jm + dropped_jm + gwreceived_jm + underSensitivity_jm  << " " << collisionProb_jm << " " << noMoreReceiversProb_jm  << " " << receivedProb_jm << std::endl;
+  //  std::cout << nJammers  << " " << collision_jm << " " << dropped_jm << " " << gwreceived_jm << " " << underSensitivity_jm << " " << jmsent << " "  << collision_jm + dropped_jm + gwreceived_jm + underSensitivity_jm  << " " << collisionProb_jm << " " << noMoreReceiversProb_jm  << " " << receivedProb_jm << std::endl;
 
 	  std::string Result_File = Path + "/" + Filename;
 
@@ -857,10 +881,27 @@ int main (int argc, char *argv[])
 	  std::cout << "cumulative time ed " << cumulative_time_ed << std::endl;
 	  std::cout << "cumulative time jm " << cumulative_time_jm << std::endl;
 
-//	    for(int i = 0; i < pkt_success.size(); i++)
-//	    {
-//	    	std:: cout << pkt_success[i] << std::endl;
-//	    }
+	  std::cout << "dropped ed " << dropped_ed << std::endl;
+	  std::cout << "dropped jm " << dropped_jm << std::endl;
+
+	  for (uint32_t i = 0; i != nGateways; i++)
+	    {
+
+		  std::cout << "loss GW - " << i <<  " " << pkt_loss_gw [i] << std::endl;
+		  std::cout << "drop GW - " << i <<  " "  << pkt_drop_gw [i] << std::endl;
+		  std::cout << "received GW - " << i <<  " " << pkt_success_gw [i] << std::endl;
+
+	    }
+
+	   std::cout << "success ED - " << accumulate(pkt_success_ed.begin(), pkt_success_ed.end(), 0) << std::endl;
+
+
+	 // for(uint32_t i = 0; i < pkt_success_ed.size(); i++)
+	 //   {
+	 //	  	std::cout << "success ED - " << i <<  " " << pkt_success_ed [i] << std::endl;
+	 //   	std:: cout << pkt_success_ed[i] << std::endl;
+	 //   }
+
 
 	  PrintResults ( nGateways, nDevices, nJammers, receivedProb_ed, collisionProb_ed, noMoreReceiversProb_ed,
 			  underSensitivityProb_ed, receivedProb_jm, collisionProb_jm, noMoreReceiversProb_jm,
@@ -871,3 +912,4 @@ int main (int argc, char *argv[])
   return 0;
 
 }
+

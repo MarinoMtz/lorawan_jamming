@@ -83,6 +83,27 @@ SimpleNetworkServer::SetStopTime (Time Stop)
 }
 
 void
+SimpleNetworkServer::SetGWED (uint32_t GW, uint32_t ED)
+{
+
+	  NS_LOG_INFO ("Number of ED " << ED);
+	  NS_LOG_INFO ("Number of GW " << GW);
+
+	  m_devices = ED;
+	  m_gateways = GW;
+
+	  // Initialize the end-device related vectors
+	  m_devices_pktid.resize(m_devices, vector<uint32_t>(12));
+	  m_devices_pktreceive.resize(m_devices,0);
+	  m_devices_pktduplicate.resize(m_devices,0);
+
+	  // Initialize the gateway related vectors
+
+	  m_gateways_pktreceive.resize(m_gateways,0);
+	  m_gateways_pktduplicate.resize(m_gateways,0);
+}
+
+void
 SimpleNetworkServer::AddGateway (Ptr<Node> gateway, Ptr<NetDevice> netDevice)
 {
   NS_LOG_FUNCTION (this << gateway);
@@ -132,14 +153,6 @@ SimpleNetworkServer::AddNodes (NodeContainer nodes)
     {
       AddNode (*it);
     }
-
-  NS_LOG_INFO ("Number of ED " << nodes.GetN ());
-  m_devices = nodes.GetN ();
-
-  // Initialize the vectors
-  m_devices_pktid.resize(m_devices, vector<uint32_t>(10));
-  m_devices_pktreceive.resize(m_devices,0);
-  m_devices_pktduplicate.resize(m_devices,0);
 }
 
 void
@@ -362,14 +375,21 @@ SimpleNetworkServer::PacketCounter(uint32_t pkt_ID, uint32_t gw_ID, uint32_t ed_
 
 	bool AR = AlreadyReceived(m_devices_pktid[ed_ID],pkt_ID);
 
-	// Increase the corresponding receive counter
+	// Increase the corresponding receive counter (GW and ED)
 
 	if (not (AR))
-	m_devices_pktreceive[ed_ID] ++;
+	{
+		m_devices_pktreceive[ed_ID] ++;
+	}
 	else
-	m_devices_pktduplicate[ed_ID] ++;
+	{
+		m_devices_pktduplicate[ed_ID]++;
+		m_gateways_pktduplicate[gw_ID-m_devices]++;
+	}
 
-	// insert the Packet ID on the temporal memory
+	m_gateways_pktreceive[gw_ID-m_devices] ++;
+
+	// insert the Packet ID on at the end of the temporal matrix
 
 	for (uint32_t i = 1; i < m_devices_pktid[ed_ID].size(); i++)
 	 {
@@ -379,12 +399,25 @@ SimpleNetworkServer::PacketCounter(uint32_t pkt_ID, uint32_t gw_ID, uint32_t ed_
 	m_devices_pktid[ed_ID][m_devices_pktid[ed_ID].size()-1] = pkt_ID;
 
 
-	for (uint32_t i = 0; i < m_devices_pktid[ed_ID].size(); i++)
-	   {
-		NS_LOG_INFO ("pos " << unsigned(i) << " value " << m_devices_pktid[ed_ID][i]);
-	   }
+	m_packetrx(m_devices_pktreceive,m_devices_pktduplicate,m_gateways_pktreceive,m_gateways_pktduplicate);
 
-	m_packetrx(m_devices_pktreceive,m_devices_pktduplicate);
+//	for (uint32_t i = 0; i < m_devices_pktid[ed_ID].size(); i++)
+//	   {
+//		NS_LOG_INFO ("pos " << unsigned(i) << " value " << m_devices_pktid[ed_ID][i]);
+//	   }
+
+
+//	for (uint32_t i = 0; i < m_devices_pktreceive.size(); i++)
+//	   {
+//		NS_LOG_INFO ("pos dev " << unsigned(i) << " value " << m_devices_pktreceive[i]);
+//	   }
+
+//	for (uint32_t i = 0; i < m_gateways_pktreceive.size(); i++)
+//	   {
+//		NS_LOG_INFO ("pos gate " << unsigned(i) << " value " << m_gateways_pktreceive[i]);
+//	   }
+
+
 }
 
 bool

@@ -123,6 +123,7 @@ NetworkServerHelper::InstallPriv (Ptr<Node> node)
   // Add the end devices
 
   SetNS(app);
+  app->SetGWED(m_gateways.GetN(),m_endDevices.GetN());
   app->SetStopTime(m_stop_time);
   app->AddNodes (m_endDevices);
 
