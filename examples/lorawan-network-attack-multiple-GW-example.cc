@@ -97,6 +97,8 @@ bool Trans = true;
 bool SimTime = true;
 bool buildingsEnabled = false;
 
+bool InterArrival = false;
+
 std::vector<int> pkt_success_ed(nDevices+nJammers,0);
 std::vector<int> pkt_drop_ed(nDevices+nJammers,0);
 std::vector<int> pkt_loss_ed(nDevices+nJammers,0);
@@ -398,7 +400,6 @@ NSReceiveCallback (vector<uint32_t> ED_RX, vector<uint32_t> ED_RXD, vector<uint3
 		pkt_success_ed [i] = ED_RX[i];
 		//}
 
-
 	for (uint32_t i = 0; i < ED_RX.size(); i++)
 	   {
 		NS_LOG_INFO ("pos dev " << unsigned(i) << " value " << ED_RX[i]);
@@ -407,6 +408,17 @@ NSReceiveCallback (vector<uint32_t> ED_RX, vector<uint32_t> ED_RXD, vector<uint3
 	for (uint32_t i = 0; i < GW_RX.size(); i++)
 	   {
 		NS_LOG_INFO ("pos gate " << unsigned(i) << " value " << GW_RX[i]);
+	   }
+}
+
+void
+NSInterArrivalTime (vector<vector<double> > arrival, vector<vector<double> > inter_arrival)
+{
+	NS_LOG_INFO ("Arrival Time ");
+
+	for (uint32_t i = 0; i < arrival[0].size(); i++)
+	   {
+		NS_LOG_INFO ("arrival " << arrival[0][i] << " interarrival " << inter_arrival[0][i]);
 	   }
 }
 
@@ -483,6 +495,7 @@ int main (int argc, char *argv[])
   cmd.AddValue ("Random_SF", "Boolean variable to set whether the Jammer select a random SF to transmit", Random_SF);
   cmd.AddValue ("All_SF", "Boolean variable to set whether the Jammer transmits in all SF at the same time (Jammers 3 and 4)", All_SF);
   cmd.AddValue ("JammerDutyCycle", "Jammer duty cycle", JammerDutyCycle);
+  cmd.AddValue ("InterArrival", "Boolean variable to set whether or not the Network server computes the IAT", InterArrival);
   cmd.AddValue ("Filename", "Filename", Filename);
   cmd.AddValue ("Path", "Path", Path);
 
@@ -795,11 +808,11 @@ int main (int argc, char *argv[])
 
 	  // Install the SimpleNetworkServer application on the network server
 	  NetworkServerHelper networkServerHelper;
+	  if (InterArrival){networkServerHelper.SetInterArrival();}
 	  networkServerHelper.SetStopTime (Seconds(simulationTime));
 	  networkServerHelper.SetGateways (gateways);
 	  networkServerHelper.SetEndDevices (endDevices);
 	  networkServerHelper.Install (networkServers);
-
 
 	  // Install the Forwarder application on the gateways
 	  ForwarderHelper forwarderHelper;
@@ -818,7 +831,8 @@ int main (int argc, char *argv[])
 
       ns->TraceConnectWithoutContext ("ReceivePacket",
                                        MakeCallback (&NSReceiveCallback));
-
+      ns->TraceConnectWithoutContext ("InterArrivalTime",
+                                       MakeCallback (&NSInterArrivalTime));
   }
 
   /****************

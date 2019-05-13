@@ -44,7 +44,13 @@ SimpleNetworkServer::GetTypeId (void)
                    "reception with information concerning"
                    "PktID, EDID, GWID and time stamp",
                    MakeTraceSourceAccessor
-                     (&SimpleNetworkServer::m_packetrx));
+                     (&SimpleNetworkServer::m_packetrx))
+	.AddTraceSource ("InterArrivalTime",
+					 "Trace source the inter-arrival and"
+					 "arrival time of each End-Device",
+				   MakeTraceSourceAccessor
+					 (&SimpleNetworkServer::m_arrivaltime))
+					 ;
   return tid;
 }
 
@@ -53,7 +59,10 @@ SimpleNetworkServer::SimpleNetworkServer():
 		m_devices(0),
 		m_gateways(0),
 		m_devices_pktid(0),
-		m_stop_time(0)
+		m_stop_time(0),
+		m_interarrivaltime(false),
+		m_devices_interarrivaltime(0),
+		m_last_arrivaltime_known(0)
 {
   NS_LOG_FUNCTION_NOARGS ();
 }
@@ -101,6 +110,18 @@ SimpleNetworkServer::SetGWED (uint32_t GW, uint32_t ED)
 
 	  m_gateways_pktreceive.resize(m_gateways,0);
 	  m_gateways_pktduplicate.resize(m_gateways,0);
+
+	  //Initialize the vectors related to the inter-arrival time
+
+	  m_devices_interarrivaltime.resize(m_devices, vector<double>(0));
+	  m_devices_arrivaltime.resize(m_devices,vector<double>(0));
+	  m_last_arrivaltime_known.resize(m_devices,double(0));
+}
+
+void
+SimpleNetworkServer::SetInterArrival (void)
+{
+	m_interarrivaltime = true;
 }
 
 void
@@ -380,6 +401,10 @@ SimpleNetworkServer::PacketCounter(uint32_t pkt_ID, uint32_t gw_ID, uint32_t ed_
 	if (not (AR))
 	{
 		m_devices_pktreceive[ed_ID] ++;
+		// Send this information to compute the Inter-Arrival Time
+		if (m_interarrivaltime == true) {
+			  InterArrivalTime (ed_ID, Simulator::Now ().GetSeconds ());
+		}
 	}
 	else
 	{
@@ -417,8 +442,32 @@ SimpleNetworkServer::PacketCounter(uint32_t pkt_ID, uint32_t gw_ID, uint32_t ed_
 //		NS_LOG_INFO ("pos gate " << unsigned(i) << " value " << m_gateways_pktreceive[i]);
 //	   }
 
-
 }
+
+void
+SimpleNetworkServer::InterArrivalTime(uint32_t ed_ID, double arrival_time)
+{
+
+	// Only packet that hasn't been received arrive here!
+	NS_LOG_FUNCTION ("Ready to calculate the IAT - ED "  << ed_ID << " Time " << arrival_time);
+
+	// compute the inter-arrival time of this packet
+
+	m_devices_arrivaltime[ed_ID].push_back (arrival_time);
+	m_devices_interarrivaltime[ed_ID].push_back (arrival_time - m_last_arrivaltime_known[ed_ID]);
+
+	// update the last received arrival time vector
+
+	m_last_arrivaltime_known[ed_ID] = arrival_time;
+
+	for (uint32_t i = 0; i < m_devices_arrivaltime[0].size(); i++)
+	   {
+		NS_LOG_INFO ("arrival " << m_devices_arrivaltime[ed_ID][i] << " interarrival " << m_devices_interarrivaltime[ed_ID][i]);
+	   }
+
+	m_arrivaltime(m_devices_arrivaltime,m_devices_interarrivaltime);
+}
+
 
 bool
 SimpleNetworkServer::AlreadyReceived (vector<uint32_t> vec_pkt_ID, uint32_t pkt_ID)

@@ -70,6 +70,11 @@ public:
 
   Time m_stop_time = Seconds(0);
 
+  void  SetInterArrival (void);
+
+  bool m_interarrivaltime = false;
+
+
 
 private:
   Ptr<Application> InstallPriv (Ptr<Node> node);

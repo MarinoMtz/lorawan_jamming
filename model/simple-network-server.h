@@ -71,6 +71,8 @@ public:
 
   void SetGWED (uint32_t GW, uint32_t ED);
 
+  void SetInterArrival (void);
+
   /**
    * Inform the SimpleNetworkServer that these nodes are connected to the network
    * This method will create a DeviceStatus object for each new node, and add it to the list
@@ -125,6 +127,7 @@ public:
 
   void PacketCounter (uint32_t pkt_ID, uint32_t gw_ID, uint32_t ed_ID);
 
+  void InterArrivalTime(uint32_t ed_ID, double arrival_time);
 
   Time m_stop_time;
 
@@ -135,6 +138,8 @@ public:
 
   TracedCallback< vector<uint32_t>, vector<uint32_t>, vector<uint32_t>, vector<uint32_t> > m_packetrx;
 
+  TracedCallback< vector<vector<double> >, vector<vector<double> > > m_arrivaltime;
+
   uint32_t m_devices;
   uint32_t m_gateways;
 
@@ -144,6 +149,13 @@ public:
   vector<uint32_t> m_devices_pktduplicate;
   vector<uint32_t> m_gateways_pktreceive;
   vector<uint32_t> m_gateways_pktduplicate;
+
+  vector<vector<double> > m_devices_interarrivaltime;
+  vector<vector<double> > m_devices_arrivaltime;
+  vector<double> m_last_arrivaltime_known;
+
+  bool m_interarrivaltime;
+
 
   bool  AlreadyReceived(vector<uint32_t> vec_pkt_ID, uint32_t pkt_ID);
 

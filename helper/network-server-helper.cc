@@ -125,6 +125,12 @@ NetworkServerHelper::InstallPriv (Ptr<Node> node)
   SetNS(app);
   app->SetGWED(m_gateways.GetN(),m_endDevices.GetN());
   app->SetStopTime(m_stop_time);
+
+  if (m_interarrivaltime == true)
+  {
+	  app->SetInterArrival();
+  }
+
   app->AddNodes (m_endDevices);
 
   return app;
@@ -134,6 +140,12 @@ NetworkServerHelper::InstallPriv (Ptr<Node> node)
   NetworkServerHelper::SetStopTime (Time Stop)
   {
 	  m_stop_time = Stop;
+  }
+
+  void
+  NetworkServerHelper::SetInterArrival (void)
+  {
+	  m_interarrivaltime = true;
   }
 
 
