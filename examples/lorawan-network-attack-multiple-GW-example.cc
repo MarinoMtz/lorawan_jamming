@@ -99,8 +99,10 @@ bool Trans = true;
 bool SimTime = true;
 bool buildingsEnabled = false;
 
+// variables for the NS algorithms
 bool InterArrival = true;
 int NS_buffer = 10;
+double lambda = 0;
 
 vector<uint32_t> pkt_success_ed(nDevices+nJammers,0);
 vector<uint32_t> pkt_drop_ed(nDevices+nJammers,0);
@@ -421,12 +423,12 @@ NSInterArrivalTime (vector<vector<double> > arrival, vector<vector<double> > int
 {
 	NS_LOG_INFO ("Arrival Time ");
 
-
 	for (uint32_t j = 0; j < nDevices; j++)
 	{
 		for (uint32_t i = 0; i < arrival[j].size(); i++)
 		{
-			NS_LOG_INFO ("node " << j << " arrival " << arrival[j][i] << " interarrival " << inter_arrival[j][i]);
+			NS_LOG_INFO ("node " << j << " arrival " << arrival[j][i] << " interarrival " << inter_arrival[j][i]
+						 << " EWMA " << ewma[j][i] << " UCL " << ucl[j][i] << " LCL " << lcl[j][i]);
 		}
 	}
 }
@@ -504,9 +506,12 @@ int main (int argc, char *argv[])
   cmd.AddValue ("All_SF", "Boolean variable to set whether the Jammer transmits in all SF at the same time (Jammers 3 and 4)", All_SF);
   cmd.AddValue ("JammerDutyCycle", "Jammer duty cycle", JammerDutyCycle);
 
+  // imput variables related to the NS
   cmd.AddValue ("InterArrival", "Boolean variable to set whether or not the Network server computes the IAT", InterArrival);
   cmd.AddValue ("Net_Ser", "Network Server", Net_Ser);
   cmd.AddValue ("NS_buffer", "Length of Network Server Buffer", NS_buffer);
+  cmd.AddValue ("lambda", "lambda parameter for the EWMA algorithm btw 0-1 ", lambda);
+
 
   cmd.AddValue ("Filename", "Filename", Filename);
   cmd.AddValue ("Path", "Path", Path);
@@ -525,13 +530,13 @@ int main (int argc, char *argv[])
 
 
 //	Set up logging
-//  LogComponentEnable ("LorawanNetworkAttackExample", LOG_LEVEL_ALL);
+  LogComponentEnable ("LorawanNetworkAttackExample", LOG_LEVEL_ALL);
 //  LogComponentEnable("LoraChannel", LOG_LEVEL_ALL);
 //  LogComponentEnable("LoraPhy", LOG_LEVEL_ALL);
 //  LogComponentEnable("EndDeviceLoraPhy", LOG_LEVEL_ALL);
 //  LogComponentEnable("JammerLoraPhy", LOG_LEVEL_ALL);
 //  LogComponentEnable("GatewayLoraPhy", LOG_LEVEL_ALL);
-  LogComponentEnable("SimpleNetworkServer", LOG_LEVEL_ALL);
+//  LogComponentEnable("SimpleNetworkServer", LOG_LEVEL_ALL);
 //  LogComponentEnable("AppJammer", LOG_LEVEL_ALL);
 //  LogComponentEnable("LoraInterferenceHelper", LOG_LEVEL_ALL);
 //  LogComponentEnable("LoraMac", LOG_LEVEL_ALL);
@@ -823,7 +828,7 @@ int main (int argc, char *argv[])
 	  if (InterArrival){networkServerHelper.SetInterArrival();}
 
 	  //Set parameters for EWMA, target = application period, buffer_length
-	  networkServerHelper.SetEWMA (NS_buffer,appPeriod.GetSeconds());
+	  networkServerHelper.SetEWMA (NS_buffer,appPeriod.GetSeconds(),lambda);
 
 	  networkServerHelper.SetStopTime (Seconds(simulationTime));
 	  networkServerHelper.SetGateways (gateways);

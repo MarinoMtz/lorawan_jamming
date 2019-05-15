@@ -94,7 +94,7 @@ SimpleNetworkServer::StopApplication (void)
 
   //Fire the trace sources
   m_packetrx(m_devices_pktreceive,m_devices_pktduplicate,m_gateways_pktreceive,m_gateways_pktduplicate);
-  m_arrivaltime(m_devices_arrivaltime,m_devices_interarrivaltime,m_devices_ucl,m_devices_lcl,m_devices_ewma_total);
+  m_arrivaltime(m_devices_arrivaltime_total,m_devices_interarrivaltime_total,m_devices_ucl,m_devices_lcl,m_devices_ewma_total);
 
 }
 
@@ -108,7 +108,7 @@ SimpleNetworkServer::SetStopTime (Time Stop)
 }
 
 void
-SimpleNetworkServer::SetParameters (uint32_t GW, uint32_t ED, uint32_t JM, int buffer_length, double target)
+SimpleNetworkServer::SetParameters (uint32_t GW, uint32_t ED, uint32_t JM, int buffer_length, double target, double lambda)
 {
 
 	  NS_LOG_INFO ("Number of ED " << ED);
@@ -121,6 +121,8 @@ SimpleNetworkServer::SetParameters (uint32_t GW, uint32_t ED, uint32_t JM, int b
 
 	  m_buffer_length = buffer_length;
 	  m_target = target;
+	  m_lambda = lambda;
+
 
 	  // Initialize the end-device related vectors
 	  m_devices_pktid.resize(m_devices, vector<uint32_t>(m_buffer_length));
@@ -145,9 +147,12 @@ SimpleNetworkServer::SetParameters (uint32_t GW, uint32_t ED, uint32_t JM, int b
 	  m_lcl.resize(m_devices,0);
 
 	  // ucl, lcl and ewma for tracing purposes
+
 	  m_devices_ucl.resize(m_devices, vector<double>(0));
 	  m_devices_lcl.resize(m_devices, vector<double>(0));
 	  m_devices_ewma_total.resize(m_devices, vector<double>(0));
+	  m_devices_interarrivaltime_total.resize(m_devices, vector<double>(0));
+	  m_devices_arrivaltime_total.resize(m_devices, vector<double>(0));
 
 }
 
@@ -481,7 +486,8 @@ SimpleNetworkServer::InterArrivalTime(uint32_t ed_ID, double arrival_time)
 	// Only packet that hasn't been received arrive here!
 	NS_LOG_FUNCTION ("Ready to calculate the IAT - ED "  << ed_ID << " Time " << arrival_time << " Size " << m_devices_arrivaltime[ed_ID].size());
 
-	// compute the inter-arrival time of this packet
+
+	// shift the corresponding vectors
 
 	for (uint32_t i = 1; i < m_devices_arrivaltime[ed_ID].size(); i++)
 	 {
@@ -489,8 +495,13 @@ SimpleNetworkServer::InterArrivalTime(uint32_t ed_ID, double arrival_time)
 		m_devices_interarrivaltime[ed_ID][i-1] = m_devices_interarrivaltime[ed_ID][i];
 	 }
 
+	// compute the inter-arrival time of this packet
 	m_devices_arrivaltime[ed_ID][m_devices_arrivaltime[ed_ID].size()-1] = arrival_time;
-	m_devices_interarrivaltime[ed_ID][m_devices_interarrivaltime[ed_ID].size()-1] = arrival_time - m_last_arrivaltime_known[ed_ID] ;
+	m_devices_interarrivaltime[ed_ID][m_devices_interarrivaltime[ed_ID].size()-1] = arrival_time - m_last_arrivaltime_known[ed_ID];
+
+	// set the arrival and inter arrival time for tracing purposes
+	m_devices_arrivaltime_total[ed_ID].push_back(arrival_time);
+	m_devices_interarrivaltime_total[ed_ID].push_back(arrival_time - m_last_arrivaltime_known[ed_ID]);
 
 	// update the last received arrival time vector
 
@@ -504,6 +515,7 @@ SimpleNetworkServer::InterArrivalTime(uint32_t ed_ID, double arrival_time)
 	// Compute the EWMA
 
 	EWMA(m_devices_interarrivaltime[ed_ID],ed_ID);
+
 
 }
 
@@ -523,7 +535,6 @@ SimpleNetworkServer::EWMA(vector<double> IAT, uint32_t ed_ID)
 
 	// compute the EWMA of this packet
 
-	double m_lambda = 0.3;
 	double ewma = m_lambda*IAT.back()+(1-m_lambda)*m_devices_ewma[ed_ID][m_devices_ewma[ed_ID].size()-1];
 
 	// push back the ewma (only for tracing purposes)
@@ -542,19 +553,23 @@ SimpleNetworkServer::EWMA(vector<double> IAT, uint32_t ed_ID)
 
 	int zeros = count(IAT.begin(), IAT.end(), 0);
 	double mean = accumulate(IAT.begin(), IAT.end(), 0)/(IAT.size()-zeros);
-	double var = 0;
+	double var_iat = 0;
 
 	for(uint32_t j = 0; j < IAT.size(); j++)
 	 {
-	   var += pow(IAT[j] - mean,2);
+	   var_iat += pow(IAT[j] - mean,2);
 	 }
 
-	var = var/(IAT.size()-1);
+	var_iat = var_iat/(IAT.size()-1);
+
+	//we compute the variance of the EWMA
+
+	double var_ewma = var_iat*(m_lambda/(2-m_lambda));
 
 	//Compute the UCL and LCL
 
-	m_ucl[ed_ID] = m_target+3*sqrt(var);
-	m_lcl[ed_ID] = m_target-3*sqrt(var);
+	m_ucl[ed_ID] = m_target+3*sqrt(var_ewma);
+	m_lcl[ed_ID] = m_target-3*sqrt(var_ewma);
 
 	NS_LOG_FUNCTION ("m_ucl" << m_ucl[ed_ID]);
 	NS_LOG_FUNCTION ("m_ucl" << m_lcl[ed_ID]);

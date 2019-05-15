@@ -69,7 +69,7 @@ public:
 
   void SetStopTime (Time stop);
 
-  void SetParameters (uint32_t GW, uint32_t ED, uint32_t JM, int buffer_length, double target);
+  void SetParameters (uint32_t GW, uint32_t ED, uint32_t JM, int buffer_length, double target, double lambda);
 
   void SetInterArrival (void);
 
@@ -147,8 +147,10 @@ public:
   uint32_t m_gateways;
   uint32_t m_jammers;
 
+  //variables related to the EWMA
   int m_buffer_length;
   double m_target;
+  double m_lambda;
 
   vector<vector<uint32_t> > m_devices_pktid;
 
@@ -170,6 +172,8 @@ public:
   vector<vector<double> > m_devices_ucl;
   vector<vector<double> > m_devices_lcl;
   vector<vector<double> > m_devices_ewma_total;
+  vector<vector<double> > m_devices_interarrivaltime_total;
+  vector<vector<double> > m_devices_arrivaltime_total;
 
   bool m_interarrivaltime;
 
