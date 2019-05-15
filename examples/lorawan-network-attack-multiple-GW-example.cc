@@ -100,6 +100,7 @@ bool SimTime = true;
 bool buildingsEnabled = false;
 
 bool InterArrival = true;
+int NS_buffer = 10;
 
 vector<uint32_t> pkt_success_ed(nDevices+nJammers,0);
 vector<uint32_t> pkt_drop_ed(nDevices+nJammers,0);
@@ -415,7 +416,8 @@ NSReceiveCallback (vector<uint32_t> ED_RX, vector<uint32_t> ED_RXD, vector<uint3
 }
 
 void
-NSInterArrivalTime (vector<vector<double> > arrival, vector<vector<double> > inter_arrival)
+NSInterArrivalTime (vector<vector<double> > arrival, vector<vector<double> > inter_arrival,
+		vector<vector<double> > ucl, vector<vector<double> > lcl, vector<vector<double> > ewma)
 {
 	NS_LOG_INFO ("Arrival Time ");
 
@@ -488,7 +490,6 @@ int main (int argc, char *argv[])
   cmd.AddValue ("nJammers", "Number of Jammers to include in the simulation", nJammers);
   cmd.AddValue ("nGateways", "Number of Gateways to include in the simulation", nGateways);
   cmd.AddValue ("Conf_UP", "Confirmed data UP", Conf_UP);
-  cmd.AddValue ("Net_Ser", "Network Server", Net_Ser);
   cmd.AddValue ("radius", "radius of the disc where nodes will be deployed", radius);
   cmd.AddValue ("simulationTime", "The time for which to simulate", simulationTime);
   cmd.AddValue ("appPeriod", "The period in seconds to be used by periodically transmitting applications", appPeriodSeconds);
@@ -502,7 +503,11 @@ int main (int argc, char *argv[])
   cmd.AddValue ("Random_SF", "Boolean variable to set whether the Jammer select a random SF to transmit", Random_SF);
   cmd.AddValue ("All_SF", "Boolean variable to set whether the Jammer transmits in all SF at the same time (Jammers 3 and 4)", All_SF);
   cmd.AddValue ("JammerDutyCycle", "Jammer duty cycle", JammerDutyCycle);
+
   cmd.AddValue ("InterArrival", "Boolean variable to set whether or not the Network server computes the IAT", InterArrival);
+  cmd.AddValue ("Net_Ser", "Network Server", Net_Ser);
+  cmd.AddValue ("NS_buffer", "Length of Network Server Buffer", NS_buffer);
+
   cmd.AddValue ("Filename", "Filename", Filename);
   cmd.AddValue ("Path", "Path", Path);
 
@@ -816,6 +821,10 @@ int main (int argc, char *argv[])
 	  // Install the SimpleNetworkServer application on the network server
 	  NetworkServerHelper networkServerHelper;
 	  if (InterArrival){networkServerHelper.SetInterArrival();}
+
+	  //Set parameters for EWMA, target = application period, buffer_length
+	  networkServerHelper.SetEWMA (NS_buffer,appPeriod.GetSeconds());
+
 	  networkServerHelper.SetStopTime (Seconds(simulationTime));
 	  networkServerHelper.SetGateways (gateways);
 	  networkServerHelper.SetJammers (Jammers);

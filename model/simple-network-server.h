@@ -69,7 +69,7 @@ public:
 
   void SetStopTime (Time stop);
 
-  void SetGWED (uint32_t GW, uint32_t ED, uint32_t JM);
+  void SetParameters (uint32_t GW, uint32_t ED, uint32_t JM, int buffer_length, double target);
 
   void SetInterArrival (void);
 
@@ -141,11 +141,14 @@ public:
 
   TracedCallback< vector<uint32_t>, vector<uint32_t>, vector<uint32_t>, vector<uint32_t> > m_packetrx;
 
-  TracedCallback< vector<vector<double> >, vector<vector<double> > > m_arrivaltime;
+  TracedCallback< vector<vector<double> >, vector<vector<double> >,vector<vector<double> >,vector<vector<double> >,vector<vector<double> > > m_arrivaltime;
 
   uint32_t m_devices;
   uint32_t m_gateways;
   uint32_t m_jammers;
+
+  int m_buffer_length;
+  double m_target;
 
   vector<vector<uint32_t> > m_devices_pktid;
 
@@ -157,8 +160,16 @@ public:
   vector<vector<double> > m_devices_interarrivaltime;
   vector<vector<double> > m_devices_arrivaltime;
   vector<double> m_last_arrivaltime_known;
-
   vector<vector<double> > m_devices_ewma;
+
+  vector<double> m_ucl;
+  vector<double> m_lcl;
+
+  // ucl and lcl for tracing purposes
+
+  vector<vector<double> > m_devices_ucl;
+  vector<vector<double> > m_devices_lcl;
+  vector<vector<double> > m_devices_ewma_total;
 
   bool m_interarrivaltime;
 

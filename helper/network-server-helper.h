@@ -76,7 +76,11 @@ public:
 
   bool m_interarrivaltime = false;
 
+  void  SetEWMA (int buffer_length, double target);
 
+  int m_buffer_length = 0;
+
+  double m_target = 0;
 
 private:
   Ptr<Application> InstallPriv (Ptr<Node> node);
