@@ -53,6 +53,12 @@ NetworkServerHelper::SetGateways (NodeContainer gateways)
 }
 
 void
+NetworkServerHelper::SetJammers (NodeContainer jammers)
+{
+  m_jammers = jammers;
+}
+
+void
 NetworkServerHelper::SetEndDevices (NodeContainer endDevices)
 {
   m_endDevices = endDevices;
@@ -123,7 +129,7 @@ NetworkServerHelper::InstallPriv (Ptr<Node> node)
   // Add the end devices
 
   SetNS(app);
-  app->SetGWED(m_gateways.GetN(),m_endDevices.GetN());
+  app->SetGWED(m_gateways.GetN(),m_endDevices.GetN(),m_jammers.GetN());
   app->SetStopTime(m_stop_time);
 
   if (m_interarrivaltime == true)

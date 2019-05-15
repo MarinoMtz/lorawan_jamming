@@ -214,7 +214,6 @@ private:
 
   Time GetColEnd (void);
 
-
   uint8_t GetSF (void);
 
   bool  GetCE (void);

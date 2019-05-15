@@ -69,7 +69,7 @@ public:
 
   void SetStopTime (Time stop);
 
-  void SetGWED (uint32_t GW, uint32_t ED);
+  void SetGWED (uint32_t GW, uint32_t ED, uint32_t JM);
 
   void SetInterArrival (void);
 
@@ -129,6 +129,9 @@ public:
 
   void InterArrivalTime(uint32_t ed_ID, double arrival_time);
 
+
+  void EWMA(vector<double> IAT, uint32_t ed_ID);
+
   Time m_stop_time;
 
   /**
@@ -142,6 +145,7 @@ public:
 
   uint32_t m_devices;
   uint32_t m_gateways;
+  uint32_t m_jammers;
 
   vector<vector<uint32_t> > m_devices_pktid;
 
@@ -153,6 +157,8 @@ public:
   vector<vector<double> > m_devices_interarrivaltime;
   vector<vector<double> > m_devices_arrivaltime;
   vector<double> m_last_arrivaltime_known;
+
+  vector<vector<double> > m_devices_ewma;
 
   bool m_interarrivaltime;
 

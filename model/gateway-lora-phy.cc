@@ -359,7 +359,7 @@ GatewayLoraPhy::EndReceive (Ptr<Packet> packet, Ptr<LoraInterferenceHelper::Even
     }
   else   // Reception was correct
     {
-	  bool CE = m_interference.GetCE ();
+	  bool CE = m_interference.GetCE (); // Capture Effect ??
       NS_LOG_INFO ("Packet with SF " << unsigned(event->GetSpreadingFactor ()) << " received correctly");
       NS_LOG_INFO ("CE ? " << CE);
 

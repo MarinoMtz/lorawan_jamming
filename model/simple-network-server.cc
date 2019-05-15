@@ -25,7 +25,10 @@
 #include "ns3/lora-frame-header.h"
 #include "ns3/lora-tag.h"
 #include "ns3/log.h"
+#include <vector>
+#include <algorithm>
 
+using namespace std;
 namespace ns3 {
 
 NS_LOG_COMPONENT_DEFINE ("SimpleNetworkServer");
@@ -58,11 +61,13 @@ SimpleNetworkServer::SimpleNetworkServer():
 
 		m_devices(0),
 		m_gateways(0),
+		m_jammers(0),
 		m_devices_pktid(0),
 		m_stop_time(0),
 		m_interarrivaltime(false),
 		m_devices_interarrivaltime(0),
-		m_last_arrivaltime_known(0)
+		m_last_arrivaltime_known(0),
+		m_devices_ewma()
 {
   NS_LOG_FUNCTION_NOARGS ();
 }
@@ -82,24 +87,34 @@ void
 SimpleNetworkServer::StopApplication (void)
 {
   NS_LOG_FUNCTION_NOARGS ();
+  NS_LOG_INFO ("Stop at  " << Simulator::Now ().GetSeconds ());
+
+  //Fire the trace sources
+  m_packetrx(m_devices_pktreceive,m_devices_pktduplicate,m_gateways_pktreceive,m_gateways_pktduplicate);
+  m_arrivaltime(m_devices_arrivaltime,m_devices_interarrivaltime);
+
 }
 
 void
 SimpleNetworkServer::SetStopTime (Time Stop)
 {
 	  m_stop_time = Stop;
-	  //NS_LOG_INFO ("End-Device ID " << unsigned(ed_ID));
+	  Simulator::Schedule (m_stop_time,
+	                       &SimpleNetworkServer::StopApplication, this);
+
 }
 
 void
-SimpleNetworkServer::SetGWED (uint32_t GW, uint32_t ED)
+SimpleNetworkServer::SetGWED (uint32_t GW, uint32_t ED, uint32_t JM)
 {
 
 	  NS_LOG_INFO ("Number of ED " << ED);
 	  NS_LOG_INFO ("Number of GW " << GW);
+	  NS_LOG_INFO ("Number of GW " << JM);
 
 	  m_devices = ED;
 	  m_gateways = GW;
+	  m_jammers = JM;
 
 	  // Initialize the end-device related vectors
 	  m_devices_pktid.resize(m_devices, vector<uint32_t>(12));
@@ -116,6 +131,9 @@ SimpleNetworkServer::SetGWED (uint32_t GW, uint32_t ED)
 	  m_devices_interarrivaltime.resize(m_devices, vector<double>(0));
 	  m_devices_arrivaltime.resize(m_devices,vector<double>(0));
 	  m_last_arrivaltime_known.resize(m_devices,double(0));
+
+	  //Initialize the vector related to EWMA to detect attacks
+	  m_devices_ewma.resize(m_devices, vector<double>(0));;
 }
 
 void
@@ -409,10 +427,10 @@ SimpleNetworkServer::PacketCounter(uint32_t pkt_ID, uint32_t gw_ID, uint32_t ed_
 	else
 	{
 		m_devices_pktduplicate[ed_ID]++;
-		m_gateways_pktduplicate[gw_ID-m_devices]++;
+		m_gateways_pktduplicate[gw_ID-m_devices-m_jammers]++;
 	}
 
-	m_gateways_pktreceive[gw_ID-m_devices] ++;
+	m_gateways_pktreceive[gw_ID-m_devices-m_jammers] ++;
 
 	// insert the Packet ID on at the end of the temporal matrix
 
@@ -422,9 +440,6 @@ SimpleNetworkServer::PacketCounter(uint32_t pkt_ID, uint32_t gw_ID, uint32_t ed_
 	 }
 
 	m_devices_pktid[ed_ID][m_devices_pktid[ed_ID].size()-1] = pkt_ID;
-
-
-	m_packetrx(m_devices_pktreceive,m_devices_pktduplicate,m_gateways_pktreceive,m_gateways_pktduplicate);
 
 //	for (uint32_t i = 0; i < m_devices_pktid[ed_ID].size(); i++)
 //	   {
@@ -460,14 +475,54 @@ SimpleNetworkServer::InterArrivalTime(uint32_t ed_ID, double arrival_time)
 
 	m_last_arrivaltime_known[ed_ID] = arrival_time;
 
-	for (uint32_t i = 0; i < m_devices_arrivaltime[0].size(); i++)
-	   {
-		NS_LOG_INFO ("arrival " << m_devices_arrivaltime[ed_ID][i] << " interarrival " << m_devices_interarrivaltime[ed_ID][i]);
-	   }
+	//for (uint32_t i = 0; i < m_devices_arrivaltime[ed_ID].size(); i++)
+	//   {
+	//	NS_LOG_INFO ("arrival " << m_devices_arrivaltime[ed_ID][i] << " interarrival " << m_devices_interarrivaltime[ed_ID][i]);
+	//   }
 
-	m_arrivaltime(m_devices_arrivaltime,m_devices_interarrivaltime);
+	// Compute the EWMA
+
+	EWMA(m_devices_interarrivaltime[ed_ID],ed_ID);
+
 }
 
+void
+SimpleNetworkServer::EWMA(vector<double> IAT, uint32_t ed_ID)
+{
+
+	// Only packet that hasn't been received arrive here!
+	NS_LOG_FUNCTION ("Ready to calculate the IAT - ED "  << ed_ID);
+
+	// compute the inter-arrival time of this packet
+
+	if (m_devices_ewma[ed_ID].size() == 0)
+	{
+		m_devices_ewma[ed_ID].push_back(0);
+	}
+
+	double m_lambda=0.5;
+	double ewma = m_lambda*IAT.back()+(1-m_lambda)*m_devices_ewma[ed_ID][m_devices_ewma[ed_ID].size()-1];
+
+	m_devices_ewma[ed_ID].push_back (ewma);
+
+	//Compute the variance of the IAT
+
+	double mean = accumulate(IAT.begin(), IAT.end(), 0)/IAT.size();
+	double var = 0;
+
+
+	for(uint32_t i = 0; i < IAT.size(); i++)
+	 {
+	   var += pow(IAT[i] - mean,2);
+	 }
+
+
+	for (uint32_t i = 0; i < IAT.size(); i++)
+	 {
+	   NS_LOG_INFO ("ewma " << m_devices_ewma[ed_ID][i] << " interarrival " << m_devices_interarrivaltime[ed_ID][i]);
+	 }
+
+}
 
 bool
 SimpleNetworkServer::AlreadyReceived (vector<uint32_t> vec_pkt_ID, uint32_t pkt_ID)

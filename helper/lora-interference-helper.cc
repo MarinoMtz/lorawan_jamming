@@ -615,6 +615,7 @@ LoraInterferenceHelper::CleanParameters(void)
 	m_colstart = Seconds(0);
 	m_colend = Seconds(0);
 	m_colsf = uint8_t(0);
+	m_ce = false;
 }
 
 

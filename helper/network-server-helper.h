@@ -60,6 +60,8 @@ public:
    */
   void SetEndDevices (NodeContainer endDevices);
 
+  void SetJammers (NodeContainer jammers);
+
   Ptr<SimpleNetworkServer> m_ns = 0;
 
   void SetNS (Ptr<SimpleNetworkServer> app);
@@ -84,6 +86,8 @@ private:
   NodeContainer m_gateways;   //!< Set of gateways to connect to this NS
 
   NodeContainer m_endDevices;   //!< Set of endDevices to connect to this NS
+
+  NodeContainer m_jammers;   //!< Set of endDevices to connect to this NS
 
   PointToPointHelper p2pHelper; //!< Helper to create PointToPoint links
 };
