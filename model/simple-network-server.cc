@@ -53,6 +53,11 @@ SimpleNetworkServer::GetTypeId (void)
 					 "arrival time of each End-Device",
 				   MakeTraceSourceAccessor
 					 (&SimpleNetworkServer::m_arrivaltime))
+	.AddTraceSource ("EwmaParameters",
+					 "Trace source indicating the UCL and LCL"
+					 "of the learning phase",
+				   MakeTraceSourceAccessor
+					 (&SimpleNetworkServer::m_ewma))
 					 ;
   return tid;
 }
@@ -69,8 +74,14 @@ SimpleNetworkServer::SimpleNetworkServer():
 		m_last_arrivaltime_known(0),
 		m_devices_ewma(0),
 		m_devices_ewma_total(0),
-		m_buffer_length(0),
-		m_target(0)
+		m_buffer_length(10),
+		m_target(0),
+		m_lambda(0.2),
+		m_ewma_learning(false),
+		m_ucl(0),
+		m_lcl(0),
+		m_pre_ucl(0),
+		m_pre_lcl(0)
 {
   NS_LOG_FUNCTION_NOARGS ();
 }
@@ -108,51 +119,56 @@ SimpleNetworkServer::SetStopTime (Time Stop)
 }
 
 void
-SimpleNetworkServer::SetParameters (uint32_t GW, uint32_t ED, uint32_t JM, int buffer_length, double target, double lambda)
+SimpleNetworkServer::SetParameters (uint32_t GW, uint32_t ED, uint32_t JM, int buffer_length, bool ewma_training, double target, double lambda, double UCL, double LCL)
 {
 
-	  NS_LOG_INFO ("Number of ED " << ED);
-	  NS_LOG_INFO ("Number of GW " << GW);
-	  NS_LOG_INFO ("Number of GW " << JM);
+NS_LOG_INFO ("Number of ED " << ED);
+NS_LOG_INFO ("Number of GW " << GW);
+NS_LOG_INFO ("Number of GW " << JM);
 
-	  m_devices = ED;
-	  m_gateways = GW;
-	  m_jammers = JM;
+m_devices = ED;
+m_gateways = GW;
+m_jammers = JM;
 
-	  m_buffer_length = buffer_length;
-	  m_target = target;
-	  m_lambda = lambda;
+m_buffer_length = buffer_length;
+m_target = target;
+m_lambda = lambda;
+
+m_ewma_learning = ewma_training;
+
+m_pre_ucl = UCL;
+m_pre_lcl = LCL;
 
 
-	  // Initialize the end-device related vectors
-	  m_devices_pktid.resize(m_devices, vector<uint32_t>(m_buffer_length));
-	  m_devices_pktreceive.resize(m_devices,0);
-	  m_devices_pktduplicate.resize(m_devices,0);
+// Initialize the end-device related vectors
+m_devices_pktid.resize(m_devices, vector<uint32_t>(m_buffer_length));
+m_devices_pktreceive.resize(m_devices,0);
+m_devices_pktduplicate.resize(m_devices,0);
 
-	  // Initialize the gateway related vectors
+// Initialize the gateway related vectors
 
-	  m_gateways_pktreceive.resize(m_gateways,0);
-	  m_gateways_pktduplicate.resize(m_gateways,0);
+m_gateways_pktreceive.resize(m_gateways,0);
+m_gateways_pktduplicate.resize(m_gateways,0);
 
-	  //Initialize the vectors related to the inter-arrival time
+//Initialize the vectors related to the inter-arrival time
 
-	  m_devices_interarrivaltime.resize(m_devices, vector<double>(m_buffer_length));
-	  m_devices_arrivaltime.resize(m_devices,vector<double>(m_buffer_length));
-	  m_last_arrivaltime_known.resize(m_devices,double(0));
+m_devices_interarrivaltime.resize(m_devices, vector<double>(m_buffer_length));
+m_devices_arrivaltime.resize(m_devices,vector<double>(m_buffer_length));
+m_last_arrivaltime_known.resize(m_devices,double(0));
 
-	  //Initialize the vectors related to EWMA to detect attacks
-	  m_devices_ewma.resize(m_devices, vector<double>(m_buffer_length));
+//Initialize the vectors related to EWMA to detect attacks
+m_devices_ewma.resize(m_devices, vector<double>(m_buffer_length));
 
-	  m_ucl.resize(m_devices,0);
-	  m_lcl.resize(m_devices,0);
+m_ucl.resize(m_devices,0);
+m_lcl.resize(m_devices,0);
 
-	  // ucl, lcl and ewma for tracing purposes
+// ucl, lcl and ewma for tracing purposes
 
-	  m_devices_ucl.resize(m_devices, vector<double>(0));
-	  m_devices_lcl.resize(m_devices, vector<double>(0));
-	  m_devices_ewma_total.resize(m_devices, vector<double>(0));
-	  m_devices_interarrivaltime_total.resize(m_devices, vector<double>(0));
-	  m_devices_arrivaltime_total.resize(m_devices, vector<double>(0));
+m_devices_ucl.resize(m_devices, vector<double>(0));
+m_devices_lcl.resize(m_devices, vector<double>(0));
+m_devices_ewma_total.resize(m_devices, vector<double>(0));
+m_devices_interarrivaltime_total.resize(m_devices, vector<double>(0));
+m_devices_arrivaltime_total.resize(m_devices, vector<double>(0));
 
 }
 
@@ -533,9 +549,14 @@ SimpleNetworkServer::EWMA(vector<double> IAT, uint32_t ed_ID)
 		m_devices_ewma[ed_ID][i-1] = m_devices_ewma[ed_ID][i];
 	 }
 
+	// Compute the non biased average of the IAT
+
+	int zeros = count(IAT.begin(), IAT.end(), 0);
+	double mean = accumulate(IAT.begin(), IAT.end(), 0)/(IAT.size()-zeros);
+
 	// compute the EWMA of this packet
 
-	double ewma = m_lambda*IAT.back()+(1-m_lambda)*m_devices_ewma[ed_ID][m_devices_ewma[ed_ID].size()-1];
+	double ewma = m_lambda*mean+(1-m_lambda)*m_devices_ewma[ed_ID][m_devices_ewma[ed_ID].size()-1];
 
 	// push back the ewma (only for tracing purposes)
 	m_devices_ewma_total[ed_ID].push_back(ewma);
@@ -549,18 +570,16 @@ SimpleNetworkServer::EWMA(vector<double> IAT, uint32_t ed_ID)
 	   NS_LOG_INFO ("ewma " << m_devices_ewma[ed_ID][i] << " interarrival " << m_devices_interarrivaltime[ed_ID][i]);
 	 }
 
-	//Compute the non-biased variance of the IAT
 
-	int zeros = count(IAT.begin(), IAT.end(), 0);
-	double mean = accumulate(IAT.begin(), IAT.end(), 0)/(IAT.size()-zeros);
+	//Compute the non-biased variance of the IAT
 	double var_iat = 0;
 
-	for(uint32_t j = 0; j < IAT.size(); j++)
+	for(uint32_t j = zeros; j < IAT.size(); j++)
 	 {
 	   var_iat += pow(IAT[j] - mean,2);
 	 }
 
-	var_iat = var_iat/(IAT.size()-1);
+	var_iat = var_iat/(IAT.size()-zeros-1);
 
 	//we compute the variance of the EWMA
 

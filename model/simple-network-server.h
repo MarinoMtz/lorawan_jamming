@@ -69,7 +69,7 @@ public:
 
   void SetStopTime (Time stop);
 
-  void SetParameters (uint32_t GW, uint32_t ED, uint32_t JM, int buffer_length, double target, double lambda);
+  void SetParameters (uint32_t GW, uint32_t ED, uint32_t JM, int buffer_length, bool ewma_training, double target, double lambda, double UCL, double LCL);
 
   void SetInterArrival (void);
 
@@ -143,6 +143,8 @@ public:
 
   TracedCallback< vector<vector<double> >, vector<vector<double> >,vector<vector<double> >,vector<vector<double> >,vector<vector<double> > > m_arrivaltime;
 
+  TracedCallback< vector<double>, vector<double> > m_ewma;
+
   uint32_t m_devices;
   uint32_t m_gateways;
   uint32_t m_jammers;
@@ -151,6 +153,10 @@ public:
   int m_buffer_length;
   double m_target;
   double m_lambda;
+
+  //bool variable
+
+  bool m_ewma_learning = false;
 
   vector<vector<uint32_t> > m_devices_pktid;
 
@@ -167,7 +173,12 @@ public:
   vector<double> m_ucl;
   vector<double> m_lcl;
 
-  // ucl and lcl for tracing purposes
+  // pre-defined ucl and lcl (after training process)
+
+  double m_pre_ucl;
+  double m_pre_lcl;
+
+    // ucl and lcl for tracing purposes
 
   vector<vector<double> > m_devices_ucl;
   vector<vector<double> > m_devices_lcl;

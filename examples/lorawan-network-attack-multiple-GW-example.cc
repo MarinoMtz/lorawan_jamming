@@ -104,6 +104,10 @@ bool InterArrival = true;
 int NS_buffer = 10;
 double lambda = 0;
 
+bool ewma_training = false;
+double ucl = 15;
+double lcl = 3;
+
 vector<uint32_t> pkt_success_ed(nDevices+nJammers,0);
 vector<uint32_t> pkt_drop_ed(nDevices+nJammers,0);
 vector<uint32_t> pkt_loss_ed(nDevices+nJammers,0);
@@ -432,6 +436,15 @@ NSInterArrivalTime (vector<vector<double> > arrival, vector<vector<double> > int
 		}
 	}
 }
+
+void
+NSEWMA(vector<double> ucl, vector<double> lcl)
+{
+	NS_LOG_INFO ("Learned parameters ");
+
+
+}
+
 
 void
 PrintEndDevices (NodeContainer endDevices, NodeContainer Jammers, NodeContainer gateways, string filename)
@@ -783,7 +796,7 @@ int main (int argc, char *argv[])
 
   if (JammerType == 3  || JammerType == 4 )
   {
-	  Time appJamStopTime = Seconds (simulationTime);
+	  Time appJamStopTime = Seconds (900);
 	  AppJammerHelper appJamHelper = AppJammerHelper ();
 	  AttackProfile.SetRandomDataRate(Jammers);
 
@@ -794,7 +807,7 @@ int main (int argc, char *argv[])
 
 	  ApplicationContainer appJamContainer = appJamHelper.Install (Jammers);
 
-	  appJamContainer.Start (Seconds (0));
+	  appJamContainer.Start (Seconds (400));
 	  appJamContainer.Stop (appJamStopTime);
 
   }
@@ -828,8 +841,7 @@ int main (int argc, char *argv[])
 	  if (InterArrival){networkServerHelper.SetInterArrival();}
 
 	  //Set parameters for EWMA, target = application period, buffer_length
-	  networkServerHelper.SetEWMA (NS_buffer,appPeriod.GetSeconds(),lambda);
-
+	  networkServerHelper.SetEWMA (NS_buffer, ewma_training, appPeriod.GetSeconds(), lambda, ucl, lcl);
 	  networkServerHelper.SetStopTime (Seconds(simulationTime));
 	  networkServerHelper.SetGateways (gateways);
 	  networkServerHelper.SetJammers (Jammers);
@@ -855,6 +867,8 @@ int main (int argc, char *argv[])
                                        MakeCallback (&NSReceiveCallback));
       ns->TraceConnectWithoutContext ("InterArrivalTime",
                                        MakeCallback (&NSInterArrivalTime));
+      ns->TraceConnectWithoutContext ("EwmaParameters",
+                                       MakeCallback (&NSEWMA));
   }
 
   /****************

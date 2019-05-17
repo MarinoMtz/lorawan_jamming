@@ -129,7 +129,7 @@ NetworkServerHelper::InstallPriv (Ptr<Node> node)
   // Add the end devices
 
   SetNS(app);
-  app->SetParameters(m_gateways.GetN(),m_endDevices.GetN(),m_jammers.GetN(),m_buffer_length,m_target,m_lambda);
+  app->SetParameters(m_gateways.GetN(), m_endDevices.GetN(), m_jammers.GetN(), m_buffer_length, m_ewma, m_target, m_lambda, m_ucl, m_lcl);
   app->SetStopTime(m_stop_time);
 
   if (m_interarrivaltime == true)
@@ -155,11 +155,14 @@ NetworkServerHelper::InstallPriv (Ptr<Node> node)
   }
 
   void
-  NetworkServerHelper::SetEWMA (int buffer_length, double target, double lambda)
+  NetworkServerHelper::SetEWMA (int buffer_length, bool ewma, double target, double lambda, double ucl, double lcl)
   {
 	  m_buffer_length = buffer_length;
 	  m_target = target;
 	  m_lambda = lambda;
+	  m_ewma = lambda;
+	  m_ucl = ucl;
+	  m_lcl = lcl;
   }
 
 

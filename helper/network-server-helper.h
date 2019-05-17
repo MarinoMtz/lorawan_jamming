@@ -76,13 +76,16 @@ public:
 
   bool m_interarrivaltime = false;
 
-  void  SetEWMA (int buffer_length, double target, double lambda);
+  // Parameters EWMA
+
+  void  SetEWMA (int buffer_length, bool ewma, double target, double lambda, double ucl, double lcl);
 
   int m_buffer_length = 0;
-
   double m_target = 0;
-
   double m_lambda = 0;
+  bool m_ewma = true;
+  double m_ucl = 0;
+  double m_lcl = 0;
 
 private:
   Ptr<Application> InstallPriv (Ptr<Node> node);
