@@ -572,6 +572,7 @@ SimpleNetworkServer::EWMA(vector<double> IAT, uint32_t ed_ID)
 
 
 	//Compute the non-biased variance of the IAT
+
 	double var_iat = 0;
 
 	for(uint32_t j = zeros; j < IAT.size(); j++)
