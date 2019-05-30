@@ -85,6 +85,11 @@ public:
    * A vector containing the sensitivities required to correctly decode
    * different spreading factors.
    */
+
+  void Authpreamble (void);
+
+  bool m_authpre;
+
   static const double sensitivity[6];
 
 private:

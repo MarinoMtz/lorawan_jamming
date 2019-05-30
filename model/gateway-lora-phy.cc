@@ -118,7 +118,8 @@ GatewayLoraPhy::GetTypeId (void)
 }
 
 GatewayLoraPhy::GatewayLoraPhy () :
-  m_isTransmitting (false)
+  m_isTransmitting (false),
+  m_authpre (false)
 {
   NS_LOG_FUNCTION_NOARGS ();
 }
@@ -132,6 +133,14 @@ GatewayLoraPhy::~GatewayLoraPhy ()
 // {SF7, SF8, SF9, SF10, SF11, SF12}
 const double GatewayLoraPhy::sensitivity[6] =
 {-130.0, -132.5, -135.0, -137.5, -140.0, -142.5};
+
+void
+GatewayLoraPhy::Authpreamble (void)
+{
+  NS_LOG_FUNCTION (this);
+  m_authpre = true;
+
+}
 
 void
 GatewayLoraPhy::AddReceptionPath (double frequencyMHz)
@@ -223,7 +232,12 @@ GatewayLoraPhy::StartReceive (Ptr<Packet> packet, double rxPowerDbm,
   LoraTag tag;
   packet->RemovePacketTag (tag);
   uint32_t SenderID = tag.GetSenderID();
+  bool jammer = tag.GetJammer();
+  double preamble = tag.GetPreamble();
   packet->AddPacketTag (tag);
+
+  NS_LOG_INFO ("Jammer ? " << jammer);
+  NS_LOG_INFO ("preamble ? " << preamble);
 
   // Fire the trace source
   m_phyRxBeginTrace (packet);
@@ -280,12 +294,29 @@ GatewayLoraPhy::StartReceive (Ptr<Packet> packet, double rxPowerDbm,
               currentPath->LockOnEvent (event);
               m_occupiedReceptionPaths++;
 
-              // Schedule the end of the reception of the packet
-              Simulator::Schedule (duration, &LoraPhy::EndReceive, this,
-                                   packet, event);
+              // Check if authentificated preambles are enabled
+              if (m_authpre == true && jammer == false)
+              {
+            	  // Schedule the end of the reception of the packet
+            	  Simulator::Schedule (duration, &LoraPhy::EndReceive, this,packet, event);
+            	  m_packetduration(packet, duration ,m_device->GetNode ()->GetId (), SenderID, event->GetFrequency (), event->GetSpreadingFactor () );
 
-              m_packetduration(packet, duration ,m_device->GetNode ()->GetId (), SenderID, event->GetFrequency (), event->GetSpreadingFactor () );
+              }
 
+              else if (m_authpre == true && jammer == true)
+              {
+            	  // Schedule the end of the reception of the packet right after the preamble
+            	  Simulator::Schedule (Seconds(preamble), &LoraPhy::EndReceive, this, packet, event);
+            	  m_packetduration(packet, Seconds(preamble) ,m_device->GetNode ()->GetId (), SenderID, event->GetFrequency (), event->GetSpreadingFactor () );
+              }
+
+              else if (m_authpre == false)
+              {
+            	  // Schedule the end of the reception of the packet
+            	  Simulator::Schedule (duration, &LoraPhy::EndReceive, this,packet, event);
+            	  m_packetduration(packet, duration ,m_device->GetNode ()->GetId (), SenderID, event->GetFrequency (), event->GetSpreadingFactor () );
+
+              }
               // Make sure we don't go on searching for other ReceivePaths
               return;
             }

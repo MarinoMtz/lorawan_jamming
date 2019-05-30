@@ -59,7 +59,7 @@ Ptr<UniformRandomVariable> rnd_alloc = CreateObject<UniformRandomVariable> ();
 double simulationTime = 1000;
 double appPeriodSeconds = 50;
 
-double appPeriodJamSeconds = 10;
+double appPeriodJamSeconds = 1;
 double JammerType = 3;
 double JammerFrequency = 868.1;
 double JammerTxPower = 25;
@@ -103,6 +103,9 @@ bool buildingsEnabled = false;
 bool InterArrival = true;
 int NS_buffer = 10;
 double lambda = 0;
+
+//Authenticated preambles
+bool authpre = false;
 
 bool ewma_training = false;
 double ucl = 15;
@@ -525,6 +528,9 @@ int main (int argc, char *argv[])
   cmd.AddValue ("NS_buffer", "Length of Network Server Buffer", NS_buffer);
   cmd.AddValue ("lambda", "lambda parameter for the EWMA algorithm btw 0-1 ", lambda);
 
+  // authenticated preamble
+  cmd.AddValue ( "authpre", "Authenticated preambles ", authpre);
+
 
   cmd.AddValue ("Filename", "Filename", Filename);
   cmd.AddValue ("Path", "Path", Path);
@@ -543,12 +549,12 @@ int main (int argc, char *argv[])
 
 
 //	Set up logging
-  LogComponentEnable ("LorawanNetworkAttackExample", LOG_LEVEL_ALL);
+//  LogComponentEnable ("LorawanNetworkAttackExample", LOG_LEVEL_ALL);
 //  LogComponentEnable("LoraChannel", LOG_LEVEL_ALL);
 //  LogComponentEnable("LoraPhy", LOG_LEVEL_ALL);
 //  LogComponentEnable("EndDeviceLoraPhy", LOG_LEVEL_ALL);
 //  LogComponentEnable("JammerLoraPhy", LOG_LEVEL_ALL);
-//  LogComponentEnable("GatewayLoraPhy", LOG_LEVEL_ALL);
+  LogComponentEnable("GatewayLoraPhy", LOG_LEVEL_ALL);
 //  LogComponentEnable("SimpleNetworkServer", LOG_LEVEL_ALL);
 //  LogComponentEnable("AppJammer", LOG_LEVEL_ALL);
 //  LogComponentEnable("LoraInterferenceHelper", LOG_LEVEL_ALL);
@@ -744,6 +750,10 @@ int main (int argc, char *argv[])
       Ptr<LoraNetDevice> loraNetDevice = netDevice->GetObject<LoraNetDevice> ();
       NS_ASSERT (loraNetDevice != 0);
       Ptr<GatewayLoraPhy> gwPhy = loraNetDevice->GetPhy ()->GetObject<GatewayLoraPhy> ();
+
+      if (authpre){
+    	  gwPhy->Authpreamble();
+      }
 
       // Set up height of the gateway
       Ptr<MobilityModel> gwMob = (*j)->GetObject<MobilityModel> ();

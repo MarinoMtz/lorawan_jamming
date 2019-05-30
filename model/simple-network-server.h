@@ -31,6 +31,7 @@
 #include "ns3/node-container.h"
 #include <vector>
 #include <algorithm>
+#include <numeric>
 
 using namespace std;
 
