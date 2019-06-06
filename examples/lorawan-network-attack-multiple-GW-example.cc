@@ -203,7 +203,7 @@ void
 JMTransmissionCallback (Ptr<Packet const> packet, uint32_t systemId, double frequencyMHz, uint8_t sf)
 {
 
-  //NS_LOG_INFO ( "J " << systemId << " " << packet->GetSize () << " " << frequencyMHz << " " << unsigned(sf) << " " << Simulator::Now ().GetSeconds ());
+  NS_LOG_INFO ( "J " << systemId << " " << packet->GetSize () << " " << frequencyMHz << " " << unsigned(sf) << " " << Simulator::Now ().GetSeconds ());
 //  PrintTrace (JT, systemId, 0, packet->GetSize (), frequencyMHz, sf, Seconds(0), Seconds (0), 0, "scratch/Trace.dat");
   jmsent += 1;
 
@@ -546,8 +546,6 @@ int main (int argc, char *argv[])
   pkt_drop_gw.resize(nGateways,0);
   pkt_success_gw.resize(nGateways,0);
 
-
-
 //	Set up logging
 //  LogComponentEnable ("LorawanNetworkAttackExample", LOG_LEVEL_ALL);
 //  LogComponentEnable("LoraChannel", LOG_LEVEL_ALL);
@@ -573,7 +571,6 @@ int main (int argc, char *argv[])
 //  LogComponentEnable("LoraFrameHeader", LOG_LEVEL_ALL);
 //	LogComponentEnable("LoraMacHeader", LOG_LEVEL_ALL);
 //  LogComponentEnable("LoraEnergyConsumptionHelper", LOG_LEVEL_ALL);
-
 
   /**********
   *  Setup  *
@@ -806,7 +803,7 @@ int main (int argc, char *argv[])
 
   if (JammerType == 3  || JammerType == 4 )
   {
-	  Time appJamStopTime = Seconds (900);
+	  Time appJamStopTime = Seconds (simulationTime);
 	  AppJammerHelper appJamHelper = AppJammerHelper ();
 	  AttackProfile.SetRandomDataRate(Jammers);
 
@@ -817,7 +814,7 @@ int main (int argc, char *argv[])
 
 	  ApplicationContainer appJamContainer = appJamHelper.Install (Jammers);
 
-	  appJamContainer.Start (Seconds (400));
+	  appJamContainer.Start (Seconds (0));
 	  appJamContainer.Stop (appJamStopTime);
 
   }

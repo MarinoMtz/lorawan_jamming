@@ -246,6 +246,8 @@ GatewayLoraPhy::StartReceive (Ptr<Packet> packet, double rxPowerDbm,
   Ptr<LoraInterferenceHelper::Event> event;
   event = m_interference.Add (duration, rxPowerDbm, sf, packet, frequencyMHz);
 
+  NS_LOG_INFO ("Inserting a packet on the colision helper with duration = "<< duration.GetSeconds());
+
   // Cycle over the receive paths to check availability to receive the packet
   std::list<Ptr<GatewayLoraPhy::ReceptionPath> >::iterator it;
 
@@ -295,6 +297,7 @@ GatewayLoraPhy::StartReceive (Ptr<Packet> packet, double rxPowerDbm,
               m_occupiedReceptionPaths++;
 
               // Check if authentificated preambles are enabled
+
               if (m_authpre == true && jammer == false)
               {
             	  // Schedule the end of the reception of the packet
@@ -358,6 +361,8 @@ GatewayLoraPhy::EndReceive (Ptr<Packet> packet, Ptr<LoraInterferenceHelper::Even
   packet->AddPacketTag (tag);
 
   uint8_t packetDestroyed = m_interference.IsDestroyedByInterference (event);
+
+  NS_LOG_INFO ("Checking a packet with duration" << event->GetDuration ().GetSeconds() );
 
   // Check whether the packet was destroyed
   if (packetDestroyed)
