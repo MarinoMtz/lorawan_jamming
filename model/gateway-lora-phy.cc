@@ -240,7 +240,9 @@ GatewayLoraPhy::StartReceive (Ptr<Packet> packet, double rxPowerDbm,
   NS_LOG_INFO ("preamble ? " << preamble);
 
   // Fire the trace source
+
   m_phyRxBeginTrace (packet);
+
 
   // Add the event to the LoraInterferenceHelper
   Ptr<LoraInterferenceHelper::Event> event;
