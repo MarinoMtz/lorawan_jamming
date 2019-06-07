@@ -110,4 +110,7 @@ For this simulation we follow the model proposed by [Luis Casals et al.](https:/
 ## Time on air and Reception Windows
 
 
+## License
 
+This software is licensed under the terms of the GNU GPLv2 (the same license
+that is used by ns-3). See the LICENSE.md file for more details.)
