@@ -1,6 +1,7 @@
 /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
 /*
- * Copyright (c) 2017 University of Padova
+ * LoRaWAN Jamming - Copyright (c) 2019 INSA de Rennes
+ * LoRaWAN ns-3 module v 0.1.0 - Copyright (c) 2017 University of Padova
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -15,7 +16,8 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
- * Author: Davide Magrin <magrinda@dei.unipd.it>
+ * LoRaWAN ns-3 module v 0.1.0 author: Davide Magrin <magrinda@dei.unipd.it>
+ * LoRaWAN Jamming author: Ivan Martinez <ivamarti@insa-rennes.fr>
  */
 
 #include "ns3/end-device-lora-mac.h"
@@ -86,7 +88,8 @@ EndDeviceLoraMac::EndDeviceLoraMac () :
   m_lastKnownLinkMargin (0),
   m_lastKnownGatewayCount (0),
   m_aggregatedDutyCycle (1),
-  m_mType (LoraMacHeader::UNCONFIRMED_DATA_DOWN)
+  m_mType (LoraMacHeader::UNCONFIRMED_DATA_DOWN),
+  m_sf (7)
 {
   NS_LOG_FUNCTION (this);
 
@@ -124,15 +127,15 @@ EndDeviceLoraMac::Send (Ptr<Packet> packet)
   // Check that there are no scheduled receive windows.
   // We cannot send a packet if we are in the process of transmitting or waiting
   // for reception.
-  if (!m_closeWindow.IsExpired () || !m_secondReceiveWindow.IsExpired ())
-    {
-      NS_LOG_WARN ("Attempting to send when there are receive windows" <<
-                   " Transmission canceled");
+  //if (!m_closeWindow.IsExpired () || !m_secondReceiveWindow.IsExpired ())
+  //  {
+  //    NS_LOG_WARN ("Attempting to send when there are receive windows" <<
+  //                 " Transmission canceled");
       //return;
 
-	  sent = false;
-	  return sent;
-    }
+	//  sent = false;
+	//  return sent;
+  //  }
 
   // Check that payload length is below the allowed maximum
   if (packet->GetSize () > m_maxAppPayloadForDataRate.at (m_dataRate))
@@ -147,13 +150,13 @@ EndDeviceLoraMac::Send (Ptr<Packet> packet)
     }
 
   // Check that we can transmit according to the aggregate duty cycle timer
-  if (m_channelHelper.GetAggregatedWaitingTime () != Seconds (0))
-    {
-      NS_LOG_WARN ("Attempting to send, but the aggregate duty cycle won't allow it");
-      //return;
-	  sent = false;
-	  return sent;
-    }
+  //if (m_channelHelper.GetAggregatedWaitingTime () != Seconds (0))
+  //  {
+  //    NS_LOG_WARN ("Attempting to send, but the aggregate duty cycle won't allow it");
+  //    //return;
+//	  sent = false;
+//	  return sent;
+//    }
 
   // Pick a channel on which to transmit the packet
   Ptr<LogicalLoraChannel> txChannel = GetChannelForTx ();
@@ -443,13 +446,13 @@ EndDeviceLoraMac::TxFinished (Ptr<const Packet> packet)
   NS_LOG_FUNCTION_NOARGS ();
 
   // Schedule the opening of the first receive window
-  Simulator::Schedule (m_receiveDelay1,
-                       &EndDeviceLoraMac::OpenFirstReceiveWindow, this);
+  //Simulator::Schedule (m_receiveDelay1,
+  //                     &EndDeviceLoraMac::OpenFirstReceiveWindow, this);
 
   // Schedule the opening of the second receive window
-  m_secondReceiveWindow = Simulator::Schedule (m_receiveDelay2,
-                                               &EndDeviceLoraMac::OpenSecondReceiveWindow,
-                                               this);
+  //m_secondReceiveWindow = Simulator::Schedule (m_receiveDelay2,
+  //                                             &EndDeviceLoraMac::OpenSecondReceiveWindow,
+  //                                             this);
 
   // Switch the PHY to sleep
   m_phy->GetObject<EndDeviceLoraPhy> ()->SwitchToSleep ();
@@ -607,21 +610,21 @@ EndDeviceLoraMac::GetChannelForTx (void)
       NS_LOG_DEBUG ("Frequency of the current channel: " << frequency);
 
       // Verify that we can send the packet
-      Time waitingTime = m_channelHelper.GetWaitingTime (logicalChannel);
+      //Time waitingTime = m_channelHelper.GetWaitingTime (logicalChannel);
 
-      NS_LOG_DEBUG ("Waiting time for current channel = " <<
-                    waitingTime.GetSeconds ());
+      //NS_LOG_DEBUG ("Waiting time for current channel = " <<
+                    //waitingTime.GetSeconds ());
 
       // Send immediately if we can
-      if (waitingTime == Seconds (0))
-        {
+      //if (waitingTime == Seconds (0))
+        //{
           return *it;
-        }
-      else
-        {
-          NS_LOG_DEBUG ("Packet cannot be immediately transmitted on " <<
-                        "the current channel because of duty cycle limitations");
-        }
+        //}
+      //else
+        //{
+          //NS_LOG_DEBUG ("Packet cannot be immediately transmitted on " <<
+        //                "the current channel because of duty cycle limitations");
+        //}
     }
   return 0; // In this case, no suitable channel was found
 }
@@ -654,6 +657,17 @@ EndDeviceLoraMac::SetDataRate (uint8_t dataRate)
   NS_LOG_FUNCTION (this << unsigned (dataRate));
 
   m_dataRate = dataRate;
+  SetSpreadingFactor (GetSfFromDataRate (m_dataRate));
+
+}
+
+void
+EndDeviceLoraMac::SetSpreadingFactor (uint8_t sf)
+{
+  NS_LOG_FUNCTION (this << unsigned (sf));
+
+  m_sf = sf;
+
 }
 
 void
@@ -662,6 +676,14 @@ EndDeviceLoraMac::SetTxPower (double txPower)
   NS_LOG_FUNCTION (this << unsigned (txPower));
 
   m_txPower = txPower;
+}
+
+uint8_t
+EndDeviceLoraMac::GetSpreadingFactor (void)
+{
+  NS_LOG_FUNCTION (this);
+
+  return m_sf;
 }
 
 uint8_t

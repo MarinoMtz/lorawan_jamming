@@ -1,6 +1,7 @@
 /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
 /*
- * Copyright (c) 2017 University of Padova
+ * LoRaWAN Jamming - Copyright (c) 2019 INSA de Rennes
+ * LoRaWAN ns-3 module v 0.1.0 - Copyright (c) 2017 University of Padova
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -15,7 +16,8 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
- * Author: Davide Magrin <magrinda@dei.unipd.it>
+ * LoRaWAN ns-3 module v 0.1.0 author: Davide Magrin <magrinda@dei.unipd.it>
+ * LoRaWAN Jamming author: Ivan Martinez <ivamarti@insa-rennes.fr>
  */
 
 #include "ns3/gateway-lora-phy.h"
@@ -23,6 +25,7 @@
 #include "ns3/simulator.h"
 #include "ns3/log.h"
 
+using namespace std;
 namespace ns3 {
 
 NS_LOG_COMPONENT_DEFINE ("GatewayLoraPhy");
@@ -155,8 +158,23 @@ void
 GatewayLoraPhy::ResetReceptionPaths (void)
 {
   NS_LOG_FUNCTION (this);
-
   m_receptionPaths.clear ();
+}
+
+void
+GatewayLoraPhy::SetInterferenceModel (uint8_t interference)
+{
+  NS_LOG_FUNCTION (this);
+
+  switch (interference) {
+      case 1: m_interference.SetInterferenceModel(LoraInterferenceHelper::Pure_ALOHA);
+      	  	  break;
+      case 2: m_interference.SetInterferenceModel(LoraInterferenceHelper::Cochannel_Matrix);
+              break;
+      default : m_interference.SetInterferenceModel(LoraInterferenceHelper::Pure_ALOHA);
+  }
+
+
 }
 
 void
@@ -246,6 +264,7 @@ GatewayLoraPhy::StartReceive (Ptr<Packet> packet, double rxPowerDbm,
 
   // Add the event to the LoraInterferenceHelper
   Ptr<LoraInterferenceHelper::Event> event;
+
   event = m_interference.Add (duration, rxPowerDbm, sf, packet, frequencyMHz);
 
   NS_LOG_INFO ("Inserting a packet on the colision helper with duration = "<< duration.GetSeconds());

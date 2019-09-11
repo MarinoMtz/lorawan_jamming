@@ -1,6 +1,7 @@
 /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
 /*
- * Copyright (c) 2017 University of Padova
+ * LoRaWAN Jamming - Copyright (c) 2019 INSA de Rennes
+ * LoRaWAN ns-3 module v 0.1.0 - Copyright (c) 2017 University of Padova
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -15,7 +16,8 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
- * Author: Davide Magrin <magrinda@dei.unipd.it>
+ * LoRaWAN ns-3 module v 0.1.0 author: Davide Magrin <magrinda@dei.unipd.it>
+ * LoRaWAN Jamming author: Ivan Martinez <ivamarti@insa-rennes.fr>
  */
 
 #include <algorithm>
@@ -69,8 +71,6 @@ JammerLoraPhy::JammerLoraPhy () :
   m_preamble (0.012544),
   m_jamType (0),
   m_packetsize (0),
-  m_randomsf(false),
-  m_allsf(false),
   m_dutycycle (1),
   m_appfinish (false)
 {
@@ -98,26 +98,6 @@ void
 JammerLoraPhy::SetSpreadingFactor (uint8_t sf)
 {
   m_sf = sf;
-}
-
-void
-JammerLoraPhy::SetRandomSpreadingFactor ()
-{
-  uint8_t random = std::floor (m_uniformRV->GetValue (7, 12));
-  m_sf = random;
-}
-
-
-void
-JammerLoraPhy::SetRandomSF ()
-{
-  m_randomsf = true;
-}
-
-void
-JammerLoraPhy::SetAllSF ()
-{
-	m_allsf = true;
 }
 
 uint8_t
@@ -163,6 +143,8 @@ JammerLoraPhy::Send (Ptr<Packet> packet, LoraTxParameters txParams,
   NS_LOG_INFO ("Current state: " << m_state);
 
   // We must be either in STANDBY mode to send a packet
+
+  NS_LOG_INFO ("Packet size phy " << packet->GetSize());
 
   if (m_state != STANDBY)
     {
@@ -216,18 +198,6 @@ JammerLoraPhy::Send (Ptr<Packet> packet, LoraTxParameters txParams,
 	   else {
 		   m_startSending (packet, 0, 0, 0);
 	   }
-
-	if (m_jamType == 3 && m_appfinish == false)
-	{
-		//NS_LOG_INFO ("Sending a packet " << duration.GetSeconds()*(1-m_dutycycle)*100);
-		NS_LOG_INFO ("Sending a packet " << duration.GetSeconds());
-
-		SetRandomSpreadingFactor ();
-		txParams.sf=m_sf;
-
-		double jamtime = duration.GetSeconds()*(1/m_dutycycle-1);
-		Simulator::Schedule (duration+Seconds(jamtime)+NanoSeconds(15), &JammerLoraPhy::Send, this, packet, txParams, frequencyMHz, txPowerDbm);
-	}
 
 }
 
@@ -308,6 +278,8 @@ JammerLoraPhy::StartReceive (Ptr<Packet> packet, double rxPowerDbm,
   uint8_t jamm = tag.GetJammer();
   uint32_t SenderID = tag.GetSenderID();
   packet->AddPacketTag (tag);
+
+
 
   // Notify the LoraInterferenceHelper of the impinging signal, and remember
   // the event it creates. This will be used then to correctly handle the end

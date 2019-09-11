@@ -1,6 +1,7 @@
 /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
 /*
- * Copyright (c) 2017 University of Padova
+ * LoRaWAN Jamming - Copyright (c) 2019 INSA de Rennes
+ * LoRaWAN ns-3 module v 0.1.0 - Copyright (c) 2017 University of Padova
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -15,7 +16,8 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
- * Author: Davide Magrin <magrinda@dei.unipd.it>
+ * LoRaWAN ns-3 module v 0.1.0 author: Davide Magrin <magrinda@dei.unipd.it>
+ * LoRaWAN Jamming author: Ivan Martinez <ivamarti@insa-rennes.fr>
  */
 
 #include "ns3/lora-mac-helper.h"
@@ -183,13 +185,13 @@ LoraMacHelper::ConfigureForEuRegion (Ptr<GatewayLoraMac> gwMac) const
 
       std::vector<double> frequencies;
       frequencies.push_back (868.1);
-      frequencies.push_back (868.3);
-      frequencies.push_back (868.5);
+      //frequencies.push_back (868.3);
+      //frequencies.push_back (868.5);
 
       std::vector<double>::iterator it = frequencies.begin ();
 
       int receptionPaths = 0;
-      int maxReceptionPaths = 8;
+      int maxReceptionPaths = 1;
       while (receptionPaths < maxReceptionPaths)
         {
           if (it == frequencies.end ())
@@ -212,18 +214,18 @@ LoraMacHelper::ApplyCommonEuConfigurations (Ptr<LoraMac> loraMac) const
 
   LogicalLoraChannelHelper channelHelper;
   channelHelper.AddSubBand (868, 868.6, 0.01, 14);
-  channelHelper.AddSubBand (868.7, 869.2, 0.001, 14);
-  channelHelper.AddSubBand (869.4, 869.65, 0.1, 27);
+  // channelHelper.AddSubBand (868.7, 869.2, 0.001, 14);
+  // channelHelper.AddSubBand (869.4, 869.65, 0.1, 27);
 
   //////////////////////
   // Default channels //
   //////////////////////
   Ptr<LogicalLoraChannel> lc1 = CreateObject<LogicalLoraChannel> (868.1, 0, 5);
-  Ptr<LogicalLoraChannel> lc2 = CreateObject<LogicalLoraChannel> (868.3, 0, 5);
-  Ptr<LogicalLoraChannel> lc3 = CreateObject<LogicalLoraChannel> (868.5, 0, 5);
+  // Ptr<LogicalLoraChannel> lc2 = CreateObject<LogicalLoraChannel> (868.3, 0, 5);
+  // Ptr<LogicalLoraChannel> lc3 = CreateObject<LogicalLoraChannel> (868.5, 0, 5);
   channelHelper.AddChannel (lc1);
-  channelHelper.AddChannel (lc2);
-  channelHelper.AddChannel (lc3);
+  // channelHelper.AddChannel (lc2);
+  // channelHelper.AddChannel (lc3);
 
   loraMac->SetLogicalLoraChannelHelper (channelHelper);
 
@@ -317,6 +319,44 @@ LoraMacHelper::SetSpreadingFactorsUp (NodeContainer endDevices, NodeContainer ga
         }
     }
 }
+
+
+void
+LoraMacHelper::SetSpreadingFactors (NodeContainer endDevices, uint8_t sf)
+{
+  NS_LOG_FUNCTION_NOARGS ();
+
+  for (NodeContainer::Iterator j = endDevices.Begin (); j != endDevices.End (); ++j)
+    {
+      Ptr<Node> object = *j;
+      Ptr<MobilityModel> position = object->GetObject<MobilityModel> ();
+      NS_ASSERT (position != 0);
+      Ptr<NetDevice> netDevice = object->GetDevice (0);
+      Ptr<LoraNetDevice> loraNetDevice = netDevice->GetObject<LoraNetDevice> ();
+      NS_ASSERT (loraNetDevice != 0);
+      Ptr<EndDeviceLoraMac> mac = loraNetDevice->GetMac ()->GetObject<EndDeviceLoraMac> ();
+      NS_ASSERT (mac != 0);
+
+      switch (sf) {
+          case 7: mac->SetDataRate (5);
+          	  	  break;
+          case 8: mac->SetDataRate (4);
+          	  	  break;
+          case 9: mac->SetDataRate (3);
+          	  	  break;
+          case 10: mac->SetDataRate (2);
+          	  	  break;
+          case 11:  mac->SetDataRate (1);
+          	  	  break;
+          case 12: mac->SetDataRate (0);
+          	  	  break;
+          default: mac->SetDataRate (5);
+
+              break;
+      }
+    }
+}
+
 
 void
 LoraMacHelper::SetMType (NodeContainer endDevices, LoraMacHeader::MType mType)

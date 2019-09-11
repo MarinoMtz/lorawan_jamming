@@ -1,6 +1,7 @@
 /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
 /*
- * Copyright (c) 2017 University of Padova
+ * LoRaWAN Jamming - Copyright (c) 2019 INSA de Rennes
+ * LoRaWAN ns-3 module v 0.1.0 - Copyright (c) 2017 University of Padova
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -15,7 +16,8 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
- * Author: Davide Magrin <magrinda@dei.unipd.it>
+ * LoRaWAN ns-3 module v 0.1.0 author: Davide Magrin <magrinda@dei.unipd.it>
+ * LoRaWAN Jamming author: Ivan Martinez <ivamarti@insa-rennes.fr>
  */
 
 #include "ns3/lora-phy-helper.h"
@@ -87,8 +89,8 @@ LoraPhyHelper::Create (Ptr<Node> node, Ptr<NetDevice> device) const
       // device will operate in a different region
       std::vector<double> frequencies;
       frequencies.push_back (868.1);
-      frequencies.push_back (868.3);
-      frequencies.push_back (868.5);
+      // frequencies.push_back (868.3);
+      // frequencies.push_back (868.5);
 
       std::vector<double>::iterator it = frequencies.begin ();
 

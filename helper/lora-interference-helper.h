@@ -1,6 +1,7 @@
 /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
 /*
- * Copyright (c) 2017 University of Padova
+ * LoRaWAN Jamming - Copyright (c) 2019 INSA de Rennes
+ * LoRaWAN ns-3 module v 0.1.0 - Copyright (c) 2017 University of Padova
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -15,7 +16,8 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
- * Author: Davide Magrin <magrinda@dei.unipd.it>
+ * LoRaWAN ns-3 module v 0.1.0 author: Davide Magrin <magrinda@dei.unipd.it>
+ * LoRaWAN Jamming author: Ivan Martinez <ivamarti@insa-rennes.fr>
  */
 
 #ifndef LORA_INTERFERENCE_HELPER_H
@@ -50,6 +52,11 @@ public:
    * Used in LoraInterferenceHelper to keep track of which signals overlap and
    * cause destructive interference.
    */
+
+    enum Int_Model {
+    	Pure_ALOHA,
+		Cochannel_Matrix,
+    };
 
   class Event : public SimpleRefCount<LoraInterferenceHelper::Event>
   {
@@ -162,6 +169,11 @@ private:
    */
   std::list< Ptr< LoraInterferenceHelper::Event > > GetInterferers ();
 
+
+  void SetInterferenceModel(Int_Model);
+
+  Int_Model GetInterferenceModel(void);
+
   /**
    * Print the events that are saved in this helper in a human readable format.
    */
@@ -177,6 +189,12 @@ private:
    * loss.
    */
   bool IsDestroyedByInterference (Ptr<LoraInterferenceHelper::Event>
+                                     event);
+
+  bool Cochannel (Ptr<LoraInterferenceHelper::Event>
+                                     event);
+
+  bool Aloha (Ptr<LoraInterferenceHelper::Event>
                                      event);
 
    /**
@@ -226,6 +244,8 @@ private:
   Time m_colstart;
   Time m_colend;
   uint8_t m_colsf;
+
+  Int_Model m_intmodel;
 
 private:
 

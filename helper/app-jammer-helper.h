@@ -1,6 +1,7 @@
 /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
 /*
- * Copyright (c) 2017 University of Padova
+ * LoRaWAN Jamming - Copyright (c) 2019 INSA de Rennes
+ * LoRaWAN ns-3 module v 0.1.0 - Copyright (c) 2017 University of Padova
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -15,7 +16,8 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
- * Author: Davide Magrin <magrinda@dei.unipd.it>
+ * LoRaWAN ns-3 module v 0.1.0 author: Davide Magrin <magrinda@dei.unipd.it>
+ * LoRaWAN Jamming author: Ivan Martinez <ivamarti@insa-rennes.fr>
  */
 
 #ifndef APP_JAMMER_HELPER_H
@@ -61,7 +63,25 @@ public:
    */
   void SetPeriod (Time period);
 
+  // Set the packet size
+
   void SetPacketSize (uint16_t size);
+
+  // Set the Duty Cycle
+
+  void SetDC (double dutycycle);
+
+  // Set a bool variable to indicate if there will be an IAT that follows an Exponential distribution
+
+  void SetExp (bool Exp);
+
+  // Set a bool variable to indicate if the jammer will select a random SF on each transmission
+
+  void SetRanSF (bool RanSF);
+
+  // Set the SF
+
+  void SetSpreadingFactor (uint8_t sf);
 
 private:
   Ptr<Application> InstallPriv (Ptr<Node> node) const;
@@ -74,6 +94,13 @@ private:
                  // messages
   uint16_t m_size;
 
+  double m_dutycycle;
+
+  bool m_exp;
+
+  bool m_ransf;
+
+  uint8_t m_sf;
 
 };
 

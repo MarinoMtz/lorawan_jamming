@@ -48,10 +48,10 @@ using namespace ns3;
 NS_LOG_COMPONENT_DEFINE ("LorawanNetworkAttackExample");
 
 // Network settings
-uint32_t nDevices = 1;
+uint32_t nDevices = 0;
 uint32_t nGateways = 1;
-uint32_t nJammers = 0;
-double radius = 7500;
+uint32_t nJammers = 1;
+double radius = 1000;
 
 // Uniform random variable to allocate nodes
 Ptr<UniformRandomVariable> rnd_alloc = CreateObject<UniformRandomVariable> ();
@@ -64,6 +64,7 @@ double JammerType = 3;
 double JammerFrequency = 868.1;
 double JammerTxPower = 25;
 double JammerDutyCycle = 0.5;
+double JammerSF = 7;
 
 
 double noMoreReceivers = 0;
@@ -92,6 +93,12 @@ bool Conf_UP = false;
 bool Net_Ser = false;
 bool Random_SF = true;
 bool All_SF = false;
+bool Exponential = false;
+
+// EDs Spreading Factor selection
+bool Specific_SF = true;
+double ED_SF = 7;
+
 
 // Output control
 bool printEDs = false;
@@ -104,12 +111,20 @@ bool InterArrival = true;
 int NS_buffer = 10;
 double lambda = 0;
 
-//Authenticated preambles
+//Authenticated preambles at the GW level
 bool authpre = false;
 
+// Detection algs at the NetServer level
 bool ewma_training = false;
 double ucl = 15;
 double lcl = 3;
+
+// Interference model, -- set up at the GW level (phy)
+// 1 - Pure_ALOHA
+// 2 - Co-channel rejection Matrix
+
+int Int_Model = 1;
+
 
 vector<uint32_t> pkt_success_ed(nDevices+nJammers,0);
 vector<uint32_t> pkt_drop_ed(nDevices+nJammers,0);
@@ -192,7 +207,7 @@ EDTransmissionCallback (Ptr<Packet const> packet, uint32_t systemId, double freq
 {
   //NS_LOG_INFO ("T " << systemId);
 
- // NS_LOG_INFO ("T " << systemId << " " << packet->GetSize () << " " << frequencyMHz << " " << unsigned(sf) << " " << Simulator::Now ().GetSeconds ());
+  NS_LOG_INFO ("T " << systemId << " " << packet->GetSize () << " " << frequencyMHz << " " << unsigned(sf) << " " << Simulator::Now ().GetSeconds ());
 //  PrintTrace (ET, systemId, 0, packet->GetSize (), frequencyMHz, sf, Seconds(0), Seconds(0), 0, "scratch/Trace.dat");
 	  edsent += 1;
 
@@ -517,10 +532,16 @@ int main (int argc, char *argv[])
   cmd.AddValue ("PayloadJamSize", "Payload size of the Packet - Jamming Node", PayloadJamSize);
   cmd.AddValue ("JammerType", "Attacker Profile", JammerType);
   cmd.AddValue ("JammerFrequency", "Jammer Frequency in MHz (if Type 2: the frequency the device is listening for; if type 3: the frequency the device will transmit)", JammerFrequency);
+  cmd.AddValue ("JammerSF", "Jammer SF, if not random", JammerSF);
   cmd.AddValue ("JammerTxPower", "Jammer TX Poxer in dBm ", JammerTxPower);
   cmd.AddValue ("Random_SF", "Boolean variable to set whether the Jammer select a random SF to transmit", Random_SF);
   cmd.AddValue ("All_SF", "Boolean variable to set whether the Jammer transmits in all SF at the same time (Jammers 3 and 4)", All_SF);
   cmd.AddValue ("JammerDutyCycle", "Jammer duty cycle", JammerDutyCycle);
+  cmd.AddValue ("Exponential", "Exponential inter-arrival time", Exponential);
+
+  // imput variables related to ED
+  cmd.AddValue ("Specific_SF", " boolean variable indicating if EDs use an specific Spreading Factor", Specific_SF);
+  cmd.AddValue ("ED_SF", "ED's Spreading Factor", ED_SF);
 
   // imput variables related to the NS
   cmd.AddValue ("InterArrival", "Boolean variable to set whether or not the Network server computes the IAT", InterArrival);
@@ -531,7 +552,9 @@ int main (int argc, char *argv[])
   // authenticated preamble
   cmd.AddValue ( "authpre", "Authenticated preambles ", authpre);
 
+  // Interference model
 
+  cmd.AddValue ("Int_Model", "1 - ALOHA, 2 - Co-channel", Int_Model);
   cmd.AddValue ("Filename", "Filename", Filename);
   cmd.AddValue ("Path", "Path", Path);
 
@@ -552,7 +575,7 @@ int main (int argc, char *argv[])
 //  LogComponentEnable("LoraPhy", LOG_LEVEL_ALL);
 //  LogComponentEnable("EndDeviceLoraPhy", LOG_LEVEL_ALL);
 //  LogComponentEnable("JammerLoraPhy", LOG_LEVEL_ALL);
-  LogComponentEnable("GatewayLoraPhy", LOG_LEVEL_ALL);
+//  LogComponentEnable("GatewayLoraPhy", LOG_LEVEL_ALL);
 //  LogComponentEnable("SimpleNetworkServer", LOG_LEVEL_ALL);
 //  LogComponentEnable("AppJammer", LOG_LEVEL_ALL);
 //  LogComponentEnable("LoraInterferenceHelper", LOG_LEVEL_ALL);
@@ -748,6 +771,10 @@ int main (int argc, char *argv[])
       NS_ASSERT (loraNetDevice != 0);
       Ptr<GatewayLoraPhy> gwPhy = loraNetDevice->GetPhy ()->GetObject<GatewayLoraPhy> ();
 
+      // Set up the interference model of the simulation
+
+      gwPhy->SetInterferenceModel (Int_Model);
+
       if (authpre){
     	  gwPhy->Authpreamble();
       }
@@ -778,7 +805,14 @@ int main (int argc, char *argv[])
   *  Set up the end device's spreading factor  *
   **********************************************/
 
-  macHelper.SetSpreadingFactorsUp (endDevices, gateways, channel);
+  if (Specific_SF){
+	  macHelper.SetSpreadingFactors(endDevices,ED_SF);
+  }else
+  {
+	  macHelper.SetSpreadingFactorsUp (endDevices, gateways, channel);
+  }
+
+
   //  NS_LOG_DEBUG ("Completed configuration");
 
 
@@ -805,12 +839,15 @@ int main (int argc, char *argv[])
   {
 	  Time appJamStopTime = Seconds (simulationTime);
 	  AppJammerHelper appJamHelper = AppJammerHelper ();
-	  AttackProfile.SetRandomDataRate(Jammers);
 
 	  AttackProfile.ConfigureBand (Jammers, JammerDutyCycle);
 
 	  appJamHelper.SetPacketSize (PayloadJamSize);
    	  appJamHelper.SetPeriod (Seconds (appPeriodJamSeconds));
+   	  appJamHelper.SetDC (JammerDutyCycle);
+   	  appJamHelper.SetExp (Exponential);
+   	  appJamHelper.SetRanSF (Random_SF);
+   	  appJamHelper.SetSpreadingFactor (JammerSF);
 
 	  ApplicationContainer appJamContainer = appJamHelper.Install (Jammers);
 
@@ -827,6 +864,10 @@ int main (int argc, char *argv[])
   PeriodicSenderHelper appHelper = PeriodicSenderHelper ();
   appHelper.SetPeriod (Seconds (appPeriodSeconds));
   appHelper.SetPacketSize (PayloadSize);
+
+  appHelper.SetExp (Exponential);
+  appHelper.SetSpreadingFactor (ED_SF);
+
   ApplicationContainer appContainer = appHelper.Install (endDevices);
 
   appContainer.Start (Seconds (0));

@@ -1,6 +1,7 @@
 /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
 /*
- * Copyright (c) 2017 University of Padova
+ * LoRaWAN Jamming - Copyright (c) 2019 INSA de Rennes
+ * LoRaWAN ns-3 module v 0.1.0 - Copyright (c) 2017 University of Padova
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -15,8 +16,10 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
- * Author: Davide Magrin <magrinda@dei.unipd.it>
+ * LoRaWAN ns-3 module v 0.1.0 author: Davide Magrin <magrinda@dei.unipd.it>
+ * LoRaWAN Jamming author: Ivan Martinez <ivamarti@insa-rennes.fr>
  */
+
 
 #include "ns3/periodic-sender.h"
 #include "ns3/pointer.h"
@@ -24,6 +27,7 @@
 #include "ns3/double.h"
 #include "ns3/string.h"
 #include "ns3/lora-net-device.h"
+#include "ns3/end-device-lora-mac.h"
 
 namespace ns3 {
 
@@ -53,10 +57,14 @@ PeriodicSender::PeriodicSender () :
   m_interval (Seconds (0)),
   m_initialDelay (Seconds (0)),
   m_pktSize (0),
-  m_pktID (0)
+  m_pktID (0),
+  m_ransf(false),
+  m_exp(false),
+  m_sf(7)
 {
 //  NS_LOG_FUNCTION_NOARGS ();
   m_randomdelay = CreateObject<UniformRandomVariable> ();
+  m_exprandomdelay = CreateObject<ExponentialRandomVariable> ();
 }
 
 PeriodicSender::~PeriodicSender ()
@@ -112,12 +120,42 @@ PeriodicSender::SetPktSize (uint16_t size)
 
 }
 
+void
+PeriodicSender::SetSpreadingFactor (uint8_t sf)
+{
+  m_sf = sf;
+}
+
+uint8_t
+PeriodicSender::GetSpreadingFactor (void)
+{
+
+  m_sf = m_mac->GetObject<EndDeviceLoraMac> ()->GetSpreadingFactor();
+  return m_sf;
+}
+
+void
+PeriodicSender::SetExp (bool Exp)
+{
+
+  m_exp = Exp;
+  NS_LOG_DEBUG ("IAT Exp " << m_exp);
+
+}
+
+bool PeriodicSender::GetExp (void)
+{
+
+  return m_exp;
+}
 
 void
 PeriodicSender::SendPacket (void)
 {
   // NS_LOG_FUNCTION (this);
   // Create and send a new packet
+
+  NS_LOG_DEBUG ("Starting up application with a Exp =  " << GetExp() << " and SF = " << unsigned(GetSpreadingFactor()));
 
   uint16_t size = 0;
   uint32_t ID = 0;
@@ -126,7 +164,11 @@ PeriodicSender::SendPacket (void)
   double ppm = 30;
   double error = ppm/1e6;
 
-  NS_LOG_DEBUG ("error " << error << " seconds");
+  double lambda;
+  double mean;
+  bool Exp = GetExp();
+  double dutycycle = 0.01;
+  double interval = GetInterval().GetSeconds();
 
   size = m_pktSize;
   packet = Create<Packet>(size);
@@ -134,12 +176,25 @@ PeriodicSender::SendPacket (void)
   IncreasePacketID();
   ID = GetPacketID();
 
-  // Tag the packet with the Application Packet ID
+
+  Time timeonair;
+  LoraTxParameters params;
+
+  params.sf = GetSpreadingFactor ();
+
+  NS_LOG_DEBUG ("SpreadingFactor " << unsigned(params.sf));
+
+  // Tag the packet with its Spreading Factor and the Application Packet ID
   LoraTag tag;
   packet->RemovePacketTag (tag);
   tag.SetPktID (ID);
-  NS_LOG_DEBUG("Packet ID " << ID);
+  tag.SetSpreadingFactor (params.sf);
   packet->AddPacketTag (tag);
+
+  NS_LOG_DEBUG ("SF at Application level " << unsigned(params.sf));
+  NS_LOG_DEBUG ("Packet ID app" << unsigned(ID));
+  NS_LOG_INFO ("Packet size app " << packet->GetSize());
+
 
   bool sent;
   sent = m_mac->Send (packet);
@@ -149,11 +204,52 @@ PeriodicSender::SendPacket (void)
 	  DecreasePacketID();
   }
 
-  double interval = m_interval.GetSeconds() + m_randomdelay->GetValue (-m_interval.GetSeconds()*error, m_interval.GetSeconds()*error);
-  NS_LOG_DEBUG ("Next event at " << interval);
+  else {
+
+  }
+  // Compute the time on air as a function of the DC and SF
+
+  timeonair = m_phy->GetOnAirTime (packet,params);
+  NS_LOG_DEBUG ("time on air " << timeonair.GetSeconds());
+  NS_LOG_DEBUG ("preamble bits " << params.nPreamble);
+
+
+  // Compute the interval as a function of the duty-cycle
+
+  if (GetInterval().GetSeconds() <= timeonair.GetSeconds()/dutycycle)
+  {
+	  //interval = 100*(1-dutycycle)* timeonair.GetSeconds();
+	  interval = timeonair.GetSeconds()/dutycycle;
+	  SetInterval(Seconds(interval));
+
+	  NS_LOG_DEBUG ("DC " << dutycycle);
+	  NS_LOG_DEBUG ("interval " << interval);
+  }
+
+  NS_LOG_DEBUG ("Interval set as " << GetInterval().GetSeconds());
+
+  if (Exp)
+  {
+	  mean = interval;
+	  interval = m_exprandomdelay->GetValue (mean,mean*100);
+	  m_sendEvent = Simulator::Schedule (Seconds(interval), &PeriodicSender::SendPacket, this);
+	  NS_LOG_DEBUG ("Exponential - Sent a packet at  " << Simulator::Now ().GetSeconds ());
+	  NS_LOG_DEBUG ("Exponential - mean  " << mean);
+	  NS_LOG_DEBUG ("Exponential - interval  " << interval);
+  }
+  	  else
+  	  {
+  		m_sendEvent = Simulator::Schedule (Seconds(interval), &PeriodicSender::SendPacket, this);
+  		NS_LOG_DEBUG ("No Exponential - Sent a packet at " << Simulator::Now ().GetSeconds ());
+	  }
+
+
+
+  //double interval = m_interval.GetSeconds() + m_randomdelay->GetValue (-m_interval.GetSeconds()*error, m_interval.GetSeconds()*error);
+  //NS_LOG_DEBUG ("Next event at " << interval);
 
   // Schedule the next SendPacket event
-  m_sendEvent = Simulator::Schedule (Seconds (interval), &PeriodicSender::SendPacket, this);
+  //m_sendEvent = Simulator::Schedule (Seconds (interval), &PeriodicSender::SendPacket, this);
   //m_sendEvent = Simulator::Schedule (m_interval, &PeriodicSender::SendPacket, this);
 
 }

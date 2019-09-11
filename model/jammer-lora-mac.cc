@@ -1,6 +1,7 @@
 /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
 /*
- * Copyright (c) 2017 University of Padova
+ * LoRaWAN Jamming - Copyright (c) 2019 INSA de Rennes
+ * LoRaWAN ns-3 module v 0.1.0 - Copyright (c) 2017 University of Padova
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -15,7 +16,8 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
- * Author: Davide Magrin <magrinda@dei.unipd.it>
+ * LoRaWAN ns-3 module v 0.1.0 author: Davide Magrin <magrinda@dei.unipd.it>
+ * LoRaWAN Jamming author: Ivan Martinez <ivamarti@insa-rennes.fr>
  */
 
 #include "ns3/jammer-lora-mac.h"
@@ -128,10 +130,20 @@ JammerLoraMac::Send (Ptr<Packet> packet)
   // Pick a channel on which to transmit the packet
   Ptr<LogicalLoraChannel> txChannel = GetChannelForTx ();
 
-  SetRandomDataRate();
-  //SetDataRate(uint8_t(5));
-  uint8_t DR = GetDataRate();
-  uint8_t sf = GetSfFromDataRate (DR);
+
+  // Get the SF from the packet tag that was set at the application level
+
+  NS_LOG_DEBUG ("Packet ID mac" << unsigned(packet->GetUid()));
+  NS_LOG_INFO ("Packet size mac " << packet->GetSize());
+
+  LoraTag tag;
+  packet->RemovePacketTag (tag);
+  uint8_t sf = tag.GetSpreadingFactor ();
+  packet->AddPacketTag (tag);
+
+
+  NS_LOG_INFO ("Spreading Factor-- " << unsigned(sf));
+
   m_phy->GetObject<JammerLoraPhy> ()->SetSpreadingFactor (sf);
 
 
@@ -157,10 +169,9 @@ JammerLoraMac::Send (Ptr<Packet> packet)
 
       // Craft LoraTxParameters object
       LoraTxParameters params;
-      params.sf = GetSfFromDataRate (DR);
+      params.sf = sf;
       params.headerDisabled = m_headerDisabled;
       params.codingRate = m_codingRate;
-      params.bandwidthHz = GetBandwidthFromDataRate (DR);
       params.nPreamble = m_nPreambleSymbols;
       params.crcEnabled = 1;
       params.lowDataRateOptimizationEnabled = 0;
@@ -484,15 +495,6 @@ JammerLoraMac::SetDataRate (uint8_t dataRate)
   NS_LOG_FUNCTION (this << unsigned (dataRate));
 
   m_dataRate = dataRate;
-}
-
-void
-JammerLoraMac::SetRandomDataRate (void)
-{
-  NS_LOG_FUNCTION (this);
-  uint8_t random = std::floor (m_uniformRV->GetValue (0, 5));
-  m_dataRate = random;
-
 }
 
 void

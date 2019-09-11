@@ -1,6 +1,7 @@
 /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
 /*
- * Copyright (c) 2017 University of Padova
+ * LoRaWAN Jamming - Copyright (c) 2019 INSA de Rennes
+ * LoRaWAN ns-3 module v 0.1.0 - Copyright (c) 2017 University of Padova
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -15,7 +16,8 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
- * Author: Davide Magrin <magrinda@dei.unipd.it>
+ * LoRaWAN ns-3 module v 0.1.0 author: Davide Magrin <magrinda@dei.unipd.it>
+ * LoRaWAN Jamming author: Ivan Martinez <ivamarti@insa-rennes.fr>
  */
 
 #include "ns3/attack-helper.h"
@@ -30,57 +32,6 @@ AttackHelper::AttackHelper ()
 {
 }
 
-void
-AttackHelper::SetRandomDataRate (NodeContainer Jammers)
-{
-  NS_LOG_FUNCTION_NOARGS ();
-
-  for (NodeContainer::Iterator j = Jammers.Begin (); j != Jammers.End (); ++j)
-    {
-      Ptr<Node> object = *j;
-      Ptr<NetDevice> netDevice = object->GetDevice (0);
-      Ptr<LoraNetDevice> loraNetDevice = netDevice->GetObject<LoraNetDevice> ();
-      NS_ASSERT (loraNetDevice != 0);
-      Ptr<JammerLoraMac> mac = loraNetDevice->GetMac ()->GetObject<JammerLoraMac> ();
-      NS_ASSERT (mac != 0);
-      mac->SetRandomDataRate ();
-    }
-}
-
-void
-AttackHelper::SetRandomSF (NodeContainer Jammers)
-{
-  NS_LOG_FUNCTION_NOARGS ();
-
-  for (NodeContainer::Iterator j = Jammers.Begin (); j != Jammers.End (); ++j)
-    {
-      Ptr<Node> object = *j;
-      Ptr<NetDevice> netDevice = object->GetDevice (0);
-      Ptr<LoraNetDevice> loraNetDevice = netDevice->GetObject<LoraNetDevice> ();
-      NS_ASSERT (loraNetDevice != 0);
-      Ptr<JammerLoraPhy> phy = loraNetDevice->GetPhy ()->GetObject<JammerLoraPhy> ();
-      NS_ASSERT (phy != 0);
-      phy->SetRandomSF ();
-    }
-}
-
-void
-AttackHelper::SetAllSF (NodeContainer Jammers)
-{
-  NS_LOG_FUNCTION_NOARGS ();
-
-  for (NodeContainer::Iterator j = Jammers.Begin (); j != Jammers.End (); ++j)
-    {
-      Ptr<Node> object = *j;
-      Ptr<NetDevice> netDevice = object->GetDevice (0);
-      Ptr<LoraNetDevice> loraNetDevice = netDevice->GetObject<LoraNetDevice> ();
-      NS_ASSERT (loraNetDevice != 0);
-      Ptr<JammerLoraPhy> phy = loraNetDevice->GetPhy ()->GetObject<JammerLoraPhy> ();
-      NS_ASSERT (phy != 0);
-      phy->SetAllSF ();
-    }
-
-}
 
 void
 AttackHelper::SetType (NodeContainer Jammers, double type)
@@ -230,11 +181,11 @@ AttackHelper::ConfigureBand (NodeContainer Jammers, double DutyCycle)
       	  // Default channels //
       	  //////////////////////
       	  Ptr<LogicalLoraChannel> lc1 = CreateObject<LogicalLoraChannel> (868.1, 0, 5);
-      	  Ptr<LogicalLoraChannel> lc2 = CreateObject<LogicalLoraChannel> (868.3, 0, 5);
-      	  Ptr<LogicalLoraChannel> lc3 = CreateObject<LogicalLoraChannel> (868.5, 0, 5);
+      	  //Ptr<LogicalLoraChannel> lc2 = CreateObject<LogicalLoraChannel> (868.3, 0, 5);
+      	  //Ptr<LogicalLoraChannel> lc3 = CreateObject<LogicalLoraChannel> (868.5, 0, 5);
       	  channelHelper.AddChannel (lc1);
-      	  channelHelper.AddChannel (lc2);
-      	  channelHelper.AddChannel (lc3);
+      	  //channelHelper.AddChannel (lc2);
+      	  //channelHelper.AddChannel (lc3);
       	  mac->SetLogicalLoraChannelHelper (channelHelper);
 
 	  }
