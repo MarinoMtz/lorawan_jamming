@@ -66,6 +66,8 @@ NetworkServerHelper::SetEndDevices (NodeContainer endDevices)
   m_endDevices = endDevices;
 }
 
+
+
 ApplicationContainer
 NetworkServerHelper::Install (Ptr<Node> node)
 {
@@ -131,15 +133,15 @@ NetworkServerHelper::InstallPriv (Ptr<Node> node)
   // Add the end devices
 
   SetNS(app);
-  app->SetParameters(m_gateways.GetN(), m_endDevices.GetN(), m_jammers.GetN(), m_buffer_length, m_ewma, m_target, m_lambda, m_ucl, m_lcl);
+  app->SetParameters(m_gateways.GetN(), m_endDevices.GetN(), m_jammers.GetN(),m_buffer_length);
+  app->AddNodes (m_endDevices);
   app->SetStopTime(m_stop_time);
 
-  if (m_interarrivaltime == true)
-  {
-	  app->SetInterArrival();
-  }
+  app->SetACKParams (m_differentchannel, m_secondreceivewindow,
+		  m_ackfrequency, m_ackdatarate, m_acklength);
 
-  app->AddNodes (m_endDevices);
+  if (m_ewma) {app->SetEWMA(m_ewma, m_target, m_lambda, m_ucl, m_lcl);}
+  if (m_interarrivaltime) {app->SetInterArrival();}
 
   return app;
   }
@@ -151,21 +153,38 @@ NetworkServerHelper::InstallPriv (Ptr<Node> node)
   }
 
   void
-  NetworkServerHelper::SetInterArrival (void)
+  NetworkServerHelper::SetBuffer (int buffer_length)
+  {
+	  m_buffer_length = buffer_length;
+  }
+
+  void
+  NetworkServerHelper::SetInterArrival ()
   {
 	  m_interarrivaltime = true;
   }
 
   void
-  NetworkServerHelper::SetEWMA (int buffer_length, bool ewma, double target, double lambda, double ucl, double lcl)
+  NetworkServerHelper::SetEWMA (bool ewma, double target, double lambda, double ucl, double lcl)
   {
-	  m_buffer_length = buffer_length;
 	  m_target = target;
 	  m_lambda = lambda;
-	  m_ewma = lambda;
+	  m_ewma = ewma;
 	  m_ucl = ucl;
 	  m_lcl = lcl;
   }
+
+  void
+  NetworkServerHelper::SetACKParams (bool differentchannel, bool secondreceivewindow, double ackfrequency, int ackdatarate, int acklength)
+  {
+	  m_differentchannel = differentchannel;
+	  m_secondreceivewindow = secondreceivewindow;
+	  m_ackfrequency = ackfrequency;
+	  m_ackdatarate = ackdatarate;
+	  m_acklength = acklength;
+  }
+
+
 
 
 

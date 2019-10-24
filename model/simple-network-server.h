@@ -72,9 +72,13 @@ public:
 
   void SetStopTime (Time stop);
 
-  void SetParameters (uint32_t GW, uint32_t ED, uint32_t JM, int buffer_length, bool ewma_training, double target, double lambda, double UCL, double LCL);
+  void SetParameters (uint32_t GW, uint32_t ED, uint32_t JM, int buffer_length);
 
-  void SetInterArrival (void);
+  void SetACKParams (bool differentchannel, bool secondreceivewindow, double ackfrequency, int ackdatarate, int acklength);
+
+  void SetEWMA(bool ewma, double target, double lambda, double UCL, double LCL);
+
+  void SetInterArrival ();
 
   /**
    * Inform the SimpleNetworkServer that these nodes are connected to the network
@@ -103,12 +107,12 @@ public:
   /**
    * Send a packet through a gateway to an ED, using the first receive window
    */
-  void SendOnFirstWindow (LoraDeviceAddress address);
+  void SendOnFirstWindow (LoraDeviceAddress address, uint32_t pkt_ID);
 
   /**
    * Send a packet through a gateway to an ED, using the second receive window
    */
-  void SendOnSecondWindow (LoraDeviceAddress address);
+  void SendOnSecondWindow (LoraDeviceAddress address, uint32_t pkt_ID);
 
   /**
    * Check whether a reply to the device with a certain address already exists
@@ -146,20 +150,31 @@ public:
 
   TracedCallback< vector<vector<double> >, vector<vector<double> >,vector<vector<double> >,vector<vector<double> >,vector<vector<double> > > m_arrivaltime;
 
-  TracedCallback< vector<double>, vector<double> > m_ewma;
+  TracedCallback< vector<double>, vector<double> > m_ewma_vector;
+
+  TracedCallback< uint8_t > m_resendpacket;
 
   uint32_t m_devices;
   uint32_t m_gateways;
   uint32_t m_jammers;
 
+  // Variables related to ACK
+
+  bool m_differentchannel;
+  bool m_secondreceivewindow;
+  double m_ackfrequency;
+  int m_ackdatarate;
+  int m_acklength;
+
+
   //variables related to the EWMA
   int m_buffer_length;
-  double m_target;
-  double m_lambda;
+  int m_target;
+  int m_lambda;
 
   //bool variable
 
-  bool m_ewma_learning = false;
+  bool m_ewma = false;
 
   vector<vector<uint32_t> > m_devices_pktid;
 

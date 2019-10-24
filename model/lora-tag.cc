@@ -55,7 +55,9 @@ LoraTag::LoraTag () :
   m_senderid (0),
   m_jammer(0),
   m_pktid(0),
-  m_gwid(0)
+  m_gwid(0),
+  m_ntx(0),
+  m_mean(0)
 {
 }
 
@@ -68,7 +70,7 @@ LoraTag::GetSerializedSize (void) const
 {
   // Each datum about a SF is 1 byte + receivePower (the size of a double) +
   // frequency (the size of a double)
-  return 4 + 3*sizeof(double) + 3*sizeof(uint32_t);
+  return 5 + 4*sizeof(double) + 3*sizeof(uint32_t);
 }
 
 void
@@ -84,6 +86,9 @@ LoraTag::Serialize (TagBuffer i) const
   i.WriteU8 (m_jammer);
   i.WriteU32 (m_pktid);
   i.WriteU32 (m_gwid);
+  i.WriteU8 (m_ntx);
+  i.WriteDouble (m_mean);
+
 
 }
 
@@ -100,6 +105,9 @@ LoraTag::Deserialize (TagBuffer i)
   m_jammer = i.ReadU8 ();
   m_pktid = i.ReadU32 ();
   m_gwid = i.ReadU32 ();
+  m_ntx = i.ReadU8 ();
+  m_mean = i.ReadDouble ();
+
 }
 
 void
@@ -228,5 +236,30 @@ LoraTag::SetGWid (uint32_t gwid)
 {
 	m_gwid = gwid;
 }
+
+uint8_t
+LoraTag::Getntx (void)
+{
+  return m_ntx;
+}
+
+void
+LoraTag::Setntx (uint8_t ntx)
+{
+	m_ntx = ntx;
+}
+
+double
+LoraTag::GetMean (void)
+{
+  return m_mean;
+}
+
+void
+LoraTag::SetMean (double mean)
+{
+	m_mean = mean;
+}
+
 
 } // namespace ns3

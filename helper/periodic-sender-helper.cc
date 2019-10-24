@@ -40,6 +40,7 @@ PeriodicSenderHelper::PeriodicSenderHelper ()
   m_size = 10;
   m_exp = false;
   m_sf = 7;
+  m_simtime = Seconds(0);
 }
 
 PeriodicSenderHelper::~PeriodicSenderHelper ()
@@ -99,8 +100,16 @@ PeriodicSenderHelper::InstallPriv (Ptr<Node> node) const
   app->SetPktSize (m_size);
   app->SetSpreadingFactor(m_sf);
   app->SetExp(m_exp);
+  app->SetSimTime(m_simtime);
 
   return app;
+}
+
+void
+PeriodicSenderHelper::SetSimTime (Time simtime)
+{
+//  NS_LOG_FUNCTION (this << interval);
+	m_simtime = simtime;
 }
 
 void

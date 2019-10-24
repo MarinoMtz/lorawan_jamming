@@ -175,6 +175,8 @@ public:
    */
   uint8_t GetSecondReceiveWindowDataRate (void);
 
+  uint8_t GetAckPacketLength (void);
+
 private:
 
   Ptr<EndDeviceLoraMac> m_mac;   //!< Pointer to the device

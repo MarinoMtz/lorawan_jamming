@@ -27,6 +27,8 @@
 #include "ns3/string.h"
 #include "ns3/lora-net-device.h"
 #include "ns3/lora-tag.h"
+#include <vector>
+#include <numeric>
 
 namespace ns3 {
 
@@ -55,12 +57,15 @@ AppJammer::GetTypeId (void)
 AppJammer::AppJammer () :
   m_interval (Seconds (0)),
   m_initialDelay (Seconds (0)),
+  m_simtime (Seconds(0)),
   m_pktSize (0),
   m_jammer_type (0),
   m_dutycycle (0.01),
   m_ransf(false),
   m_exp(false),
-  m_sf(7)
+  m_sf(7),
+  send_times(0),
+  cumultime(0)
 {
 //  NS_LOG_FUNCTION_NOARGS ();
   m_exprandomdelay = CreateObject<ExponentialRandomVariable> ();
@@ -71,6 +76,20 @@ AppJammer::AppJammer () :
 AppJammer::~AppJammer ()
 {
 //  NS_LOG_FUNCTION_NOARGS ();
+}
+
+void
+AppJammer::SetSimTime (Time simtime)
+{
+//  NS_LOG_FUNCTION (this << interval);
+	m_simtime = simtime;
+}
+
+Time
+AppJammer::GetSimTime (void) const
+{
+ // NS_LOG_FUNCTION (this);
+  return m_simtime;
 }
 
 void
@@ -168,9 +187,6 @@ AppJammer::SendPacket (void)
 // NS_LOG_FUNCTION (this);
 // Create and send a new packet
 
-  uint16_t size = 0;
-  Ptr<Packet> packet;
-
   double ppm = 30;
   double error = ppm/1e6;
 
@@ -180,12 +196,13 @@ AppJammer::SendPacket (void)
   bool RanSF = GetRanSF();
   double dutycycle = GetDC ();
   double jamtime;
+  double simtime = GetSimTime ().GetSeconds();
 
+  Ptr<Packet> packet;
 
-  NS_LOG_DEBUG ("error " << error << " seconds");
+  packet = Create<Packet>(m_pktSize + 8);
 
-  size = m_pktSize;
-  packet = Create<Packet>(size);
+  //NS_LOG_DEBUG ("error " << error << " seconds");
 
   Time timeonair;
   LoraTxParameters params;
@@ -198,48 +215,64 @@ AppJammer::SendPacket (void)
 
   params.sf = GetSpreadingFactor ();
 
-  // Tag the packet with information about its Spreading Factor, the preamble and the sender ID
-
-  LoraTag tag;
-  packet->RemovePacketTag (tag);
-  tag.SetSpreadingFactor (params.sf);
-  tag.SetJammer (uint8_t (1));
-  packet->AddPacketTag (tag);
-
-
-  NS_LOG_DEBUG ("SF " << unsigned(params.sf));
-  NS_LOG_DEBUG ("Packet ID app" << unsigned(packet->GetUid()));
-  NS_LOG_INFO ("Packet size app " << packet->GetSize());
-  NS_LOG_DEBUG ("preamble bits " << params.nPreamble);
-
-
-  m_mac->Send (packet);
-
   // Compute the time on air as a function of the DC and SF
 
   timeonair = m_phy->GetOnAirTime (packet,params);
-  NS_LOG_DEBUG ("time on air " << timeonair.GetSeconds());
-  NS_LOG_DEBUG ("DC " << GetDC ());
+  //NS_LOG_DEBUG ("time on air " << timeonair.GetSeconds());
+  //NS_LOG_DEBUG ("DC " << GetDC ());
+  //NS_LOG_DEBUG ("SimTime " << GetSimTime ().GetSeconds());
 
+  //uint32_t DeviceID = m_mac->GetDevice()->GetNode ()->GetId ();
 
-  if (Exp)
-  {
-	  lambda = dutycycle/timeonair.GetSeconds();
-	  mean = 1/lambda;
-	  //mean=100*(1-dutycycle)* timeonair.GetSeconds();
-	  jamtime = m_exprandomdelay->GetValue (mean,mean*100);
-	  m_sendEvent = Simulator::Schedule (Seconds(jamtime), &AppJammer::SendPacket, this);
-	  NS_LOG_DEBUG ("Exponential - Sent a packet at  " << Simulator::Now ().GetSeconds ());
-	  NS_LOG_DEBUG ("Exponential - mean  " << mean);
-	  NS_LOG_DEBUG ("Exponential - jamtime  " << jamtime);
+  /*
+  if (DeviceID < 5){
+
+	  m_sendEvent = Simulator::Schedule (Seconds(DeviceID*timeonair.GetSeconds()/1.99), &AppJammer::SedPacketMac, this);
+	  NS_LOG_DEBUG ("device id " << unsigned (DeviceID));
+	  NS_LOG_DEBUG ("time " << 0.6*DeviceID*timeonair.GetSeconds());
+
   }
-  	  else
-  	  {
-  		jamtime = timeonair.GetSeconds()*(1/dutycycle-1);
-  		m_sendEvent = Simulator::Schedule (Seconds(jamtime), &AppJammer::SendPacket, this);
-  		NS_LOG_DEBUG ("No Exponential - Sent a packet at " << Simulator::Now ().GetSeconds ());
-	  }
 
+  else{
+
+	  m_sendEvent = Simulator::Schedule (Seconds(2+DeviceID*timeonair.GetSeconds()/1.99), &AppJammer::SedPacketMac, this);
+	  NS_LOG_DEBUG ("device id " << unsigned (DeviceID));
+	  NS_LOG_DEBUG ("time " << 0.6*DeviceID*timeonair.GetSeconds());
+
+  }
+*/
+
+  lambda = dutycycle/timeonair.GetSeconds();
+  mean = timeonair.GetSeconds()/dutycycle;
+  NS_LOG_DEBUG ("Mean - jam " << mean);
+
+
+cumultime = 0;
+
+while (cumultime < simtime)
+{
+	if (Exp)
+   {
+
+  //mean=100*(1-dutycycle)* timeonair.GetSeconds();
+    jamtime = m_exprandomdelay->GetValue (mean,mean*100);
+    //NS_LOG_DEBUG ("Exponential - mean  " << mean);
+    //NS_LOG_DEBUG ("Exponential - jamtime  " << jamtime);
+  }
+    else
+    {
+  	jamtime = timeonair.GetSeconds()*(1/dutycycle-1);
+    }
+
+	send_times.push_back (jamtime);
+	// NS_LOG_DEBUG ("No Exponential - Sent a packet at " << cumultime + jamtime);
+	//NS_LOG_DEBUG ("Packet scheduled at " << cumultime);
+	cumultime = cumultime + jamtime;
+	m_sendEvent = Simulator::Schedule (Seconds(cumultime), &AppJammer::SendPacketMac, this);
+				  //Simulator::Schedule (m_initialDelay, &PeriodicSender::SendPacket, this);
+}
+
+//m_sendEvent = Simulator::Schedule (Seconds(2.5*timeonair.GetSeconds()), &AppJammer::SendPacket, this);
 
   //Simulator::Schedule (duration+Seconds(jamtime)+NanoSeconds(15), &JammerLoraPhy::Send, this, packet, txParams, frequencyMHz, txPowerDbm);
 
@@ -248,6 +281,41 @@ AppJammer::SendPacket (void)
 
   //m_sendEvent = Simulator::Schedule (m_interval, &AppJammer::SendPacket, this);
   //NS_LOG_DEBUG ("Sent a packet of size " << packet->GetSize ());
+	double sum_of_elems = std::accumulate(send_times.begin(), send_times.end(), 0);
+
+	NS_LOG_DEBUG ("Mean - jam " << sum_of_elems/send_times.size());
+	NS_LOG_DEBUG ("Jammer sent " << send_times.size());
+}
+
+
+void
+AppJammer::SendPacketMac ()
+{
+  //NS_LOG_FUNCTION (this);
+
+	uint16_t size = 0;
+	Ptr<Packet> packet;
+
+	size = m_pktSize;
+	packet = Create<Packet>(size);
+
+	Time timeonair;
+	LoraTxParameters params;
+	params.sf = GetSpreadingFactor ();
+
+	LoraTag tag;
+	packet->RemovePacketTag (tag);
+	tag.SetSpreadingFactor (params.sf);
+	tag.SetJammer (uint8_t (1));
+	packet->AddPacketTag (tag);
+
+	//NS_LOG_DEBUG ("Sent a packet (MAC LEVEL) at " << Simulator::Now ().GetSeconds ());
+	m_mac->Send (packet);
+
+
+  //NS_LOG_DEBUG ("Sent counter " << sent);
+
+
 }
 
 void
@@ -265,7 +333,7 @@ AppJammer::StartApplication (void)
     }
 
 	// Schedule the next SendPacket event
-	Simulator::Cancel (m_sendEvent);
+	//Simulator::Cancel (m_sendEvent);
 
 	NS_LOG_DEBUG ("Starting up application with a first event with a " <<
 	              m_initialDelay.GetSeconds () << " seconds delay");

@@ -42,6 +42,7 @@ AppJammerHelper::AppJammerHelper ()
   m_exp = false;
   m_ransf = false;
   m_sf = 7;
+  m_simtime = Seconds(0);
 }
 
 AppJammerHelper::~AppJammerHelper ()
@@ -90,6 +91,7 @@ AppJammerHelper::InstallPriv (Ptr<Node> node) const
   app->SetExp (m_exp);
   app->SetRanSF (m_ransf);
   app->SetSpreadingFactor (m_sf);
+  app->SetSimTime (m_simtime);
 
   if (m_exp)
   {
@@ -105,6 +107,14 @@ AppJammerHelper::InstallPriv (Ptr<Node> node) const
 
   return app;
 }
+
+void
+AppJammerHelper::SetSimTime (Time simtime)
+{
+//  NS_LOG_FUNCTION (this << interval);
+	m_simtime = simtime;
+}
+
 
 void
 AppJammerHelper::SetPeriod (Time period)

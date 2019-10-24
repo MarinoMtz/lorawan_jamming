@@ -142,6 +142,12 @@ public:
   uint32_t GetGWID (void);
   void SetGWid (uint32_t gwid);
 
+  uint8_t Getntx (void);
+  void Setntx (uint8_t ntx);
+  double GetMean (void);
+  void SetMean (double mean);
+
+
 private:
   uint8_t m_sf; //!< The Spreading Factor used by the packet.
   uint8_t m_destroyedBy; //!< The Spreading Factor that destroyed the packet.
@@ -154,6 +160,9 @@ private:
   uint8_t m_jammer;
   uint32_t m_pktid;
   uint32_t m_gwid;
+
+  uint8_t m_ntx;
+  double m_mean;
 
 };
 } // namespace ns3

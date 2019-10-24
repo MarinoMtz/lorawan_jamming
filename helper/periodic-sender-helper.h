@@ -61,6 +61,8 @@ public:
    *
    * \param period The period to set
    */
+  void SetSimTime (Time simtime);
+
   void SetPeriod (Time period);
 
   void SetPacketSize (uint16_t size);
@@ -85,6 +87,8 @@ private:
 
   bool m_exp;
   uint8_t m_sf;
+
+  Time m_simtime;
 
 };
 

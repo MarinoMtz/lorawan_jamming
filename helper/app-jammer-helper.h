@@ -53,6 +53,8 @@ public:
 
   ApplicationContainer Install (Ptr<Node> node) const;
 
+  void SetSimTime (Time simtime);
+
   /**
    * Set the period to be used by the applications created by this helper.
    *
@@ -84,6 +86,7 @@ public:
   void SetSpreadingFactor (uint8_t sf);
 
 private:
+
   Ptr<Application> InstallPriv (Ptr<Node> node) const;
 
   ObjectFactory m_factory;
@@ -101,6 +104,8 @@ private:
   bool m_ransf;
 
   uint8_t m_sf;
+
+  Time m_simtime;
 
 };
 

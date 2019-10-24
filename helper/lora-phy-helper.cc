@@ -94,7 +94,7 @@ LoraPhyHelper::Create (Ptr<Node> node, Ptr<NetDevice> device) const
 
       std::vector<double>::iterator it = frequencies.begin ();
 
-      int receptionPaths = 0;
+      int receptionPaths = 1;
       int maxReceptionPaths = 1;
       while (receptionPaths < maxReceptionPaths)
         {
@@ -114,7 +114,7 @@ LoraPhyHelper::Create (Ptr<Node> node, Ptr<NetDevice> device) const
       // Gateways, and it will not lose time delivering packets and interference
       // information to devices which will never listen.
 
-      // m_channel->Add (phy);
+      m_channel->Add (phy);
     }
 
   if (typeId == "ns3::JammerLoraPhy")

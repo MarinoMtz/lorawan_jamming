@@ -29,7 +29,11 @@
 #include "ns3/random-variable-stream.h"
 #include "ns3/lora-device-address.h"
 #include "ns3/traced-value.h"
+#include <vector>
+#include <algorithm>
+#include <numeric>
 
+using namespace std;
 namespace ns3 {
 
 /**
@@ -72,7 +76,7 @@ public:
    *
    * This function handles opening of the first receive window.
    */
-  void TxFinished (Ptr<const Packet> packet);
+  void TxFinished (Ptr<Packet const> packet);
 
   /**
    * Perform operations needed to open the first receive window.
@@ -93,6 +97,8 @@ public:
    * Perform operations needed to close the second receive window.
    */
   void CloseSecondReceiveWindow (void);
+
+  void CheckAndResend (uint32_t ID, uint8_t ntx, uint32_t size, double mean);
 
   /////////////////////////
   // Getters and Setters //
@@ -142,17 +148,23 @@ public:
   LoraDeviceAddress GetDeviceAddress (void);
 
   /**
-   * Set the Data Rate to be used in the second receive window.
+   * Set the ACK parameters
    *
-   * \param dataRate The Data Rate.
    */
-  void SetSecondReceiveWindowDataRate (uint8_t dataRate);
+
+  void SetACKParams (bool differentchannel, bool secondreceivewindow, double ackfrequency, int ackdatarate, int acklength);
 
   /**
    * Get the Data Rate that will be used in the first receive window.
    *
    * \return The Data Rate
    */
+
+  // Set Retransmissions parameters
+
+  void SetRRX (bool retransmission, int rxnumber);
+
+
   uint8_t GetFirstReceiveWindowDataRate (void);
 
   /**
@@ -163,18 +175,13 @@ public:
   uint8_t GetSecondReceiveWindowDataRate (void);
 
   /**
-   * Set the frequency that will be used for the second receive window.
-   *
-   * \param frequencyMHz the Frequency.
-   */
-  void SetSecondReceiveWindowFrequency (double frequencyMHz);
-
-  /**
    * Get the frequency that is used for the second receive window.
    *
    * @return The frequency, in MHz
    */
   double GetSecondReceiveWindowFrequency (void);
+
+  uint8_t GetAckPacketLength (void);
 
   /**
    * Set a value for the RX1DROffset parameter.
@@ -341,6 +348,13 @@ private:
   Ptr<UniformRandomVariable> m_uniformRV;
 
   /**
+   * An exponential random variable, Check and resend method to set the interval of the next retranmission
+   * the channel list.
+   */
+
+  Ptr<ExponentialRandomVariable> m_exprandomdelay;
+
+  /**
    * The DataRate this device is using to transmit.
    */
   TracedValue<uint8_t> m_dataRate;
@@ -375,6 +389,25 @@ private:
   Time m_receiveDelay2;
 
   /**
+   * Boolean variable to set if ACKs are sent in a different channel
+   */
+
+  bool m_ackdifferentchannel;
+
+  /**
+   * Boolean variable to set if the second rx windows is used
+   */
+
+  bool m_sendsecondreceivewindow;
+
+  /**
+   * ACK length
+   */
+
+  uint8_t m_acklength;
+
+  /**
+   *
    * The duration of the first receive window.
    */
   Time m_FirstReceiveWindowDuration;
@@ -405,19 +438,37 @@ private:
   LoraDeviceAddress m_address;
 
   /**
+   * The frequency to listen on for the first receive window.
+   */
+
+  double m_firstReceiveWindowFrequency;
+
+  /**
    * The frequency to listen on for the second receive window.
    */
   double m_secondReceiveWindowFrequency;
 
   /**
+   * The Data Rate to listen for during the first downlink transmission.
+   */
+  uint8_t m_firstReceiveWindowDataRate;
+
+  /**
    * The Data Rate to listen for during the second downlink transmission.
    */
+
   uint8_t m_secondReceiveWindowDataRate;
 
   /**
    * The RX1DROffset parameter value
    */
   uint8_t m_rx1DrOffset;
+
+  // Retransmission variables
+
+  bool m_retransmission;
+  uint8_t m_rxnumber;
+
 
   /**
    * The last known link margin.
@@ -450,6 +501,12 @@ private:
    * The message type to apply to packets sent with the Send method.
    */
   LoraMacHeader::MType m_mType;
+
+  vector<uint32_t> pktackited;
+  vector<uint8_t> pkttransmissions;
+
+  TracedCallback<Ptr<const Packet>, uint32_t, double, uint8_t> m_resendpacket;
+
 };
 
 } /* namespace ns3 */

@@ -95,6 +95,7 @@ const double EndDeviceLoraPhy::battery_capacity = 2400;
 void
 EndDeviceLoraPhy::SetSpreadingFactor (uint8_t sf)
 {
+  NS_LOG_FUNCTION (this << unsigned (sf));
   m_sf = sf;
 }
 
@@ -231,7 +232,7 @@ EndDeviceLoraPhy::StartReceive (Ptr<Packet> packet, double rxPowerDbm,
 
   NS_LOG_FUNCTION (this << packet << rxPowerDbm << unsigned (sf) << duration <<
                    frequencyMHz);
-  NS_LOG_INFO ("End device receive");
+  NS_LOG_INFO ("End device receive time -- " << Simulator::Now ().GetSeconds ());
 
   // Notify the LoraInterferenceHelper of the impinging signal, and remember
   // the event it creates. This will be used then to correctly handle the end
@@ -566,6 +567,7 @@ EndDeviceLoraPhy::IsOnFrequency (double frequencyMHz)
 void
 EndDeviceLoraPhy::SetFrequency (double frequencyMHz)
 {
+  NS_LOG_FUNCTION (this << frequencyMHz);
   m_frequency = frequencyMHz;
 }
 

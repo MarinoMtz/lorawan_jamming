@@ -59,7 +59,12 @@ SimpleNetworkServer::GetTypeId (void)
 					 "Trace source indicating the UCL and LCL"
 					 "of the learning phase",
 				   MakeTraceSourceAccessor
-					 (&SimpleNetworkServer::m_ewma))
+				   	  (&SimpleNetworkServer::m_ewma_vector))
+	.AddTraceSource ("ResendPacket",
+					 "Trace source indicating a reception of a "
+					 "packet re-transmission",
+					  MakeTraceSourceAccessor
+					  (&SimpleNetworkServer::m_resendpacket))
 					 ;
   return tid;
 }
@@ -71,6 +76,11 @@ SimpleNetworkServer::SimpleNetworkServer():
 		m_jammers(0),
 		m_devices_pktid(0),
 		m_stop_time(0),
+		m_differentchannel(true),
+		m_secondreceivewindow (false),
+		m_ackfrequency (0),
+		m_ackdatarate (0),
+		m_acklength (1),
 		m_interarrivaltime(false),
 		m_devices_interarrivaltime(0),
 		m_last_arrivaltime_known(0),
@@ -79,11 +89,12 @@ SimpleNetworkServer::SimpleNetworkServer():
 		m_buffer_length(10),
 		m_target(0),
 		m_lambda(0.2),
-		m_ewma_learning(false),
+		m_ewma(false),
 		m_ucl(0),
 		m_lcl(0),
 		m_pre_ucl(0),
 		m_pre_lcl(0)
+
 {
   NS_LOG_FUNCTION_NOARGS ();
 }
@@ -107,7 +118,9 @@ SimpleNetworkServer::StopApplication (void)
 
   //Fire the trace sources
   m_packetrx(m_devices_pktreceive,m_devices_pktduplicate,m_gateways_pktreceive,m_gateways_pktduplicate);
-  m_arrivaltime(m_devices_arrivaltime_total,m_devices_interarrivaltime_total,m_devices_ucl,m_devices_lcl,m_devices_ewma_total);
+
+  if (m_interarrivaltime) {
+	  m_arrivaltime(m_devices_arrivaltime_total,m_devices_interarrivaltime_total,m_devices_ucl,m_devices_lcl,m_devices_ewma_total);}
 
 }
 
@@ -121,63 +134,87 @@ SimpleNetworkServer::SetStopTime (Time Stop)
 }
 
 void
-SimpleNetworkServer::SetParameters (uint32_t GW, uint32_t ED, uint32_t JM, int buffer_length, bool ewma_training, double target, double lambda, double UCL, double LCL)
+SimpleNetworkServer::SetParameters (uint32_t GW, uint32_t ED, uint32_t JM, int buffer_length)
+
+{
+	NS_LOG_INFO ("Number of ED " << ED);
+	NS_LOG_INFO ("Number of GW " << GW);
+	NS_LOG_INFO ("Number of GW " << JM);
+
+	m_devices = ED;
+	m_gateways = GW;
+	m_jammers = JM;
+
+	// Initialize the end-device related vectors
+	m_devices_pktreceive.resize(m_devices,0);
+	m_devices_pktduplicate.resize(m_devices,0);
+
+	// Initialize the gateway related vectors
+	m_gateways_pktreceive.resize(m_gateways,0);
+	m_gateways_pktduplicate.resize(m_gateways,0);
+
+	//Set buffer length
+	m_buffer_length = buffer_length;
+
+	// Set vector with packet ID
+	m_devices_pktid.resize(m_devices, vector<uint32_t>(m_buffer_length));
+
+}
+
+void
+SimpleNetworkServer::SetACKParams (bool differentchannel, bool secondreceivewindow, double ackfrequency, int ackdatarate, int acklength)
+{
+	NS_LOG_FUNCTION_NOARGS ();
+	m_differentchannel = differentchannel;
+	m_secondreceivewindow = secondreceivewindow;
+	m_ackfrequency = ackfrequency;
+	m_ackdatarate = ackdatarate;
+	m_acklength = acklength;
+
+}
+
+void
+SimpleNetworkServer:: SetEWMA (bool ewma, double target, double lambda, double UCL, double LCL)
 {
 
-NS_LOG_INFO ("Number of ED " << ED);
-NS_LOG_INFO ("Number of GW " << GW);
-NS_LOG_INFO ("Number of GW " << JM);
+	m_target = target;
+	m_lambda = lambda;
 
-m_devices = ED;
-m_gateways = GW;
-m_jammers = JM;
+	m_ewma = ewma;
 
-m_buffer_length = buffer_length;
-m_target = target;
-m_lambda = lambda;
-
-m_ewma_learning = ewma_training;
-
-m_pre_ucl = UCL;
-m_pre_lcl = LCL;
+	m_pre_ucl = UCL;
+	m_pre_lcl = LCL;
 
 
-// Initialize the end-device related vectors
-m_devices_pktid.resize(m_devices, vector<uint32_t>(m_buffer_length));
-m_devices_pktreceive.resize(m_devices,0);
-m_devices_pktduplicate.resize(m_devices,0);
+	//Initialize the vectors related to EWMA to detect attacks
+	m_devices_ewma.resize(m_devices, vector<double>(m_buffer_length));
 
-// Initialize the gateway related vectors
+	m_ucl.resize(m_devices,0);
+	m_lcl.resize(m_devices,0);
 
-m_gateways_pktreceive.resize(m_gateways,0);
-m_gateways_pktduplicate.resize(m_gateways,0);
-
-//Initialize the vectors related to the inter-arrival time
-
-m_devices_interarrivaltime.resize(m_devices, vector<double>(m_buffer_length));
-m_devices_arrivaltime.resize(m_devices,vector<double>(m_buffer_length));
-m_last_arrivaltime_known.resize(m_devices,double(0));
-
-//Initialize the vectors related to EWMA to detect attacks
-m_devices_ewma.resize(m_devices, vector<double>(m_buffer_length));
-
-m_ucl.resize(m_devices,0);
-m_lcl.resize(m_devices,0);
-
-// ucl, lcl and ewma for tracing purposes
-
-m_devices_ucl.resize(m_devices, vector<double>(0));
-m_devices_lcl.resize(m_devices, vector<double>(0));
-m_devices_ewma_total.resize(m_devices, vector<double>(0));
-m_devices_interarrivaltime_total.resize(m_devices, vector<double>(0));
-m_devices_arrivaltime_total.resize(m_devices, vector<double>(0));
+	// ucl, lcl and ewma for tracing purposes
+	m_devices_ucl.resize(m_devices, vector<double>(0));
+	m_devices_lcl.resize(m_devices, vector<double>(0));
+	m_devices_ewma_total.resize(m_devices, vector<double>(0));
 
 }
 
 void
 SimpleNetworkServer::SetInterArrival (void)
 {
+
 	m_interarrivaltime = true;
+
+	//Initialize the vectors related to the inter-arrival time
+
+	m_devices_interarrivaltime.resize(m_devices, vector<double>(m_buffer_length));
+	m_devices_arrivaltime.resize(m_devices,vector<double>(m_buffer_length));
+
+	m_last_arrivaltime_known.resize(m_devices,double(0));
+
+	m_devices_interarrivaltime_total.resize(m_devices, vector<double>(0));
+	m_devices_arrivaltime_total.resize(m_devices, vector<double>(0));
+
 }
 
 void
@@ -290,6 +327,14 @@ SimpleNetworkServer::Receive (Ptr<NetDevice> device, Ptr<const Packet> packet,
   uint32_t pkt_ID = tag.GetPktID();
   uint32_t gw_ID = tag.GetGWID();
   uint32_t ed_ID = tag.GetSenderID();
+  uint8_t ntx = tag.Getntx();
+
+  //Fire the resend tracesource if the packet was resed
+
+  if (ntx > 1) {
+	  m_resendpacket(ntx);
+  }
+
 
   PacketCounter(pkt_ID,gw_ID,ed_ID);
 
@@ -318,30 +363,62 @@ SimpleNetworkServer::Receive (Ptr<NetDevice> device, Ptr<const Packet> packet,
      replyFrameHdr.SetAck (true);
      reply.frameHeader = replyFrameHdr;
 
-     Ptr<Packet> replyPacket = Create<Packet> (10);
+     // Create the ACK packet
+
+     Ptr<Packet> replyPacket = Create<Packet> (m_acklength);
      reply.packet = replyPacket;
 
      m_deviceStatuses.at (frameHdr.GetAddress ()).SetReply (reply);
-     m_deviceStatuses.at (frameHdr.GetAddress ()).SetFirstReceiveWindowFrequency (tag.GetFrequency ());
+
+     // Decide which Frequency will be used, set the same frequancy of the incomming packet if no
+     // secondary channel is used for ACKs
+     NS_LOG_DEBUG ("Different channel ? " << m_differentchannel);
+
+     if (not (m_differentchannel)){
+    	 m_deviceStatuses.at (frameHdr.GetAddress ()).SetFirstReceiveWindowFrequency (tag.GetFrequency ());
+     }
 
      // Schedule a reply on the first receive window
      Simulator::Schedule (Seconds (1), &SimpleNetworkServer::SendOnFirstWindow,
-                           this, frameHdr.GetAddress ());
+                           this, frameHdr.GetAddress (), pkt_ID);
     }
   return true;
 }
 
 void
-SimpleNetworkServer::SendOnFirstWindow (LoraDeviceAddress address)
+SimpleNetworkServer::SendOnFirstWindow (LoraDeviceAddress address, uint32_t pkt_ID)
 {
   NS_LOG_FUNCTION (this << address);
 
+
   // Decide on which gateway we'll transmit our reply
-  double firstReceiveWindowFrequency = m_deviceStatuses.at
-      (address).GetFirstReceiveWindowFrequency ();
+
+  double firstReceiveWindowFrequency = 0;
+  uint8_t firstReceiveWindowDataRate = 0;
+
+  if (not (m_differentchannel)){
+	  firstReceiveWindowFrequency = m_deviceStatuses.at
+	      (address).GetFirstReceiveWindowFrequency ();
+
+	  firstReceiveWindowDataRate = m_deviceStatuses.at
+	  	      (address).GetFirstReceiveWindowDataRate ();
+  }
+  else
+  {
+	  firstReceiveWindowFrequency = m_ackfrequency;
+	  firstReceiveWindowDataRate = m_ackdatarate;
+  }
+
+  //NS_LOG_DEBUG ("Packet Freq: " << firstReceiveWindowFrequency);
+
+  // Decide on which gateway we'll transmit our reply
 
   Address gatewayForReply = GetGatewayForReply (address,
                                                 firstReceiveWindowFrequency);
+
+  bool a = false;
+
+  //if (gatewayForReply != Address ())
 
   if (gatewayForReply != Address ())
     {
@@ -354,12 +431,20 @@ SimpleNetworkServer::SendOnFirstWindow (LoraDeviceAddress address)
       // Tag the packet so that the Gateway sends it according to the first
       // receive window parameters
       LoraTag replyPacketTag;
-      uint8_t dataRate = m_deviceStatuses.at (address).GetFirstReceiveWindowDataRate ();
-      double frequency = m_deviceStatuses.at (address).GetFirstReceiveWindowFrequency ();
+      //uint8_t dataRate = m_deviceStatuses.at (address).GetFirstReceiveWindowDataRate ();
+      //double frequency = m_deviceStatuses.at (address).GetFirstReceiveWindowFrequency ();
+      double frequency = firstReceiveWindowFrequency;
+      uint8_t dataRate = firstReceiveWindowDataRate;
+
+      NS_LOG_INFO ("---> NET SERVER Using parameters 1st rx: " << frequency << "Hz, DR"
+                                        << unsigned(dataRate));
+
       replyPacketTag.SetDataRate (dataRate);
       replyPacketTag.SetFrequency (frequency);
+      replyPacketTag.SetPktID(pkt_ID);
 
       replyPacket->AddPacketTag (replyPacketTag);
+
 
       NS_LOG_INFO ("Sending reply through the gateway with address " << gatewayForReply);
 
@@ -369,16 +454,20 @@ SimpleNetworkServer::SendOnFirstWindow (LoraDeviceAddress address)
     }
   else
     {
-      NS_LOG_FUNCTION ("No suitable GW found, scheduling second window reply");
 
-      // Schedule a reply on the second receive window
-      Simulator::Schedule (Seconds (1), &SimpleNetworkServer::SendOnSecondWindow, this,
-                           address);
+      if (m_secondreceivewindow)
+      {
+    	  NS_LOG_FUNCTION ("No suitable GW found, scheduling second window reply");
+          // Schedule a reply on the second receive window
+          Simulator::Schedule (Seconds (1), &SimpleNetworkServer::SendOnSecondWindow, this,
+                               address, pkt_ID);
+      }
+
     }
 }
 
 void
-SimpleNetworkServer::SendOnSecondWindow (LoraDeviceAddress address)
+SimpleNetworkServer::SendOnSecondWindow (LoraDeviceAddress address, uint32_t pkt_ID)
 {
   NS_LOG_FUNCTION (this << address);
 
@@ -399,13 +488,18 @@ SimpleNetworkServer::SendOnSecondWindow (LoraDeviceAddress address)
       LoraTag replyPacketTag;
       uint8_t dataRate = m_deviceStatuses.at (address).GetSecondReceiveWindowDataRate ();
       double frequency = m_deviceStatuses.at (address).GetSecondReceiveWindowFrequency ();
+
+      NS_LOG_INFO ("---> NET SERVER Using parameters 2nd rx: " << frequency << "Hz, DR"
+                                        << unsigned(dataRate));
+
       replyPacketTag.SetDataRate (dataRate);
       replyPacketTag.SetFrequency (frequency);
+      replyPacketTag.SetPktID(pkt_ID);
 
       replyPacket->AddPacketTag (replyPacketTag);
 
       NS_LOG_INFO ("Sending reply through the gateway with address " <<
-                   gatewayForReply);
+                   gatewayForReply << " at " << Simulator::Now ().GetSeconds ());
 
       // Inform the gateway of the transmission
       m_gatewayStatuses.find (gatewayForReply)->second.GetNetDevice ()->
@@ -458,9 +552,7 @@ SimpleNetworkServer::PacketCounter(uint32_t pkt_ID, uint32_t gw_ID, uint32_t ed_
 	{
 		m_devices_pktreceive[ed_ID] ++;
 		// Send this information to compute the Inter-Arrival Time
-		if (m_interarrivaltime == true) {
-			  InterArrivalTime (ed_ID, Simulator::Now ().GetSeconds ());
-		}
+		if (m_interarrivaltime == true) { InterArrivalTime (ed_ID, Simulator::Now ().GetSeconds ());}
 	}
 	else
 	{
@@ -532,9 +624,8 @@ SimpleNetworkServer::InterArrivalTime(uint32_t ed_ID, double arrival_time)
 
 	// Compute the EWMA
 
-	EWMA(m_devices_interarrivaltime[ed_ID],ed_ID);
-
-
+	if (m_ewma == true) {
+		EWMA(m_devices_interarrivaltime[ed_ID],ed_ID);}
 }
 
 void

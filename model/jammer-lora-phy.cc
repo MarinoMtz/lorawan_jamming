@@ -140,6 +140,7 @@ JammerLoraPhy::Send (Ptr<Packet> packet, LoraTxParameters txParams,
 {
   NS_LOG_FUNCTION (this << packet << txParams << frequencyMHz << txPowerDbm);
 
+
   NS_LOG_INFO ("Current state: " << m_state);
 
   // We must be either in STANDBY mode to send a packet
@@ -149,7 +150,7 @@ JammerLoraPhy::Send (Ptr<Packet> packet, LoraTxParameters txParams,
   if (m_state != STANDBY)
     {
       NS_LOG_INFO ("Cannot send because device is currently not in STANDBY mode");
-      return;
+      //return;
     }
 
 	NS_LOG_INFO (unsigned(txParams.sf));
@@ -191,6 +192,7 @@ JammerLoraPhy::Send (Ptr<Packet> packet, LoraTxParameters txParams,
 	   NS_LOG_FUNCTION (this << duration);
 
 	  // Call the trace source
+
 	if (m_device)
 	   {
 		m_startSending (packet, m_device->GetNode ()->GetId (), frequencyMHz, txParams.sf);

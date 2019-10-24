@@ -196,6 +196,11 @@ JammerLoraMac::Send (Ptr<Packet> packet)
       // Compute packet duration
       Time duration = m_phy->GetOnAirTime (packet, params);
 
+  	  NS_LOG_INFO ("-------> Duration " << duration.GetSeconds());
+  	  NS_LOG_INFO ("-------> Params " << params);
+  	  NS_LOG_INFO ("-------> Packet size " << unsigned (packet->GetSize()));
+
+
       // Register the sent packet into the DutyCycleHelper
       m_channelHelper.AddEvent (duration, txChannel);
 
@@ -401,7 +406,7 @@ JammerLoraMac::SetMType (LoraMacHeader::MType mType)
 }
 
 void
-JammerLoraMac::TxFinished (Ptr<const Packet> packet)
+JammerLoraMac::TxFinished (Ptr<Packet const> packet)
 {
   NS_LOG_FUNCTION_NOARGS ();
   // Switch the PHY to sleep

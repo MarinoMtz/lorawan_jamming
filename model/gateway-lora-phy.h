@@ -71,6 +71,8 @@ public:
 
   void SetInterferenceModel (uint8_t inter);
 
+  void SetDelta (double delta);
+
   virtual bool IsOnFrequency (double frequencyMHz);
 
   /**

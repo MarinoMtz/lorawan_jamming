@@ -74,13 +74,15 @@ public:
 
   Time m_stop_time = Seconds(0);
 
+  void SetBuffer (int buffer_length);
+
   void  SetInterArrival (void);
 
   bool m_interarrivaltime = false;
 
   // Parameters EWMA
 
-  void  SetEWMA (int buffer_length, bool ewma, double target, double lambda, double ucl, double lcl);
+  void  SetEWMA (bool ewma, double target, double lambda, double ucl, double lcl);
 
   int m_buffer_length = 0;
   double m_target = 0;
@@ -88,6 +90,18 @@ public:
   bool m_ewma = true;
   double m_ucl = 0;
   double m_lcl = 0;
+
+  void SetACKParams (bool differentchannel, bool secondreceivewindow,
+		  double ackfrequency, int ackdatarate, int acklength);
+
+  // Variables related to ACK
+
+  bool m_differentchannel;
+  bool m_secondreceivewindow;
+  double m_ackfrequency;
+  int m_ackdatarate;
+  int m_acklength;
+
 
 private:
   Ptr<Application> InstallPriv (Ptr<Node> node);

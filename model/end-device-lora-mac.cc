@@ -24,8 +24,11 @@
 #include "ns3/end-device-lora-phy.h"
 #include "ns3/simulator.h"
 #include "ns3/log.h"
+#include <vector>
 #include <algorithm>
+#include <numeric>
 
+using namespace std;
 namespace ns3 {
 
 NS_LOG_COMPONENT_DEFINE ("EndDeviceLoraMac");
@@ -61,6 +64,10 @@ EndDeviceLoraMac::GetTypeId (void)
                      MakeTraceSourceAccessor
                        (&EndDeviceLoraMac::m_lastKnownGatewayCount),
                      "ns3::TracedValueCallback::Int")
+	.AddTraceSource ("ResendPacket",
+					 "Trace source indicating a packet re-transmission",
+					MakeTraceSourceAccessor
+						(&EndDeviceLoraMac::m_resendpacket))
     .AddTraceSource ("AggregatedDutyCycle",
                      "Aggregate duty cycle, in fraction form, "
                      "this end device must respect",
@@ -74,28 +81,36 @@ EndDeviceLoraMac::GetTypeId (void)
 EndDeviceLoraMac::EndDeviceLoraMac () :
   m_dataRate (0),
   m_txPower (14),
-  m_codingRate (1),                         // LoraWAN default
-  m_headerDisabled (0),                     // LoraWAN default
-  m_receiveDelay1 (Seconds (1)),            // LoraWAN default
-  m_receiveDelay2 (Seconds (2)),            //WAN default
-  m_FirstReceiveWindowDuration (Seconds (0.2)),  // This will be set as the time necessary to detect a preamble at the corresponding sf
-  m_SecondReceiveWindowDuration (Seconds (0.2)),  // This will be set as the time necessary to detect a preamble at the corresponding sf
-  m_closeWindow (EventId ()),               // Initialize as the default eventId
-  m_secondReceiveWindow (EventId ()),       // Initialize as the default eventId
-  m_secondReceiveWindowDataRate (0),        // LoraWAN default
-  m_secondReceiveWindowFrequency (868.1),
-  m_rx1DrOffset (0),                         // LoraWAN default
+  m_codingRate (1),                         	// LoraWAN default
+  m_headerDisabled (0),                     	// LoraWAN default
+  m_receiveDelay1 (Seconds (1)),            	// LoraWAN default
+  m_receiveDelay2 (Seconds (2)),            	// LoraWAN default
+  m_ackdifferentchannel(false),					// Bool to set if ACKs are sent in a diffent channel
+  m_sendsecondreceivewindow(false),					// Bool to set if the second receive window is used
+  m_FirstReceiveWindowDuration (Seconds (0.2)), // This will be set as the time necessary to detect a preamble at the corresponding sf
+  m_SecondReceiveWindowDuration (Seconds (0.2)),// This will be set as the time necessary to detect a preamble at the corresponding sf
+  m_firstReceiveWindowDataRate (0), 			// First rx window DR if it is sent on the same channel as the frame
+  m_secondReceiveWindowDataRate (0),			// Second rx window DR
+  m_acklength(1),								// ACK length
+  m_closeWindow (EventId ()),               	// Initialize as the default eventId
+  m_secondReceiveWindow (EventId ()),       	// Initialize as the default eventId
+  m_firstReceiveWindowFrequency (868.1),		// Frequency of the second receive window
+  m_secondReceiveWindowFrequency (868.1),		// Frequency of the fisrt receive window
+  m_rx1DrOffset (0),                         	// LoraWAN default
   m_lastKnownLinkMargin (0),
   m_lastKnownGatewayCount (0),
   m_aggregatedDutyCycle (1),
   m_mType (LoraMacHeader::UNCONFIRMED_DATA_DOWN),
-  m_sf (7)
+  m_sf (7),
+  m_retransmission(false),
+  m_rxnumber(1)
 {
   NS_LOG_FUNCTION (this);
 
   // Initialize the random variable we'll use to decide which channel to
   // transmit on.
   m_uniformRV = CreateObject<UniformRandomVariable> ();
+  m_exprandomdelay = CreateObject<ExponentialRandomVariable> ();
 
   // Void the two receiveWindow events
   m_closeWindow = EventId ();
@@ -127,15 +142,15 @@ EndDeviceLoraMac::Send (Ptr<Packet> packet)
   // Check that there are no scheduled receive windows.
   // We cannot send a packet if we are in the process of transmitting or waiting
   // for reception.
-  //if (!m_closeWindow.IsExpired () || !m_secondReceiveWindow.IsExpired ())
-  //  {
-  //    NS_LOG_WARN ("Attempting to send when there are receive windows" <<
-  //                 " Transmission canceled");
+  if (!m_closeWindow.IsExpired () || !m_secondReceiveWindow.IsExpired ())
+    {
+      NS_LOG_WARN ("Attempting to send when there are receive windows" <<
+                   " Transmission canceled");
       //return;
 
-	//  sent = false;
-	//  return sent;
-  //  }
+	  sent = false;
+	  return sent;
+    }
 
   // Check that payload length is below the allowed maximum
   if (packet->GetSize () > m_maxAppPayloadForDataRate.at (m_dataRate))
@@ -163,6 +178,18 @@ EndDeviceLoraMac::Send (Ptr<Packet> packet)
 
   if (txChannel) // Proceed with transmission
     {
+
+      ///////////////////////////////////////
+      // Get information about this packet //
+      ///////////////////////////////////////
+	  uint8_t ntx;
+
+	  LoraTag tag;
+	  packet->RemovePacketTag (tag);
+	  double ID = tag.GetPktID();
+	  ntx = tag.Getntx();
+	  packet->AddPacketTag (tag);
+
       /////////////////////////////////////////////////////////
       // Add headers, prepare TX parameters and send the packet
       /////////////////////////////////////////////////////////
@@ -195,7 +222,7 @@ EndDeviceLoraMac::Send (Ptr<Packet> packet)
       // Compute the duration of the receive windows as the time necessary to detect a preamble
 
       m_FirstReceiveWindowDuration = m_phy->GetReceiveWindowTime (params,1);
-      m_SecondReceiveWindowDuration = m_phy->GetReceiveWindowTime (params,2);
+      m_SecondReceiveWindowDuration = m_phy->GetReceiveWindowTime (params,1);
 
       // Wake up PHY layer and directly send the packet
 
@@ -203,6 +230,9 @@ EndDeviceLoraMac::Send (Ptr<Packet> packet)
       //NS_ASSERT (m_txPower <= m_channelHelper.GetTxPowerForChannel (txChannel));
       m_phy->GetObject<EndDeviceLoraPhy> ()->SwitchToStandby ();
       m_phy->Send (packet, params, txChannel->GetFrequency (), m_txPower);
+
+      //NS_LOG_INFO ("MAC ---> Sending on Freq: " << txChannel->GetFrequency () << " MHz");
+
 
       //////////////////////////////////////////////
       // Register packet transmission for duty cycle
@@ -219,20 +249,46 @@ EndDeviceLoraMac::Send (Ptr<Packet> packet)
       //////////////////////////////
 
       // Switch the PHY to the channel so that it will listen here for downlink
-      m_phy->GetObject<EndDeviceLoraPhy> ()->SetFrequency (txChannel->GetFrequency ());
+      // m_phy->GetObject<EndDeviceLoraPhy> ()->SetFrequency (txChannel->GetFrequency ());
 
       // Instruct the PHY on the right Spreading Factor to listen for during the window
-      uint8_t replyDataRate = GetFirstReceiveWindowDataRate ();
-      NS_LOG_DEBUG ("m_dataRate: " << unsigned (m_dataRate) <<
-                    ", m_rx1DrOffset: " << unsigned (m_rx1DrOffset) <<
-                    ", replyDataRate: " << unsigned (replyDataRate));
 
-      m_phy->GetObject<EndDeviceLoraPhy> ()->SetSpreadingFactor
-        (GetSfFromDataRate (replyDataRate));
+      // uint8_t replyDataRate = GetFirstReceiveWindowDataRate ();
+
+      //NS_LOG_DEBUG ("m_dataRate: " << unsigned (m_dataRate) <<
+      //              ", m_rx1DrOffset: " << unsigned (m_rx1DrOffset) <<
+      //              ", replyDataRate: " << unsigned (replyDataRate));
+
+      //m_phy->GetObject<EndDeviceLoraPhy> ()->SetSpreadingFactor
+        //(GetSfFromDataRate (replyDataRate));
+
+      //NS_LOG_INFO ("--->> replyDataRate " << unsigned (replyDataRate));
 
 	  sent = true;
+	  if (ntx > 1) {m_resendpacket (packet,m_device->GetNode ()->GetId (),
+			  txChannel->GetFrequency (),params.sf);}
+
+      /////////////////////////////////////
+      // Update the transmissions vector //
+      /////////////////////////////////////
+
+	  NS_LOG_INFO ("---->> Sending Pkt ID " << ID << " Ntx " << "" << unsigned(ntx));
+
+
+	  if (ntx == 1) {
+		  pkttransmissions.push_back(1);
+		  pktackited.push_back(0);
+		  NS_LOG_INFO ("---->> Vector tx size " << pkttransmissions.size());
+	  }
+	  else {
+		  pkttransmissions[ID-1] = ntx;
+	  }
+
+
+
 	  return sent;
     }
+
   else // Transmission cannot be performed
     {
       m_cannotSendBecauseDutyCycle (packet);
@@ -279,6 +335,17 @@ EndDeviceLoraMac::Receive (Ptr<Packet const> packet)
           // TODO Pass the packet up to the NetDevice
           // Call the trace source
           m_receivedPacket (packet);
+
+    	  LoraTag tag;
+    	  packetCopy->RemovePacketTag (tag);
+    	  double ID = tag.GetPktID();
+    	  packetCopy->AddPacketTag (tag);
+
+          // Update that the packet is ackited //
+		  pktackited[ID-1] = 1;
+
+		  NS_LOG_INFO ("---->> Packet ackited ID " << ID);
+		  NS_LOG_INFO ("---->> Packet length " << unsigned (packet->GetSize()));
         }
       else
         {
@@ -441,21 +508,109 @@ EndDeviceLoraMac::SetMType (LoraMacHeader::MType mType)
 }
 
 void
-EndDeviceLoraMac::TxFinished (Ptr<const Packet> packet)
+EndDeviceLoraMac::TxFinished (Ptr<Packet const> packet)
 {
-  NS_LOG_FUNCTION_NOARGS ();
+  //NS_LOG_FUNCTION_NOARGS ();
 
-  // Schedule the opening of the first receive window
-  //Simulator::Schedule (m_receiveDelay1,
-  //                     &EndDeviceLoraMac::OpenFirstReceiveWindow, this);
+  //Schedule the opening of the first receive window
+  Simulator::Schedule (m_receiveDelay1,
+                       &EndDeviceLoraMac::OpenFirstReceiveWindow, this);
 
   // Schedule the opening of the second receive window
-  //m_secondReceiveWindow = Simulator::Schedule (m_receiveDelay2,
-  //                                             &EndDeviceLoraMac::OpenSecondReceiveWindow,
-  //                                             this);
+
+  NS_LOG_INFO ("----> OPEN SECOND " << m_sendsecondreceivewindow);
+
+  if (m_sendsecondreceivewindow)
+  {
+	  m_secondReceiveWindow = Simulator::Schedule (m_receiveDelay2,
+	                                               &EndDeviceLoraMac::OpenSecondReceiveWindow,
+	                                               this);
+  }
+
+  //Schedule the Check and resend function
+
+  // Craft LoraTxParameters object
+  LoraTxParameters paramsack;
+  paramsack.sf = GetSfFromDataRate (m_firstReceiveWindowDataRate);
+  paramsack.headerDisabled = m_headerDisabled;
+  paramsack.codingRate = m_codingRate;
+  paramsack.bandwidthHz = GetBandwidthFromDataRate (m_firstReceiveWindowDataRate);
+  paramsack.nPreamble = m_nPreambleSymbols;
+  paramsack.crcEnabled = 1;
+  paramsack.lowDataRateOptimizationEnabled = 0;
+
+  //Compute the length of the ACK shoud have + 8 (preamble) + 1 (MAC Header)
+
+  Ptr<Packet> replyPacket = Create<Packet> (m_acklength+9);
+
+  // Compute the time on air of the ACK to trigger the Check ackited function
+
+  Time ackduration = m_phy->GetOnAirTime (replyPacket, paramsack);
+
+  // Get the Packet information
+
+  Ptr<Packet> PacketCopy = packet->Copy ();
+
+  LoraTag tag;
+  PacketCopy -> RemovePacketTag (tag);
+  uint32_t ID = tag.GetPktID();
+  uint8_t ntx = tag.Getntx();
+  double mean = tag.GetMean();
+  uint32_t size = PacketCopy->GetSize();
+
+
+  // Schedule the Check and Resend function if according to the variable
+
+  if (m_retransmission)
+  {
+	  Simulator::Schedule (m_receiveDelay2 + ackduration , &EndDeviceLoraMac::CheckAndResend, this, ID, ntx, size, mean);
+  }
+
 
   // Switch the PHY to sleep
   m_phy->GetObject<EndDeviceLoraPhy> ()->SwitchToSleep ();
+}
+
+void
+EndDeviceLoraMac::CheckAndResend (uint32_t ID, uint8_t ntx, uint32_t size, double mean)
+{
+
+	NS_LOG_INFO (" Inside the function to check and resend ");
+	NS_LOG_INFO ("---->> Packet to be checked info " << ID <<" Nb transmissions "<< unsigned (ntx) << " size " << size);
+
+	NS_LOG_INFO ("---->> Packet Ackited ? " << pktackited[ID-1]);
+
+	uint32_t pktack = pktackited[ID-1];
+
+
+	if (pktack == 0 && ntx < m_rxnumber)
+	{
+
+		// Get the interval of time of the next retransmission based on the mean of the main send function at the application level.
+		double nexttxinterval = m_exprandomdelay->GetValue (mean,mean*10);
+		//double nexttxinterval = 15;
+
+	    Ptr<Packet> ResendPacket = Create<Packet> (size-9);
+	    LoraTag tag;
+	    ResendPacket -> RemovePacketTag (tag);
+	    tag.SetPktID(ID);
+	    tag.Setntx(ntx+1);
+	    tag.SetMean(mean);
+	    ResendPacket -> AddPacketTag(tag);
+
+	    // Schedule the retransmission of the packet since it hasn't been ackited nor resent n times
+
+	    Simulator::Schedule (Seconds(nexttxinterval), &EndDeviceLoraMac::Send, this, ResendPacket);
+
+	    // Update the retransmissions vector
+
+	    NS_LOG_INFO ("---->> Resending " << ID << " Ntx " << unsigned (ntx+1));
+
+	    pkttransmissions[ID-1] ++;
+	}
+
+	  //pktackited.push_back(0);
+
 }
 
 void
@@ -463,13 +618,22 @@ EndDeviceLoraMac::OpenFirstReceiveWindow (void)
 {
   NS_LOG_FUNCTION_NOARGS ();
 
-  // Set Phy in Standby mode
-
   if (m_phy->GetObject<EndDeviceLoraPhy> ()->GetState () == EndDeviceLoraPhy::DEAD)
     {
       NS_LOG_INFO ("Won't open second receive window because the end-device is DEAD");
       return;
     }
+
+  // Switch the PHY to the channel so that it will listen here for downlink
+  m_phy->GetObject<EndDeviceLoraPhy> ()->SetFrequency (m_firstReceiveWindowFrequency);
+
+  uint8_t replyDataRate = GetFirstReceiveWindowDataRate ();
+
+  // Set the SF to listen the ACK
+  m_phy->GetObject<EndDeviceLoraPhy> ()->SetSpreadingFactor (GetSfFromDataRate (replyDataRate));
+
+
+  // Set Phy in Standby mode
 
   m_phy->GetObject<EndDeviceLoraPhy> ()->SwitchToStandby ();
 
@@ -477,6 +641,9 @@ EndDeviceLoraMac::OpenFirstReceiveWindow (void)
   // device's radio transceiver to effectively detect a downlink preamble"
   // (LoraWAN specification)
 
+
+  NS_LOG_INFO ("END - DEVICE Using parameters 1st rx: " << m_firstReceiveWindowFrequency << "Hz, DR"
+                                    << unsigned(replyDataRate));
 
   m_closeWindow = Simulator::Schedule (m_FirstReceiveWindowDuration,
                                        &EndDeviceLoraMac::CloseFirstReceiveWindow, this);
@@ -498,8 +665,8 @@ EndDeviceLoraMac::CloseFirstReceiveWindow (void)
     case EndDeviceLoraPhy::TX:
     case EndDeviceLoraPhy::SLEEP:
     case EndDeviceLoraPhy::DEAD:
-      NS_ABORT_MSG ("PHY was in TX or SLEEP mode or DEAD when attempting to " <<
-                    "close a receive window");
+      //NS_ABORT_MSG ("PHY was in TX or SLEEP mode or DEAD when attempting to "
+    		  //<< "close a receive window");
       break;
     case EndDeviceLoraPhy::RX:
       // PHY is receiving: let it finish. The Receive method will switch it back to SLEEP.
@@ -520,6 +687,8 @@ EndDeviceLoraMac::OpenSecondReceiveWindow (void)
   // Check for receiver status: if it's discharged, don't open this
   // window at all.
 
+  NS_LOG_INFO ("Open Second window at "<< Simulator::Now ().GetSeconds ());
+
   if (m_phy->GetObject<EndDeviceLoraPhy> ()->IsDead ()) {
 	  NS_LOG_INFO ("Won't open second receive window since device is DEAD");
 	  return;
@@ -534,17 +703,20 @@ EndDeviceLoraMac::OpenSecondReceiveWindow (void)
       return;
     }
 
+
   // Set Phy in Standby mode
   m_phy->GetObject<EndDeviceLoraPhy> ()->SwitchToStandby ();
 
+  uint8_t replyDataRate = GetSecondReceiveWindowDataRate ();
+
   // Switch to appropriate channel and data rate
-  NS_LOG_INFO ("Using parameters: " << m_secondReceiveWindowFrequency << "Hz, DR"
-                                    << unsigned(m_secondReceiveWindowDataRate));
+  NS_LOG_INFO ("END - DEVICE Using parameters 2nd rx: " << m_secondReceiveWindowFrequency << "Hz, DR"
+                                    << unsigned(replyDataRate));
 
   m_phy->GetObject<EndDeviceLoraPhy> ()->SetFrequency
     (m_secondReceiveWindowFrequency);
-  m_phy->GetObject<EndDeviceLoraPhy> ()->SetSpreadingFactor (GetSfFromDataRate
-                                                               (m_secondReceiveWindowDataRate));
+  m_phy->GetObject<EndDeviceLoraPhy> ()->SetSpreadingFactor
+	(GetSfFromDataRate(replyDataRate));
 
   // Schedule return to sleep after "at least the time required by the end
   // device's radio transceiver to effectively detect a downlink preamble"
@@ -563,6 +735,9 @@ EndDeviceLoraMac::CloseSecondReceiveWindow (void)
 	  return;
   }
 
+  NS_LOG_INFO ("Closing Second RX Window at "<<Simulator::Now ().GetSeconds ());
+
+
   Ptr<EndDeviceLoraPhy> phy = m_phy->GetObject<EndDeviceLoraPhy> ();
 
   // NS_ASSERT (phy->m_state != EndDeviceLoraPhy::TX &&
@@ -574,19 +749,20 @@ EndDeviceLoraMac::CloseSecondReceiveWindow (void)
   switch (phy->GetState ())
     {
     case EndDeviceLoraPhy::TX:
-      break;
     case EndDeviceLoraPhy::SLEEP:
+    case EndDeviceLoraPhy::DEAD:
+      //NS_ABORT_MSG ("PHY was in TX or SLEEP mode or DEAD when attempting to "
+      //	  << "close a receive window");
       break;
     case EndDeviceLoraPhy::RX:
-      // PHY is receiving: let it finish
-      break;
-    case EndDeviceLoraPhy::DEAD:
+      // PHY is receiving: let it finish. The Receive method will switch it back to SLEEP.
       break;
     case EndDeviceLoraPhy::STANDBY:
-      // Turn PHY layer to sleep
+      // Turn PHY layer to SLEEP
       phy->SwitchToSleep ();
       break;
     }
+
 }
 
 Ptr<LogicalLoraChannel>
@@ -607,24 +783,27 @@ EndDeviceLoraMac::GetChannelForTx (void)
       Ptr<LogicalLoraChannel> logicalChannel = *it;
       double frequency = logicalChannel->GetFrequency ();
 
-      NS_LOG_DEBUG ("Frequency of the current channel: " << frequency);
+      //NS_LOG_DEBUG ("Frequency of the current channel: " << frequency);
 
       // Verify that we can send the packet
-      //Time waitingTime = m_channelHelper.GetWaitingTime (logicalChannel);
+      Time waitingTime = m_channelHelper.GetWaitingTime (logicalChannel);
 
       //NS_LOG_DEBUG ("Waiting time for current channel = " <<
                     //waitingTime.GetSeconds ());
 
+      if (logicalChannel->IsEnabledForUplink()){
+
       // Send immediately if we can
-      //if (waitingTime == Seconds (0))
-        //{
+      if (waitingTime == Seconds (0))
+        {
           return *it;
-        //}
+        }
       //else
-        //{
-          //NS_LOG_DEBUG ("Packet cannot be immediately transmitted on " <<
-        //                "the current channel because of duty cycle limitations");
-        //}
+        {
+          NS_LOG_DEBUG ("Packet cannot be immediately transmitted on " <<
+                        "the current channel because of duty cycle limitations");
+        }
+      }
     }
   return 0; // In this case, no suitable channel was found
 }
@@ -869,7 +1048,7 @@ EndDeviceLoraMac::OnRxParamSetupReq (uint8_t rx1DrOffset, uint8_t rx2DataRate, d
   // For now, don't check for validity of frequency
   if (offsetOk && dataRateOk)
     {
-      m_secondReceiveWindowDataRate = rx2DataRate;
+      //m_secondReceiveWindowDataRate = rx2DataRate;
       m_rx1DrOffset = rx1DrOffset;
       m_secondReceiveWindowFrequency = frequency;
     }
@@ -949,31 +1128,70 @@ EndDeviceLoraMac::AddSubBand (double startFrequency, double endFrequency, double
 uint8_t
 EndDeviceLoraMac::GetFirstReceiveWindowDataRate (void)
 {
-  return m_replyDataRateMatrix.at (m_dataRate).at (m_rx1DrOffset);
-}
 
-void
-EndDeviceLoraMac::SetSecondReceiveWindowDataRate (uint8_t dataRate)
-{
-  m_secondReceiveWindowDataRate = dataRate;
+  if (not m_ackdifferentchannel){
+	  m_firstReceiveWindowDataRate = m_dataRate;
+  }
+
+  //NS_LOG_INFO ("First receive window DR - "<< unsigned (m_firstReceiveWindowDataRate));
+  return m_replyDataRateMatrix.at (m_firstReceiveWindowDataRate).at (m_rx1DrOffset);
 }
 
 uint8_t
 EndDeviceLoraMac::GetSecondReceiveWindowDataRate (void)
 {
-  return m_secondReceiveWindowDataRate;
+
+  if (not m_ackdifferentchannel){
+	  m_secondReceiveWindowDataRate = m_dataRate;
+  }
+
+  //NS_LOG_INFO ("Second receive window DR - "<< unsigned (m_secondReceiveWindowDataRate));
+  return m_replyDataRateMatrix.at (m_secondReceiveWindowDataRate).at (m_rx1DrOffset);
+
 }
 
 void
-EndDeviceLoraMac::SetSecondReceiveWindowFrequency (double frequencyMHz)
+EndDeviceLoraMac::SetACKParams (bool differentchannel, bool secondreceivewindow, double ackfrequency, int ackdatarate, int acklength)
 {
-  m_secondReceiveWindowFrequency = frequencyMHz;
+
+  NS_LOG_FUNCTION (this << secondreceivewindow);
+
+  if (differentchannel)
+  {
+	  m_firstReceiveWindowFrequency = ackfrequency;
+	  m_secondReceiveWindowFrequency = ackfrequency;
+
+	  m_secondReceiveWindowDataRate = ackdatarate;
+	  m_firstReceiveWindowDataRate = ackdatarate;
+  }
+
+  m_sendsecondreceivewindow = secondreceivewindow;
+  m_ackdifferentchannel = differentchannel;
+
+  m_acklength = acklength;
+
+}
+
+void
+EndDeviceLoraMac::SetRRX (bool retransmission, int rxnumber)
+{
+	NS_LOG_FUNCTION (this << retransmission << " No " << rxnumber);
+	m_retransmission = retransmission;
+	m_rxnumber = rxnumber;
+
 }
 
 double
 EndDeviceLoraMac::GetSecondReceiveWindowFrequency (void)
 {
   return m_secondReceiveWindowFrequency;
+
+}
+
+uint8_t
+EndDeviceLoraMac::GetAckPacketLength (void)
+{
+	return m_acklength;
 }
 
 double

@@ -28,6 +28,10 @@
 #include "ns3/lora-mac.h"
 #include "ns3/jammer-lora-mac.h"
 #include "ns3/attribute.h"
+#include <vector>
+#include <numeric>
+
+using namespace std;
 
 namespace ns3 {
 
@@ -39,6 +43,12 @@ public:
   ~AppJammer ();
 
   static TypeId GetTypeId (void);
+
+
+  void SetSimTime (Time simtime);
+
+
+  Time GetSimTime (void) const;
 
   /**
    * Set the sending interval
@@ -56,21 +66,6 @@ public:
    * Set the initial delay of this application
    */
   void SetInitialDelay (Time delay);
-
-  /**
-   * Send a packet using the LoraNetDevice's Send method
-   */
-  void SendPacket (void);
-
-  /**
-   * Start the application by scheduling the first SendPacket event
-   */
-  void StartApplication (void);
-
-  /**
-   * Stop the application
-   */
-  void StopApplication (void);
 
   /**
    * Set packet size
@@ -110,8 +105,27 @@ public:
   uint8_t GetSpreadingFactor ();
 
 
+  /**
+   * Send a packet using the LoraNetDevice's Send method
+   */
+  void SendPacket (void);
+
+  void SendPacketMac ();
+
+  /**
+   * Start the application by scheduling the first SendPacket event
+   */
+  void StartApplication (void);
+
+  /**
+   * Stop the application
+   */
+  void StopApplication (void);
+
 
 private:
+
+  Time m_simtime;
 
   /**
    * The interval between to consecutive send events
@@ -164,6 +178,10 @@ private:
 
   Ptr<UniformRandomVariable> m_randomsf;
   Ptr<ExponentialRandomVariable> m_exprandomdelay;
+
+  vector<double> send_times;
+  double cumultime;
+  double sent = 0;
 
 
 };

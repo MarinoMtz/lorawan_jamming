@@ -28,6 +28,7 @@
 #include "ns3/lora-mac.h"
 #include "ns3/attribute.h"
 
+using namespace std;
 namespace ns3 {
 
 class PeriodicSender : public Application {
@@ -42,6 +43,10 @@ public:
    * Set the sending interval
    * \param interval the interval between two packet sendings
    */
+
+  void SetSimTime (Time simtime);
+
+  Time GetSimTime (void) const;
 
   void IncreasePacketID (void);
 
@@ -66,6 +71,9 @@ public:
    * Send a packet using the LoraNetDevice's Send method
    */
   void SendPacket (void);
+
+  void SendPacketMac ();
+
 
   /**
    * Start the application by scheduling the first SendPacket event
@@ -128,8 +136,21 @@ private:
   bool m_ransf;
   uint8_t m_sf;
 
+  double m_mean;
+
   Ptr<UniformRandomVariable> m_randomdelay;
   Ptr<ExponentialRandomVariable> m_exprandomdelay;
+  vector<double> send_times;
+
+  /**
+   * Duty Cycle
+   */
+
+  double m_dutycycle;
+  Time m_simtime;
+  double cumultime;
+
+  vector<uint32_t> sendtries;
 
 };
 

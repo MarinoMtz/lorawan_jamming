@@ -130,19 +130,19 @@ LoraMacHelper::Create (Ptr<Node> node, Ptr<NetDevice> device) const
 void
 LoraMacHelper::ConfigureForEuRegion (Ptr<EndDeviceLoraMac> edMac) const
 {
-  NS_LOG_FUNCTION_NOARGS ();
+	NS_LOG_FUNCTION_NOARGS ();
 
-  ApplyCommonEuConfigurations (edMac);
+	ApplyCommonEuConfigurations (edMac);
 
-  /////////////////////////////////////////////////////
-  // TxPower -> Transmission power in dBm conversion //
-  /////////////////////////////////////////////////////
-  edMac->SetTxDbmForTxPower (std::vector<double> {16, 14, 12, 10, 8, 6, 4, 2});
+	/////////////////////////////////////////////////////
+	// TxPower -> Transmission power in dBm conversion //
+	/////////////////////////////////////////////////////
+	edMac->SetTxDbmForTxPower (std::vector<double> {16, 14, 12, 10, 8, 6, 4, 2});
 
-  ////////////////////////////////////////////////////////////
-  // Matrix to know which DataRate the GW will respond with //
-  ////////////////////////////////////////////////////////////
-  LoraMac::ReplyDataRateMatrix matrix = {{{{0,0,0,0,0,0}},
+	////////////////////////////////////////////////////////////
+	// Matrix to know which DataRate the GW will respond with //
+	////////////////////////////////////////////////////////////
+	LoraMac::ReplyDataRateMatrix matrix = {{{{0,0,0,0,0,0}},
                                           {{1,0,0,0,0,0}},
                                           {{2,1,0,0,0,0}},
                                           {{3,2,1,0,0,0}},
@@ -150,18 +150,25 @@ LoraMacHelper::ConfigureForEuRegion (Ptr<EndDeviceLoraMac> edMac) const
                                           {{5,4,3,2,1,0}},
                                           {{6,5,4,3,2,1}},
                                           {{7,6,5,4,3,2}}}};
-  edMac->SetReplyDataRateMatrix (matrix);
+	edMac->SetReplyDataRateMatrix (matrix);
 
-  /////////////////////
-  // Preamble length //
-  /////////////////////
-  edMac->SetNPreambleSymbols (8);
+	/////////////////////
+	// Preamble length //
+	/////////////////////
+	edMac->SetNPreambleSymbols (8);
 
-  //////////////////////////////////////
-  // Second receive window parameters //
-  //////////////////////////////////////
-  edMac->SetSecondReceiveWindowDataRate (0);
-  edMac->SetSecondReceiveWindowFrequency (869.525);
+	////////////////////
+	// ACK Parameters //
+	////////////////////
+
+	edMac-> SetACKParams (m_ackdifferentchannel, m_secondreceivewindow, m_ReceiveWindowFrequency, m_ackdatarate, m_acklength);
+
+	////////////////////////////////
+	// Retransmissions Parameters //
+	////////////////////////////////
+
+	edMac-> SetRRX (m_retransmission, m_rxnumber);
+
 }
 
 
@@ -183,22 +190,39 @@ LoraMacHelper::ConfigureForEuRegion (Ptr<GatewayLoraMac> gwMac) const
       NS_LOG_DEBUG ("Resetting reception paths");
       gwPhy->ResetReceptionPaths ();
 
-      std::vector<double> frequencies;
-      frequencies.push_back (868.1);
+      std::vector<double> frequencies_downlink;
+      frequencies_downlink.push_back (868.1);
       //frequencies.push_back (868.3);
       //frequencies.push_back (868.5);
 
-      std::vector<double>::iterator it = frequencies.begin ();
+      std::vector<double>::iterator it = frequencies_downlink.begin ();
 
       int receptionPaths = 0;
-      int maxReceptionPaths = 1;
+      int maxReceptionPaths = 2;
       while (receptionPaths < maxReceptionPaths)
         {
-          if (it == frequencies.end ())
-            it = frequencies.begin ();
+          if (it == frequencies_downlink.end ())
+            it = frequencies_downlink.begin ();
           gwPhy->GetObject<GatewayLoraPhy> ()->AddReceptionPath (*it);
           ++it;
           receptionPaths++;
+        }
+
+
+      std::vector<double> frequencies_uplink;
+      frequencies_uplink.push_back (869.525);
+
+      std::vector<double>::iterator itt = frequencies_uplink.begin ();
+
+      int upreceptionPaths = 0;
+      int maxupReceptionPaths = 1;
+      while (upreceptionPaths < maxupReceptionPaths)
+       {
+          if (itt == frequencies_uplink.end ())
+            itt = frequencies_uplink.begin ();
+          gwPhy->GetObject<GatewayLoraPhy> ()->AddReceptionPath (*itt);
+          ++itt;
+          upreceptionPaths++;
         }
     }
 }
@@ -213,9 +237,9 @@ LoraMacHelper::ApplyCommonEuConfigurations (Ptr<LoraMac> loraMac) const
   //////////////
 
   LogicalLoraChannelHelper channelHelper;
-  channelHelper.AddSubBand (868, 868.6, 0.01, 14);
+  channelHelper.AddSubBand (868, 868.6, 1, 14);
   // channelHelper.AddSubBand (868.7, 869.2, 0.001, 14);
-  // channelHelper.AddSubBand (869.4, 869.65, 0.1, 27);
+  channelHelper.AddSubBand (869.4, 869.65, 1, 27);
 
   //////////////////////
   // Default channels //
@@ -223,9 +247,19 @@ LoraMacHelper::ApplyCommonEuConfigurations (Ptr<LoraMac> loraMac) const
   Ptr<LogicalLoraChannel> lc1 = CreateObject<LogicalLoraChannel> (868.1, 0, 5);
   // Ptr<LogicalLoraChannel> lc2 = CreateObject<LogicalLoraChannel> (868.3, 0, 5);
   // Ptr<LogicalLoraChannel> lc3 = CreateObject<LogicalLoraChannel> (868.5, 0, 5);
+
+  //////////////////////
+  // Downlink channels  //
+  //////////////////////
+
+  Ptr<LogicalLoraChannel> lc4 = CreateObject<LogicalLoraChannel> (869.525, 0, 5);
+  lc4->DisableForUplink();
+
   channelHelper.AddChannel (lc1);
   // channelHelper.AddChannel (lc2);
   // channelHelper.AddChannel (lc3);
+
+  channelHelper.AddChannel (lc4);
 
   loraMac->SetLogicalLoraChannelHelper (channelHelper);
 
@@ -233,6 +267,7 @@ LoraMacHelper::ApplyCommonEuConfigurations (Ptr<LoraMac> loraMac) const
   // DataRate -> SF, DataRate -> Bandwidth     //
   // and DataRate -> MaxAppPayload conversions //
   ///////////////////////////////////////////////
+
   loraMac->SetSfForDataRate (std::vector<uint8_t> {12,11,10,9,8,7,7});
   loraMac->SetBandwidthForDataRate (std::vector<double>
                                     {125000,125000,125000,125000,125000,125000,250000});
@@ -373,5 +408,24 @@ LoraMacHelper::SetMType (NodeContainer endDevices, LoraMacHeader::MType mType)
 	      mac->SetMType (mType);
 	    }
 }
+
+void
+LoraMacHelper::SetACKParams (bool differentchannel, bool secondreceivewindow, double ackfrequency, int ackdatarate, int acklength)
+{
+	m_ackdifferentchannel = differentchannel;
+	m_secondreceivewindow = secondreceivewindow;
+	m_ReceiveWindowFrequency = ackfrequency;
+	m_ackdatarate = ackdatarate;
+	m_acklength = acklength;
+}
+
+void
+LoraMacHelper::SetRRX (bool retransmission, int rxnumber)
+{
+	m_retransmission = retransmission;
+	m_rxnumber = rxnumber;
+
+}
+
 
 }

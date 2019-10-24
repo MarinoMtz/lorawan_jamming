@@ -169,11 +169,23 @@ GatewayLoraPhy::SetInterferenceModel (uint8_t interference)
   switch (interference) {
       case 1: m_interference.SetInterferenceModel(LoraInterferenceHelper::Pure_ALOHA);
       	  	  break;
-      case 2: m_interference.SetInterferenceModel(LoraInterferenceHelper::Cochannel_Matrix);
+      case 2: m_interference.SetInterferenceModel(LoraInterferenceHelper::CE_PowerLevel);
+      	  	  break;
+      case 3: m_interference.SetInterferenceModel(LoraInterferenceHelper::CE_CumulEnergy);
+              break;
+      case 4: m_interference.SetInterferenceModel(LoraInterferenceHelper::Cochannel_Matrix);
               break;
       default : m_interference.SetInterferenceModel(LoraInterferenceHelper::Pure_ALOHA);
   }
 
+}
+
+void
+GatewayLoraPhy::SetDelta (double delta)
+{
+  NS_LOG_FUNCTION (this);
+
+  m_interference.SetDelta(delta);
 
 }
 
@@ -191,7 +203,7 @@ GatewayLoraPhy::Send (Ptr<Packet> packet, LoraTxParameters txParams,
    *  transmitted while in RX state, Gateway sending is assumed to have priority
    *  over reception.
    *
-   *  This different behaviour is motivated by the asymmetry in a typical
+   *  This different behavior is motivated by the asymmetry in a typical
    *  LoRaWAN network, where Downlink messages are more critical to network
    *  performance than Uplink ones. Even if the gateway is receiving a packet
    *  on the channel when it is asked to transmit by the upper layer, in order
@@ -267,7 +279,8 @@ GatewayLoraPhy::StartReceive (Ptr<Packet> packet, double rxPowerDbm,
 
   event = m_interference.Add (duration, rxPowerDbm, sf, packet, frequencyMHz);
 
-  NS_LOG_INFO ("Inserting a packet on the colision helper with duration = "<< duration.GetSeconds());
+  NS_LOG_INFO ("Inserting a packet on the collision helper with duration = "<< duration.GetSeconds());
+  NS_LOG_INFO ("Added at " << Simulator::Now ().GetSeconds ());
 
   // Cycle over the receive paths to check availability to receive the packet
   std::list<Ptr<GatewayLoraPhy::ReceptionPath> >::iterator it;
@@ -330,8 +343,8 @@ GatewayLoraPhy::StartReceive (Ptr<Packet> packet, double rxPowerDbm,
               else if (m_authpre == true && jammer == true)
               {
             	  // Schedule the end of the reception of the packet right after the preamble
-            	  Simulator::Schedule (Seconds(preamble), &LoraPhy::EndReceive, this, packet, event);
-            	  m_packetduration(packet, Seconds(preamble) ,m_device->GetNode ()->GetId (), SenderID, event->GetFrequency (), event->GetSpreadingFactor () );
+            	  //Simulator::Schedule (Seconds(preamble), &LoraPhy::EndReceive, this, packet, event);
+            	  //m_packetduration(packet, Seconds(preamble) ,m_device->GetNode ()->GetId (), SenderID, event->GetFrequency (), event->GetSpreadingFactor () );
               }
 
               else if (m_authpre == false)
@@ -349,7 +362,8 @@ GatewayLoraPhy::StartReceive (Ptr<Packet> packet, double rxPowerDbm,
   // If we get to this point, there are no demodulators we can use
   NS_LOG_INFO ("Dropping packet reception of packet with sf = "
                << unsigned(sf) <<
-               " because no suitable demodulator was found");
+               " because no suitable demodulator was found at "
+			   << Simulator::Now ().GetSeconds () );
 
   // Fire the trace source
 
@@ -382,6 +396,7 @@ GatewayLoraPhy::EndReceive (Ptr<Packet> packet, Ptr<LoraInterferenceHelper::Even
   packet->AddPacketTag (tag);
 
   uint8_t packetDestroyed = m_interference.IsDestroyedByInterference (event);
+  NS_LOG_INFO ("verified at " << Simulator::Now ().GetSeconds ());
 
   NS_LOG_INFO ("Checking a packet with duration" << event->GetDuration ().GetSeconds() );
 

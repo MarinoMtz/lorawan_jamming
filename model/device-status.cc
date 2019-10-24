@@ -196,4 +196,12 @@ DeviceStatus::GetSecondReceiveWindowDataRate (void)
   return m_mac->GetSecondReceiveWindowDataRate ();
 }
 
+uint8_t
+DeviceStatus::GetAckPacketLength (void)
+{
+  NS_LOG_FUNCTION (this);
+
+  return m_mac->GetAckPacketLength ();
+}
+
 }

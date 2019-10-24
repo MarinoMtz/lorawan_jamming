@@ -125,6 +125,13 @@ public:
 
   void SetMType (NodeContainer endDevices,LoraMacHeader::MType mType);
 
+  void SetACKParams (bool differentchannel, bool secondreceivewindow, double ackfrequency, int ackdatarate, int acklength);
+
+  // Set Retransmission params
+
+  void SetRRX (bool retransmission, int rxnumber);
+
+
 private:
 
   /**
@@ -147,6 +154,19 @@ private:
   Ptr<LoraDeviceAddressGenerator> m_addrGen; //!< Pointer to the address generator to use
   enum DeviceType m_deviceType; //!< The kind of device to install
   enum Regions m_region; //!< The region in which the device will operate
+
+  //ACK Parameters
+
+  bool m_ackdifferentchannel;
+  bool m_secondreceivewindow;
+  double m_ReceiveWindowFrequency;
+  int m_ackdatarate;
+  int m_acklength;
+
+  // Retransmission params
+  bool m_retransmission;
+  int m_rxnumber;
+
 
 
 };

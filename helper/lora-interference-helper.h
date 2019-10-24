@@ -55,6 +55,8 @@ public:
 
     enum Int_Model {
     	Pure_ALOHA,
+		CE_PowerLevel,
+		CE_CumulEnergy,
 		Cochannel_Matrix,
     };
 
@@ -174,6 +176,11 @@ private:
 
   Int_Model GetInterferenceModel(void);
 
+
+  void SetDelta (double delta);
+
+  uint8_t GetDelta (void);
+
   /**
    * Print the events that are saved in this helper in a human readable format.
    */
@@ -188,14 +195,15 @@ private:
    * \return The sf of the packets that caused the loss, or 0 if there was no
    * loss.
    */
-  bool IsDestroyedByInterference (Ptr<LoraInterferenceHelper::Event>
-                                     event);
+  bool IsDestroyedByInterference (Ptr<LoraInterferenceHelper::Event> event);
 
-  bool Cochannel (Ptr<LoraInterferenceHelper::Event>
-                                     event);
+  bool Cochannel (Ptr<LoraInterferenceHelper::Event> event);
 
-  bool Aloha (Ptr<LoraInterferenceHelper::Event>
-                                     event);
+  bool Aloha (Ptr<LoraInterferenceHelper::Event> event);
+
+  bool CumulEnergy (Ptr<LoraInterferenceHelper::Event> event);
+
+  bool PowerLevel (Ptr<LoraInterferenceHelper::Event> event);
 
    /**
    * Compute the time duration in which two given events are overlapping.
@@ -246,6 +254,7 @@ private:
   uint8_t m_colsf;
 
   Int_Model m_intmodel;
+  double m_delta;
 
 private:
 
