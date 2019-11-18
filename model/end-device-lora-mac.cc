@@ -26,7 +26,9 @@
 #include "ns3/log.h"
 #include <vector>
 #include <algorithm>
+#include <iostream>
 #include <numeric>
+#include <iterator>
 
 using namespace std;
 namespace ns3 {
@@ -142,6 +144,7 @@ EndDeviceLoraMac::Send (Ptr<Packet> packet)
   // Check that there are no scheduled receive windows.
   // We cannot send a packet if we are in the process of transmitting or waiting
   // for reception.
+
   if (!m_closeWindow.IsExpired () || !m_secondReceiveWindow.IsExpired ())
     {
       NS_LOG_WARN ("Attempting to send when there are receive windows" <<
@@ -166,12 +169,12 @@ EndDeviceLoraMac::Send (Ptr<Packet> packet)
 
   // Check that we can transmit according to the aggregate duty cycle timer
   //if (m_channelHelper.GetAggregatedWaitingTime () != Seconds (0))
-  //  {
-  //    NS_LOG_WARN ("Attempting to send, but the aggregate duty cycle won't allow it");
-  //    //return;
-//	  sent = false;
-//	  return sent;
-//    }
+    //{
+      //NS_LOG_WARN ("Attempting to send, but the aggregate duty cycle won't allow it");
+      //return;
+	  //sent = false;
+	  //return sent;
+    //}
 
   // Pick a channel on which to transmit the packet
   Ptr<LogicalLoraChannel> txChannel = GetChannelForTx ();
@@ -186,7 +189,7 @@ EndDeviceLoraMac::Send (Ptr<Packet> packet)
 
 	  LoraTag tag;
 	  packet->RemovePacketTag (tag);
-	  double ID = tag.GetPktID();
+	  uint32_t ID = tag.GetPktID();
 	  ntx = tag.Getntx();
 	  packet->AddPacketTag (tag);
 
@@ -234,9 +237,9 @@ EndDeviceLoraMac::Send (Ptr<Packet> packet)
       //NS_LOG_INFO ("MAC ---> Sending on Freq: " << txChannel->GetFrequency () << " MHz");
 
 
-      //////////////////////////////////////////////
-      // Register packet transmission for duty cycle
-      //////////////////////////////////////////////
+      ////////////////////////////////////////////////
+      // Register packet transmission for duty cycle//
+      ////////////////////////////////////////////////
 
       // Compute packet duration
       Time duration = m_phy->GetOnAirTime (packet, params);
@@ -272,19 +275,11 @@ EndDeviceLoraMac::Send (Ptr<Packet> packet)
       // Update the transmissions vector //
       /////////////////////////////////////
 
-	  NS_LOG_INFO ("---->> Sending Pkt ID " << ID << " Ntx " << "" << unsigned(ntx));
+	  NS_LOG_INFO ("---->> Sending Pkt ID " << ID << " Ntx " << "" << unsigned(ntx)
+			  << " Node ID " << m_device->GetNode ()->GetId ());
 
 
-	  if (ntx == 1) {
-		  pkttransmissions.push_back(1);
-		  pktackited.push_back(0);
-		  NS_LOG_INFO ("---->> Vector tx size " << pkttransmissions.size());
-	  }
-	  else {
-		  pkttransmissions[ID-1] = ntx;
-	  }
-
-
+	  PacketTrack (ID, ntx, 0);
 
 	  return sent;
     }
@@ -338,13 +333,12 @@ EndDeviceLoraMac::Receive (Ptr<Packet const> packet)
 
     	  LoraTag tag;
     	  packetCopy->RemovePacketTag (tag);
-    	  double ID = tag.GetPktID();
+    	  uint32_t ID = tag.GetPktID();
     	  packetCopy->AddPacketTag (tag);
 
-          // Update that the packet is ackited //
-		  pktackited[ID-1] = 1;
+    	  PacketTrack (ID, 0, 1);
 
-		  NS_LOG_INFO ("---->> Packet ackited ID " << ID);
+		  NS_LOG_INFO ("---->> Packet ackited ID " << ID << " address " << m_address);
 		  NS_LOG_INFO ("---->> Packet length " << unsigned (packet->GetSize()));
         }
       else
@@ -580,47 +574,119 @@ EndDeviceLoraMac::CheckAndResend (uint32_t ID, uint8_t ntx, uint32_t size, doubl
 
 	NS_LOG_INFO ("---->> Packet Ackited ? " << pktackited[ID-1]);
 
-	uint32_t pktack = pktackited[ID-1];
 
+	bool pktack = PacketTrack (ID, 0, 2);
 
-	if (pktack == 0 && ntx < m_rxnumber)
-	{
+	//Scheduling next transmission
 
-		// Get the interval of time of the next retransmission based on the mean of the main send function at the application level.
-		double nexttxinterval = m_exprandomdelay->GetValue (mean,mean*10);
-		//double nexttxinterval = 15;
-
-	    Ptr<Packet> ResendPacket = Create<Packet> (size-9);
-	    LoraTag tag;
-	    ResendPacket -> RemovePacketTag (tag);
-	    tag.SetPktID(ID);
-	    tag.Setntx(ntx+1);
-	    tag.SetMean(mean);
-	    ResendPacket -> AddPacketTag(tag);
-
-	    // Schedule the retransmission of the packet since it hasn't been ackited nor resent n times
-
-	    Simulator::Schedule (Seconds(nexttxinterval), &EndDeviceLoraMac::Send, this, ResendPacket);
-
-	    // Update the retransmissions vector
-
-	    NS_LOG_INFO ("---->> Resending " << ID << " Ntx " << unsigned (ntx+1));
-
-	    pkttransmissions[ID-1] ++;
-	}
-
-	  //pktackited.push_back(0);
+    m_app -> ConfirmedTraffic (ntx, ID, pktack);
 
 }
+
+bool
+EndDeviceLoraMac::PacketTrack (uint32_t ID, uint8_t ntx, uint8_t type)
+{
+
+bool ackited = false;
+
+switch (type)
+{
+	case 0:
+		if (ntx == 1){AddPacketID(ID);}
+		else {AddRetransmission(ID, ntx);}
+	// Call the functionto add the packet to the pkttransmissions vector
+		break;
+	case 1:
+		AddAckPacket (ID);
+		break;
+	case 2:
+		ackited = CheckAckPacket (ID);
+		break;
+	default : break;
+}
+
+	//vector<uint32_t> pktackited;
+	//vector<uint8_t> pkttransmissions;
+
+	return ackited;
+}
+
+void
+EndDeviceLoraMac::AddPacketID (uint32_t ID)
+{
+
+	std::vector<uint32_t>::iterator it = std::find(pkstsentids.begin(), pkstsentids.end(), ID);
+
+	if (it != pkstsentids.end()){
+		NS_LOG_INFO ("ID already inserted");
+		return;
+	}
+	else{
+		NS_LOG_INFO ("Adding Packet ID ");
+		pkstsentids.push_back(ID);
+		pktackited.push_back(0);
+		pkttransmissions.push_back(1);
+
+	}
+	return;
+}
+
+void
+EndDeviceLoraMac::AddAckPacket (uint32_t ID)
+{
+	std::vector<uint32_t>::iterator it = std::find(pkstsentids.begin(), pkstsentids.end(), ID);
+
+	if (it != pkstsentids.end()){
+
+		uint32_t index = std::distance(pkstsentids.begin(), it);
+		pktackited [index] = 1;
+		NS_LOG_INFO ("Adding ACK track");
+
+	}
+	return;
+}
+
+bool
+EndDeviceLoraMac::CheckAckPacket (uint32_t ID)
+{
+	std::vector<uint32_t>::iterator it = std::find(pkstsentids.begin(), pkstsentids.end(), ID);
+
+	if (it != pkstsentids.end()){
+
+		uint32_t index = std::distance(pkstsentids.begin(), it);
+		if (pktackited [index] == 1){
+			return true;}
+		else {return false;}
+	}
+	return false;
+}
+
+void
+EndDeviceLoraMac::AddRetransmission (uint32_t ID, uint8_t ntx)
+{
+	std::vector<uint32_t>::iterator it = std::find(pkstsentids.begin(), pkstsentids.end(), ID);
+
+	if (it != pkstsentids.end()){
+
+		uint32_t index = std::distance(pkstsentids.begin(), it);
+		pkttransmissions [index] = ntx;
+		NS_LOG_INFO ("Adding re-transmission track");
+
+	}
+	return;
+}
+
 
 void
 EndDeviceLoraMac::OpenFirstReceiveWindow (void)
 {
   NS_LOG_FUNCTION_NOARGS ();
 
-  if (m_phy->GetObject<EndDeviceLoraPhy> ()->GetState () == EndDeviceLoraPhy::DEAD)
+  if (m_phy->GetObject<EndDeviceLoraPhy> ()->GetState () == EndDeviceLoraPhy::DEAD
+	  || m_phy->GetObject<EndDeviceLoraPhy> ()->GetState () == EndDeviceLoraPhy::TX
+	  || m_phy->GetObject<EndDeviceLoraPhy> ()->GetState () == EndDeviceLoraPhy::RX)
     {
-      NS_LOG_INFO ("Won't open second receive window because the end-device is DEAD");
+      NS_LOG_INFO ("Won't open first receive window because the end-device is DEAD");
       return;
     }
 
@@ -689,20 +755,13 @@ EndDeviceLoraMac::OpenSecondReceiveWindow (void)
 
   NS_LOG_INFO ("Open Second window at "<< Simulator::Now ().GetSeconds ());
 
-  if (m_phy->GetObject<EndDeviceLoraPhy> ()->IsDead ()) {
-	  NS_LOG_INFO ("Won't open second receive window since device is DEAD");
-	  return;
-  }
-
-  // Check for receiver status: if it's locked on a packet, don't open this
-  // window at all.
-
-  if (m_phy->GetObject<EndDeviceLoraPhy> ()->GetState () == EndDeviceLoraPhy::RX )
+  if (m_phy->GetObject<EndDeviceLoraPhy> ()->GetState () == EndDeviceLoraPhy::DEAD
+	  || m_phy->GetObject<EndDeviceLoraPhy> ()->GetState () == EndDeviceLoraPhy::TX
+	  || m_phy->GetObject<EndDeviceLoraPhy> ()->GetState () == EndDeviceLoraPhy::RX)
     {
-      NS_LOG_INFO ("Won't open second receive window since we are in RX mode");
+      NS_LOG_INFO ("Won't open second receive window because the end-device is DEAD");
       return;
     }
-
 
   // Set Phy in Standby mode
   m_phy->GetObject<EndDeviceLoraPhy> ()->SwitchToStandby ();
@@ -721,7 +780,7 @@ EndDeviceLoraMac::OpenSecondReceiveWindow (void)
   // Schedule return to sleep after "at least the time required by the end
   // device's radio transceiver to effectively detect a downlink preamble"
   // (LoraWAN specification)
-  m_closeWindow = Simulator::Schedule (m_SecondReceiveWindowDuration,
+  m_secondReceiveWindow = Simulator::Schedule (m_SecondReceiveWindowDuration,
                                        &EndDeviceLoraMac::CloseSecondReceiveWindow, this);
 }
 
@@ -730,13 +789,7 @@ EndDeviceLoraMac::CloseSecondReceiveWindow (void)
 {
   NS_LOG_FUNCTION_NOARGS ();
 
-  if (m_phy->GetObject<EndDeviceLoraPhy> ()->IsDead ()) {
-	  NS_LOG_INFO ("Dont close second receive window since device is DEAD");
-	  return;
-  }
-
   NS_LOG_INFO ("Closing Second RX Window at "<<Simulator::Now ().GetSeconds ());
-
 
   Ptr<EndDeviceLoraPhy> phy = m_phy->GetObject<EndDeviceLoraPhy> ();
 
@@ -794,15 +847,15 @@ EndDeviceLoraMac::GetChannelForTx (void)
       if (logicalChannel->IsEnabledForUplink()){
 
       // Send immediately if we can
-      if (waitingTime == Seconds (0))
-        {
+      //if (waitingTime == Seconds (0))
+      //  {
           return *it;
-        }
+      //  }
       //else
-        {
-          NS_LOG_DEBUG ("Packet cannot be immediately transmitted on " <<
-                        "the current channel because of duty cycle limitations");
-        }
+      //  {
+      //    NS_LOG_DEBUG ("Packet cannot be immediately transmitted on " <<
+      //                  "the current channel because of duty cycle limitations");
+      //  }
       }
     }
   return 0; // In this case, no suitable channel was found
@@ -829,6 +882,12 @@ EndDeviceLoraMac::Shuffle (std::vector<Ptr<LogicalLoraChannel> > vector)
 /////////////////////////
 // Setters and Getters //
 /////////////////////////
+
+void
+EndDeviceLoraMac::SetApp (Ptr<PeriodicSender> app)
+{
+	m_app = app;
+}
 
 void
 EndDeviceLoraMac::SetDataRate (uint8_t dataRate)

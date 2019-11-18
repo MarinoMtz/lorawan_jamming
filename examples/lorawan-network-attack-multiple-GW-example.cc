@@ -48,15 +48,15 @@ using namespace ns3;
 NS_LOG_COMPONENT_DEFINE ("LorawanNetworkAttackExample");
 
 // Network settings
-uint32_t nDevices = 0;
+uint32_t nDevices = 2;
 uint32_t nGateways = 1;
-uint32_t nJammers = 1;
+uint32_t nJammers = 0;
 double radius = 1000;
 
 // Uniform random variable to allocate nodes
 Ptr<UniformRandomVariable> rnd_alloc = CreateObject<UniformRandomVariable> ();
 
-double simulationTime = 1000;
+double simulationTime = 300;
 double appPeriodSeconds = 50;
 
 double appPeriodJamSeconds = 1;
@@ -71,6 +71,8 @@ double noMoreReceivers = 0;
 double collision_jm = 0;
 double collision_ed = 0;
 double edreceived = 0;
+double edretransmission = 0;
+double edretransmissionreceived = 0;
 double gwreceived_jm = 0;
 double gwreceived_ed = 0;
 double underSensitivity_jm = 0;
@@ -85,20 +87,34 @@ double cumulative_time_ed = 0;
 double ce_ed = 0;
 double ce_jm = 0;
 
-int PayloadSize=1;
+int PayloadSize=41;
 double PayloadJamSize=50;
 
 
-bool Conf_UP = false;
-bool Net_Ser = false;
-bool Random_SF = true;
+bool Conf_UP = true;
+bool Net_Ser = true;
+bool Random_SF = false;
 bool All_SF = false;
-bool Exponential = false;
+bool Exponential = true;
 
 // EDs Spreading Factor selection
 bool Specific_SF = true;
 double ED_SF = 7;
 
+
+// ACK Parameters
+bool differentchannel = true;
+bool secondreceivewindow = false;
+double ackfrequency = 869.525; //869.525 , 868.1
+int ackdatarate = 4;
+int acklength = 1;
+
+/**********************************
+*  Retransmission parameters  *
+***********************************/
+
+bool retransmission = true;
+int rxnumber = 1;
 
 // Output control
 bool printEDs = false;
@@ -107,23 +123,25 @@ bool SimTime = true;
 bool buildingsEnabled = false;
 
 // variables for the NS algorithms
-bool InterArrival = true;
+bool InterArrival = false;
 int NS_buffer = 10;
 double lambda = 0;
 
 //Authenticated preambles at the GW level
 bool authpre = false;
 
-// Detection algs at the NetServer level
-bool ewma_training = false;
+// Detection algs at the NetServer level.
+bool EWMA = false;
 double ucl = 15;
 double lcl = 3;
 
 // Interference model, -- set up at the GW level (phy)
 // 1 - Pure_ALOHA
-// 2 - Co-channel rejection Matrix
+// 2 - Capture effect as in https://www.researchwithnj.com/en/publications/multiple-receiver-strategies-for-minimizing-packet-loss-in-dense-
+// 3 - Co-channel rejection Matrix
 
 int Int_Model = 1;
+double delta;
 
 
 vector<uint32_t> pkt_success_ed(nDevices+nJammers,0);
@@ -252,6 +270,7 @@ GWReceivedurationCallback( Ptr<Packet const> packet, Time duration, uint32_t sys
   if (jammer == uint8_t(0))
   {
 	  cumulative_time_ed += time_on_air;
+
   }
 
   else
@@ -309,7 +328,8 @@ GatewayReceiveCallback (Ptr<Packet const> packet, uint32_t systemId, uint32_t Se
 }
 
 void
-EnDeviceReceiveCallback (Ptr<Packet const> packet, uint32_t systemId, uint32_t SenderID, double frequencyMHz, uint8_t sf)
+EnDeviceReceiveCallback (Ptr<Packet const> packet)
+		//uint32_t systemId, uint32_t SenderID, double frequencyMHz, uint8_t sf)
 {
   // Remove the successfully received packet from the list of sent ones
   // NS_LOG_INFO ("A packet was successfully received at gateway " << systemId);
@@ -319,6 +339,13 @@ EnDeviceReceiveCallback (Ptr<Packet const> packet, uint32_t systemId, uint32_t S
   edreceived += 1;
 
 }
+
+void
+EnDeviceRetransmissionCallback(Ptr<Packet const> packet, uint32_t systemId, double frequencyMHz, uint8_t sf)
+{
+	edretransmission += 1;
+}
+
 
 void
 CollisionCallback (Ptr<Packet const> packet, uint32_t systemId, uint32_t SenderID, uint8_t sf, double frequencyMHz, Time colstart, Time colend, bool onthepreable)
@@ -416,6 +443,12 @@ DeadDeviceCallback (uint32_t NodeId, double cumulative_tx_conso, double cumulati
 }
 
 void
+NSRetransmissionCallback(uint8_t ntx)
+{
+	edretransmissionreceived += 1;
+}
+
+void
 NSReceiveCallback (vector<uint32_t> ED_RX, vector<uint32_t> ED_RXD, vector<uint32_t> GW_RX, vector<uint32_t> GW_RXD)
 {
 	//NS_LOG_INFO ("ED_RX " << unsigned(ED_RX[0]) << " ED_RX " << unsigned (ED_RX[1]) << " GW_RX " << unsigned (GW_RX[0]) << " GW_RX " << unsigned (GW_RX[1]));
@@ -459,7 +492,6 @@ void
 NSEWMA(vector<double> ucl, vector<double> lcl)
 {
 	NS_LOG_INFO ("Learned parameters ");
-
 
 }
 
@@ -539,22 +571,40 @@ int main (int argc, char *argv[])
   cmd.AddValue ("JammerDutyCycle", "Jammer duty cycle", JammerDutyCycle);
   cmd.AddValue ("Exponential", "Exponential inter-arrival time", Exponential);
 
+  // imput variables related to ACKs
+
+  cmd.AddValue ("Diff_Channel", " boolean variable indicating if ACKs are sent in a different channel", differentchannel);
+  cmd.AddValue ("Second_RX", " boolean variable indicating if the second receive window is used", secondreceivewindow);
+
   // imput variables related to ED
   cmd.AddValue ("Specific_SF", " boolean variable indicating if EDs use an specific Spreading Factor", Specific_SF);
   cmd.AddValue ("ED_SF", "ED's Spreading Factor", ED_SF);
 
+  // imput related to retransmissions
+
+  cmd.AddValue ("retransmission", " boolean variable indicating if the ED resends packets or not", retransmission);
+  cmd.AddValue ("rxnumber", " Maximum number of transmissions for each packets", rxnumber);
+
   // imput variables related to the NS
-  cmd.AddValue ("InterArrival", "Boolean variable to set whether or not the Network server computes the IAT", InterArrival);
+
   cmd.AddValue ("Net_Ser", "Network Server", Net_Ser);
+  cmd.AddValue ("EWMA", "Boolean variable to set whether or not the Network implements the EWMA Algorithm", EWMA);
+  cmd.AddValue ("InterArrival", "Boolean variable to set whether or not the Network server computes the IAT", InterArrival);
   cmd.AddValue ("NS_buffer", "Length of Network Server Buffer", NS_buffer);
   cmd.AddValue ("lambda", "lambda parameter for the EWMA algorithm btw 0-1 ", lambda);
 
   // authenticated preamble
   cmd.AddValue ( "authpre", "Authenticated preambles ", authpre);
 
-  // Interference model
+  // Interference model, -- set up at the GW level (phy)
+  // 1 - Pure_ALOHA
+  // 2 - Capture effect as in https://www.researchwithnj.com/en/publications/multiple-receiver-strategies-for-minimizing-packet-loss-in-dense-
+  // 3 - Co-channel rejection Matrix
+  // Delta in dB
 
-  cmd.AddValue ("Int_Model", "1 - ALOHA, 2 - Co-channel", Int_Model);
+  cmd.AddValue ("Int_Model", "1 - ALOHA, 2 - Rx level grater than delta, 3 - Interferer cumulative energy,  4 - Co-channel", Int_Model);
+  cmd.AddValue ("delta", "delta in dB", delta);
+
   cmd.AddValue ("Filename", "Filename", Filename);
   cmd.AddValue ("Path", "Path", Path);
 
@@ -570,13 +620,14 @@ int main (int argc, char *argv[])
   pkt_success_gw.resize(nGateways,0);
 
 //	Set up logging
-//  LogComponentEnable ("LorawanNetworkAttackExample", LOG_LEVEL_ALL);
+//  LogComponentEnable("LorawanNetworkAttackExample", LOG_LEVEL_ALL);
 //  LogComponentEnable("LoraChannel", LOG_LEVEL_ALL);
 //  LogComponentEnable("LoraPhy", LOG_LEVEL_ALL);
 //  LogComponentEnable("EndDeviceLoraPhy", LOG_LEVEL_ALL);
 //  LogComponentEnable("JammerLoraPhy", LOG_LEVEL_ALL);
 //  LogComponentEnable("GatewayLoraPhy", LOG_LEVEL_ALL);
-//  LogComponentEnable("SimpleNetworkServer", LOG_LEVEL_ALL);
+  LogComponentEnable("SimpleNetworkServer", LOG_LEVEL_ALL);
+//  LogComponentEnable("NetworkServerHelper", LOG_LEVEL_ALL);
 //  LogComponentEnable("AppJammer", LOG_LEVEL_ALL);
 //  LogComponentEnable("LoraInterferenceHelper", LOG_LEVEL_ALL);
 //  LogComponentEnable("LoraMac", LOG_LEVEL_ALL);
@@ -626,7 +677,7 @@ int main (int argc, char *argv[])
   Ptr<PropagationDelayModel> delay = CreateObject<ConstantSpeedPropagationDelayModel> ();
   Ptr<LoraChannel> channel = CreateObject<LoraChannel> (loss, delay);
 
-  /************************
+  /***********************
   *  Create the helpers  *
   ************************/
 
@@ -640,6 +691,18 @@ int main (int argc, char *argv[])
   // Create the LoraHelper
   LoraHelper helper = LoraHelper ();
 
+  /************************
+  *  Set ACK parameters  *
+  ************************/
+
+  macHelper.SetACKParams (differentchannel, secondreceivewindow, ackfrequency, ackdatarate, acklength);
+
+
+  /**********************************
+  *  Set Retransmission parameters  *
+  ***********************************/
+
+  macHelper.SetRRX (retransmission, rxnumber);
 
   /************************
   *  Create End Devices  *
@@ -661,6 +724,14 @@ int main (int argc, char *argv[])
       position.z = 10;
       mobility->SetPosition (position);
     }
+
+  // Set the Address Generator
+
+  uint8_t nwkId = 54;
+  uint32_t nwkAddr = 1864;
+  Ptr<LoraDeviceAddressGenerator> addrGen = CreateObject<LoraDeviceAddressGenerator> (nwkId,nwkAddr);
+
+  macHelper.SetAddressGenerator (addrGen);
 
 
 // Create the LoraNetDevices of the end devices
@@ -684,8 +755,29 @@ int main (int argc, char *argv[])
                                        MakeCallback (&EnergyConsumptionCallback));
       phy->TraceConnectWithoutContext ("DeadDeviceCallback",
                                        MakeCallback (&DeadDeviceCallback));
-      phy->TraceConnectWithoutContext ("ReceivedPacket",
+      //phy->TraceConnectWithoutContext ("ReceivedPacket",
+      //                                   MakeCallback (&EnDeviceReceiveCallback));
+    }
+
+  for (NodeContainer::Iterator j = endDevices.Begin ();
+       j != endDevices.End (); ++j)
+    {
+      Ptr<Node> node = *j;
+      Ptr<LoraNetDevice> loraNetDevice = node->GetDevice (0)->GetObject<LoraNetDevice> ();
+      Ptr<LoraMac> mac = loraNetDevice->GetMac ();
+      mac->TraceConnectWithoutContext ("ReceivedPacket",
                                          MakeCallback (&EnDeviceReceiveCallback));
+    }
+
+
+  for (NodeContainer::Iterator j = endDevices.Begin ();
+       j != endDevices.End (); ++j)
+    {
+      Ptr<Node> node = *j;
+      Ptr<LoraNetDevice> loraNetDevice = node->GetDevice (0)->GetObject<LoraNetDevice> ();
+      Ptr<LoraMac> mac = loraNetDevice->GetMac ();
+      mac->TraceConnectWithoutContext ("ResendPacket",
+                                               MakeCallback (&EnDeviceRetransmissionCallback));
     }
 
   /************************
@@ -774,6 +866,7 @@ int main (int argc, char *argv[])
       // Set up the interference model of the simulation
 
       gwPhy->SetInterferenceModel (Int_Model);
+      gwPhy->SetDelta (delta);
 
       if (authpre){
     	  gwPhy->Authpreamble();
@@ -848,11 +941,13 @@ int main (int argc, char *argv[])
    	  appJamHelper.SetExp (Exponential);
    	  appJamHelper.SetRanSF (Random_SF);
    	  appJamHelper.SetSpreadingFactor (JammerSF);
+   	  appJamHelper.SetSimTime (appJamStopTime);
 
 	  ApplicationContainer appJamContainer = appJamHelper.Install (Jammers);
 
 	  appJamContainer.Start (Seconds (0));
 	  appJamContainer.Stop (appJamStopTime);
+
 
   }
 
@@ -866,13 +961,20 @@ int main (int argc, char *argv[])
   appHelper.SetPacketSize (PayloadSize);
 
   appHelper.SetExp (Exponential);
+  appHelper.SetRetransmissions(retransmission, rxnumber);
   appHelper.SetSpreadingFactor (ED_SF);
+  appHelper.SetSimTime (appStopTime);
 
   ApplicationContainer appContainer = appHelper.Install (endDevices);
 
   appContainer.Start (Seconds (0));
   appContainer.Stop (appStopTime);
 
+
+  //Ptr<PeriodicSender> ns = appHelper.GetApp();
+
+
+  //SendPacket
 
   ///////////////
   // Create NS //
@@ -886,28 +988,27 @@ int main (int argc, char *argv[])
 
 	  // Install the SimpleNetworkServer application on the network server
 	  NetworkServerHelper networkServerHelper;
-	  if (InterArrival){networkServerHelper.SetInterArrival();}
 
+	  // Set ACK Parameters on the Network Server
+	  networkServerHelper.SetACKParams (differentchannel, secondreceivewindow, ackfrequency, ackdatarate, acklength);
+
+	  if (InterArrival){networkServerHelper.SetInterArrival();}
 	  //Set parameters for EWMA, target = application period, buffer_length
-	  networkServerHelper.SetEWMA (NS_buffer, ewma_training, appPeriod.GetSeconds(), lambda, ucl, lcl);
+	  if (EWMA){networkServerHelper.SetEWMA (EWMA, appPeriod.GetSeconds(), lambda, ucl, lcl);}
+
 	  networkServerHelper.SetStopTime (Seconds(simulationTime));
 	  networkServerHelper.SetGateways (gateways);
 	  networkServerHelper.SetJammers (Jammers);
 	  networkServerHelper.SetEndDevices (endDevices);
+	  networkServerHelper.SetBuffer (NS_buffer);
 	  networkServerHelper.Install (networkServers);
 
 	  // Install the Forwarder application on the gateways
 	  ForwarderHelper forwarderHelper;
 	  forwarderHelper.Install (gateways);
 
-	  if (Conf_UP == true)
-	  {
-		  macHelper.SetMType (endDevices, LoraMacHeader::CONFIRMED_DATA_UP);
-	  }
-	  else
-	  {
-		  macHelper.SetMType (endDevices, LoraMacHeader::UNCONFIRMED_DATA_UP);
-	  }
+	  if (Conf_UP == true){macHelper.SetMType (endDevices, LoraMacHeader::CONFIRMED_DATA_UP);}
+	  else {macHelper.SetMType (endDevices, LoraMacHeader::UNCONFIRMED_DATA_UP);}
 
 	  Ptr<SimpleNetworkServer> ns = networkServerHelper.GetNS();
 
@@ -917,7 +1018,11 @@ int main (int argc, char *argv[])
                                        MakeCallback (&NSInterArrivalTime));
       ns->TraceConnectWithoutContext ("EwmaParameters",
                                        MakeCallback (&NSEWMA));
+      ns->TraceConnectWithoutContext ("ResendPacket",
+              	  	  	  	  	  	   MakeCallback (&NSRetransmissionCallback));
+
   }
+
 
   /****************
   *  Simulation  *
@@ -978,9 +1083,14 @@ int main (int argc, char *argv[])
 	  cout << "underSensitivity jm " << underSensitivity_jm << endl;
 	  cout << "cumulative time ed " << cumulative_time_ed << endl;
 	  cout << "cumulative time jm " << cumulative_time_jm << endl;
-
 	  cout << "dropped ed " << dropped_ed << endl;
 	  cout << "dropped jm " << dropped_jm << endl;
+	  cout << "Real mean jam " << simulationTime/jmsent << endl;
+	  cout << "Real mean ed " << simulationTime/edsent << endl;
+	  cout << "ACK Received " << edreceived << endl;
+	  cout << "Retransmissions " << edretransmission << endl;
+	  cout << "Retransmissions Received " << edretransmissionreceived << endl;
+
 
 	  for (uint32_t i = 0; i != nGateways; i++)
 	    {

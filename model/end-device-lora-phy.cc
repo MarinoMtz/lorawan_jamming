@@ -159,11 +159,24 @@ EndDeviceLoraPhy::Send (Ptr<Packet> packet, LoraTxParameters txParams,
 
   // We must be either in STANDBY or SLEEP mode to send a packet
 
-  if (m_state != STANDBY && m_state != SLEEP)
+  if (m_state == TX)
     {
-      NS_LOG_INFO ("Cannot send because device is currently not in STANDBY or SLEEP mode");
+      NS_LOG_INFO ("Cannot send because device is in TX");
       return;
     }
+
+  if (m_state == RX)
+    {
+      NS_LOG_INFO ("Cannot send because device is in RX");
+      return;
+    }
+
+  if (m_state == DEAD)
+    {
+      NS_LOG_INFO ("Cannot send because device is DEAD");
+      return;
+    }
+
 
   // We can send the packet: switch to the TX state
   SwitchToTx ();
@@ -197,6 +210,7 @@ EndDeviceLoraPhy::Send (Ptr<Packet> packet, LoraTxParameters txParams,
   // The call is scheduled just after the switch to standby in case the upper
   // layer wishes to change the state. This ensures that it will find a PHY in
   // STANDBY mode.
+
   if (!m_txFinishedCallback.IsNull ())
     {
       Simulator::Schedule (duration + NanoSeconds (10),

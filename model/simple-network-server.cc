@@ -159,6 +159,9 @@ SimpleNetworkServer::SetParameters (uint32_t GW, uint32_t ED, uint32_t JM, int b
 	// Set vector with packet ID
 	m_devices_pktid.resize(m_devices, vector<uint32_t>(m_buffer_length));
 
+	// Set the ack track vector
+	m_ack_pktid_device.resize(m_devices, vector<uint32_t>(0));
+
 }
 
 void
@@ -242,6 +245,7 @@ SimpleNetworkServer::AddGateway (Ptr<Node> gateway, Ptr<NetDevice> netDevice)
   // Get the Address
   Address gatewayAddress = p2pNetDevice->GetAddress ();
 
+
   // Check whether this device already exists
   if (m_gatewayStatuses.find (gatewayAddress) == m_gatewayStatuses.end ())
     {
@@ -252,7 +256,7 @@ SimpleNetworkServer::AddGateway (Ptr<Node> gateway, Ptr<NetDevice> netDevice)
       // Add it to the map
       m_gatewayStatuses.insert (std::pair<Address, GatewayStatus>
                                   (gatewayAddress, gwStatus));
-      NS_LOG_DEBUG ("Added a gateway to the list");
+      NS_LOG_DEBUG ("Added a gateway to the list with address" << gatewayAddress);
     }
 }
 
@@ -342,10 +346,18 @@ SimpleNetworkServer::Receive (Ptr<NetDevice> device, Ptr<const Packet> packet,
   double rcvPower = tag.GetReceivePower ();
   m_deviceStatuses.at (frameHdr.GetAddress ()).UpdateGatewayData (address, rcvPower);
 
+  bool Send_ACK;
+  bool AR;
+
+  Send_ACK = AckSent(pkt_ID, ed_ID);
+  AR = AlreadyReceived(m_devices_pktid[ed_ID],pkt_ID);
+
+
+  NS_LOG_DEBUG ("Receive -- Pkt ID" << pkt_ID << " ED ID " << ed_ID);
+
   // Determine whether the packet requires a reply
-  if (macHdr.GetMType () == LoraMacHeader::CONFIRMED_DATA_UP
-		  //&&      !m_deviceStatuses.at (frameHdr.GetAddress ()).HasReply ()
-		  )
+  if (macHdr.GetMType () == LoraMacHeader::CONFIRMED_DATA_UP &&  !Send_ACK)
+		 // &&      !m_deviceStatuses.at (frameHdr.GetAddress ()).HasReply ()
     {
      NS_LOG_DEBUG ("Scheduling a reply for this device");
 
@@ -378,15 +390,18 @@ SimpleNetworkServer::Receive (Ptr<NetDevice> device, Ptr<const Packet> packet,
     	 m_deviceStatuses.at (frameHdr.GetAddress ()).SetFirstReceiveWindowFrequency (tag.GetFrequency ());
      }
 
+     // Add the ACK to the vector
+     AddAckSent(pkt_ID, ed_ID);
+
      // Schedule a reply on the first receive window
      Simulator::Schedule (Seconds (1), &SimpleNetworkServer::SendOnFirstWindow,
-                           this, frameHdr.GetAddress (), pkt_ID);
+                           this, frameHdr.GetAddress (), ed_ID, pkt_ID);
     }
   return true;
 }
 
 void
-SimpleNetworkServer::SendOnFirstWindow (LoraDeviceAddress address, uint32_t pkt_ID)
+SimpleNetworkServer::SendOnFirstWindow (LoraDeviceAddress address, uint32_t ed_ID, uint32_t pkt_ID)
 {
   NS_LOG_FUNCTION (this << address);
 
@@ -415,11 +430,6 @@ SimpleNetworkServer::SendOnFirstWindow (LoraDeviceAddress address, uint32_t pkt_
 
   Address gatewayForReply = GetGatewayForReply (address,
                                                 firstReceiveWindowFrequency);
-
-  bool a = false;
-
-  //if (gatewayForReply != Address ())
-
   if (gatewayForReply != Address ())
     {
       NS_LOG_FUNCTION ("Found a suitable GW!");
@@ -447,27 +457,29 @@ SimpleNetworkServer::SendOnFirstWindow (LoraDeviceAddress address, uint32_t pkt_
 
 
       NS_LOG_INFO ("Sending reply through the gateway with address " << gatewayForReply);
+      //NS_LOG_INFO ("ED with address " << address);
 
       // Inform the gateway of the transmission
       m_gatewayStatuses.find (gatewayForReply)->second.GetNetDevice ()->
       Send (replyPacket, gatewayForReply, 0x0800);
+
     }
   else
     {
-
       if (m_secondreceivewindow)
       {
     	  NS_LOG_FUNCTION ("No suitable GW found, scheduling second window reply");
           // Schedule a reply on the second receive window
           Simulator::Schedule (Seconds (1), &SimpleNetworkServer::SendOnSecondWindow, this,
-                               address, pkt_ID);
+                               address, ed_ID, pkt_ID);
       }
 
+      else { RemoveAckSent(pkt_ID, ed_ID);}
     }
 }
 
 void
-SimpleNetworkServer::SendOnSecondWindow (LoraDeviceAddress address, uint32_t pkt_ID)
+SimpleNetworkServer::SendOnSecondWindow (LoraDeviceAddress address, uint32_t ed_ID, uint32_t pkt_ID)
 {
   NS_LOG_FUNCTION (this << address);
 
@@ -509,6 +521,7 @@ SimpleNetworkServer::SendOnSecondWindow (LoraDeviceAddress address, uint32_t pkt
     {
       // Schedule a reply on the second receive window
       NS_LOG_INFO ("Giving up on this reply, no GW available for second window");
+      RemoveAckSent(pkt_ID, ed_ID);
     }
 }
 
@@ -536,11 +549,56 @@ SimpleNetworkServer::GetGatewayForReply (LoraDeviceAddress deviceAddress,
 }
 
 void
+SimpleNetworkServer::AddAckSent(uint32_t pkt_ID, uint32_t ed_ID)
+{
+	std::vector<uint32_t>::iterator it = std::find(m_ack_pktid_device[ed_ID].begin(), m_ack_pktid_device[ed_ID].end(), pkt_ID);
+
+	if (it != m_ack_pktid_device[ed_ID].end()){
+		NS_LOG_INFO ("Packet ID already inserted");
+		return;
+	}
+	else{
+		NS_LOG_INFO ("Adding Packet ID ");
+		m_ack_pktid_device[ed_ID].push_back(pkt_ID);
+	}
+	return;
+}
+
+bool
+SimpleNetworkServer::AckSent(uint32_t pkt_ID, uint32_t ed_ID)
+{
+
+	std::vector<uint32_t>::iterator it = std::find(m_ack_pktid_device[ed_ID].begin(), m_ack_pktid_device[ed_ID].end(), pkt_ID);
+
+	if (it != m_ack_pktid_device[ed_ID].end()){
+		NS_LOG_INFO ("Packet ID already acknowledged");
+		return true;
+	}
+	else{
+		return false;
+	}
+}
+
+void
+SimpleNetworkServer::RemoveAckSent(uint32_t pkt_ID, uint32_t ed_ID)
+{
+
+	std::vector<uint32_t>::iterator it = std::find(m_ack_pktid_device[ed_ID].begin(), m_ack_pktid_device[ed_ID].end(), pkt_ID);
+
+	if (it != m_ack_pktid_device[ed_ID].end()){
+		NS_LOG_INFO ("Removing Ack of packet "<< pkt_ID << " from ED " << ed_ID);
+		m_ack_pktid_device[ed_ID].erase(it);
+	}
+	else{
+	}
+}
+
+void
 SimpleNetworkServer::PacketCounter(uint32_t pkt_ID, uint32_t gw_ID, uint32_t ed_ID)
 {
-	NS_LOG_INFO ("End-Device ID " << unsigned(ed_ID));
-	NS_LOG_INFO ("Gateway ID " << unsigned(gw_ID));
-	NS_LOG_INFO ("Packet ID " << unsigned(pkt_ID));
+	//NS_LOG_INFO ("End-Device ID " << unsigned(ed_ID));
+	//NS_LOG_INFO ("Gateway ID " << unsigned(gw_ID));
+	//NS_LOG_INFO ("Packet ID " << unsigned(pkt_ID));
 
 	// Verify if the packet has been already received or not
 
@@ -562,7 +620,7 @@ SimpleNetworkServer::PacketCounter(uint32_t pkt_ID, uint32_t gw_ID, uint32_t ed_
 
 	m_gateways_pktreceive[gw_ID-m_devices-m_jammers] ++;
 
-	// insert the Packet ID on at the end of the temporal matrix
+	// insert the Packet ID at the end of the temporal matrix
 
 	for (uint32_t i = 1; i < m_devices_pktid[ed_ID].size(); i++)
 	 {

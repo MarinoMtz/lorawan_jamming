@@ -22,6 +22,10 @@
 
 #include "ns3/periodic-sender-helper.h"
 #include "ns3/random-variable-stream.h"
+//
+#include "ns3/end-device-lora-mac.h"
+#include "ns3/lora-net-device.h"
+//
 #include "ns3/periodic-sender.h"
 #include "ns3/double.h"
 #include "ns3/string.h"
@@ -41,6 +45,7 @@ PeriodicSenderHelper::PeriodicSenderHelper ()
   m_exp = false;
   m_sf = 7;
   m_simtime = Seconds(0);
+  m_retransmissions = false;
 }
 
 PeriodicSenderHelper::~PeriodicSenderHelper ()
@@ -78,6 +83,15 @@ PeriodicSenderHelper::InstallPriv (Ptr<Node> node) const
 
   Ptr<PeriodicSender> app = m_factory.Create<PeriodicSender> ();
 
+  // Set the Application object at mac level
+  Ptr<NetDevice> netDevice = node->GetDevice (0);
+  Ptr<LoraNetDevice> loraNetDevice = netDevice->GetObject<LoraNetDevice> ();
+  NS_ASSERT (loraNetDevice != 0);
+  Ptr<EndDeviceLoraMac> mac = loraNetDevice->GetMac ()->GetObject<EndDeviceLoraMac> ();
+  mac -> SetApp(app);
+
+
+
   Time interval;
 
   interval = m_period;
@@ -95,6 +109,7 @@ PeriodicSenderHelper::InstallPriv (Ptr<Node> node) const
   		app->SetInitialDelay (Seconds (unsigned (m_initialDelay->GetValue (0, 100))));
 	  }
 
+  app -> SetRetransmissions (m_retransmissions, m_rxnumber);
   app->SetNode (node);
   node->AddApplication (app);
   app->SetPktSize (m_size);
@@ -134,10 +149,16 @@ PeriodicSenderHelper::SetExp (bool Exp)
 }
 
 void
+PeriodicSenderHelper::SetRetransmissions (bool retrans, uint8_t rxnumber)
+{
+	m_retransmissions = retrans;
+	m_rxnumber = rxnumber;
+}
+
+void
 PeriodicSenderHelper::SetSpreadingFactor (uint8_t sf)
 {
   m_sf = sf;
 }
-
 
 } // namespace ns3

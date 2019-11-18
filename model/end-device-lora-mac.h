@@ -29,6 +29,7 @@
 #include "ns3/random-variable-stream.h"
 #include "ns3/lora-device-address.h"
 #include "ns3/traced-value.h"
+#include "ns3/periodic-sender.h"
 #include <vector>
 #include <algorithm>
 #include <numeric>
@@ -99,6 +100,16 @@ public:
   void CloseSecondReceiveWindow (void);
 
   void CheckAndResend (uint32_t ID, uint8_t ntx, uint32_t size, double mean);
+
+  bool PacketTrack (uint32_t ID, uint8_t ntx, uint8_t type);
+
+  void AddPacketID (uint32_t ID);
+
+  void AddAckPacket (uint32_t ID);
+
+  bool CheckAckPacket (uint32_t ID);
+
+  void AddRetransmission(uint32_t ID, uint8_t ntx);
 
   /////////////////////////
   // Getters and Setters //
@@ -324,6 +335,11 @@ public:
   void AddSubBand (double startFrequency, double endFrequency, double dutyCycle,
                    double maxTxPowerDbm);
 
+  Ptr<PeriodicSender> m_app;
+
+
+  void SetApp (Ptr<PeriodicSender> app);
+
 private:
 
   /**
@@ -502,8 +518,9 @@ private:
    */
   LoraMacHeader::MType m_mType;
 
+  vector<uint32_t> pkstsentids;
   vector<uint32_t> pktackited;
-  vector<uint8_t> pkttransmissions;
+  vector<uint32_t> pkttransmissions;
 
   TracedCallback<Ptr<const Packet>, uint32_t, double, uint8_t> m_resendpacket;
 

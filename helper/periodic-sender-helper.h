@@ -69,9 +69,13 @@ public:
 
   void SetExp (bool Exp);
 
+  void SetRetransmissions (bool retrans, uint8_t rxnumber);
+
   void SetSpreadingFactor (uint8_t sf);
 
   void SetType (uint8_t);
+
+  Ptr<PeriodicSender> GetApp (void);
 
 private:
 
@@ -86,6 +90,11 @@ private:
   uint16_t m_size;
 
   bool m_exp;
+
+  bool m_retransmissions;
+
+  uint8_t m_rxnumber;
+
   uint8_t m_sf;
 
   Time m_simtime;

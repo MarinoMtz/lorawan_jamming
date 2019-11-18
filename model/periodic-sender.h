@@ -70,10 +70,14 @@ public:
   /**
    * Send a packet using the LoraNetDevice's Send method
    */
-  void SendPacket (void);
+  void UnconfirmedTraffic (void);
 
-  void SendPacketMac ();
+  void ConfirmedTraffic (uint8_t ntx, uint32_t ID, bool confirmed);
 
+
+  void SendPacketMacUnconfirmed ();
+
+  void SendPacketMacConfirmed (uint32_t ID, uint8_t ntx);
 
   /**
    * Start the application by scheduling the first SendPacket event
@@ -95,6 +99,12 @@ public:
   void SetExp (bool Exp);
 
   bool GetExp (void);
+
+  double GetNextTxTime (void);
+
+  void SetRetransmissions (bool retrans, uint8_t rxnumber);
+
+  bool GetRetransmissions (void);
 
 
 private:
@@ -125,6 +135,8 @@ private:
 
   Ptr<LoraPhy> m_phy;
 
+  Ptr<PeriodicSender> m_ap;
+
   /**
    * The size of the packets this application sends
    */
@@ -133,6 +145,8 @@ private:
   uint32_t m_pktID;
 
   bool m_exp;
+  bool m_retransmissions;
+
   bool m_ransf;
   uint8_t m_sf;
 
@@ -151,6 +165,10 @@ private:
   double cumultime;
 
   vector<uint32_t> sendtries;
+
+  TracedCallback< uint8_t > m_sendpacket;
+
+  uint8_t m_rxnumber;
 
 };
 

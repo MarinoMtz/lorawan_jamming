@@ -51,7 +51,12 @@ PeriodicSender::GetTypeId (void)
     .AddAttribute ("PacketSize", "The size of the packets this application sends, in bytes",
     			   UintegerValue (20),
 				   MakeUintegerAccessor (&PeriodicSender::m_pktSize),
-				   MakeUintegerChecker <uint16_t>());
+				   MakeUintegerChecker <uint16_t>())
+	.AddTraceSource ("SendPacket",
+					 "Trace source indicating a packet  "
+					 "transmission",
+					  MakeTraceSourceAccessor
+					  (&PeriodicSender::m_sendpacket));
   return tid;
 }
 
@@ -65,8 +70,10 @@ PeriodicSender::PeriodicSender () :
   cumultime(0),
   m_ransf(false),
   m_exp(false),
+  m_retransmissions(false),
   m_sf(7),
-  m_mean(0)
+  m_mean(0),
+  m_rxnumber(1)
 {
 //  NS_LOG_FUNCTION_NOARGS ();
   m_randomdelay = CreateObject<UniformRandomVariable> ();
@@ -164,103 +171,62 @@ PeriodicSender::SetExp (bool Exp)
 
 }
 
-bool PeriodicSender::GetExp (void)
+void
+PeriodicSender::SetRetransmissions (bool retrans, uint8_t rxnumber)
+{
+	m_retransmissions = retrans;
+	m_rxnumber = rxnumber;
+}
+
+bool
+PeriodicSender::GetRetransmissions (void)
+{
+
+  return m_retransmissions;
+}
+
+bool
+PeriodicSender::GetExp (void)
 {
 
   return m_exp;
 }
 
 void
-PeriodicSender::SendPacket (void)
+PeriodicSender::UnconfirmedTraffic (void)
 {
-  // NS_LOG_FUNCTION (this);
-  // Create and send a new packet
-
-  //NS_LOG_DEBUG ("Starting up application with a Exp =  " << GetExp() << " and SF = " << unsigned(GetSpreadingFactor()));
-
-  uint16_t size = 0;
-  Ptr<Packet> packet;
-
-  double ppm = 30;
-  double error = ppm/1e6;
-
-  double lambda;
-  bool Exp = GetExp();
-  double dutycycle = 0.01;
-  double interval = GetInterval().GetSeconds();
-  double simtime = GetSimTime ().GetSeconds();
-  double sendtime;
-
-  packet = Create<Packet>(m_pktSize+8);
-
-  Time timeonair;
-  LoraTxParameters params;
-
-  params.sf = GetSpreadingFactor ();
-
-  NS_LOG_DEBUG ("SpreadingFactor " << unsigned(params.sf));
-
-  // Tag the packet with its Spreading Factor and the Application Packet ID
-  LoraTag tag;
-  packet->RemovePacketTag (tag);
-  tag.SetSpreadingFactor (params.sf);
-  packet->AddPacketTag (tag);
-
-  // Compute the time on air as a function of the DC and SF
-
-  timeonair = m_phy->GetOnAirTime (packet,params);
-  NS_LOG_DEBUG ("time on air " << timeonair.GetSeconds());
-  //NS_LOG_DEBUG ("preamble bits " << params.nPreamble);
-
-
-  // Compute the interval as a function of the duty-cycle
-
-  lambda = dutycycle/timeonair.GetSeconds();
-  m_mean = timeonair.GetSeconds()/dutycycle;
-
-  NS_LOG_DEBUG ("Mean - ED " << m_mean);
-  NS_LOG_DEBUG ("Lambda - ED " << lambda);
-
-  NS_LOG_DEBUG ("simtime " << simtime);
-
 
 cumultime = 0;
+double sendtime = 0;
 
-while (cumultime < simtime)
-{
-	if (Exp)
-   {
+double simtime = GetSimTime().GetSeconds();
 
-  //mean=100*(1-dutycycle)* timeonair.GetSeconds();
-    sendtime = m_exprandomdelay->GetValue (m_mean,m_mean*100);
-    //NS_LOG_DEBUG ("Exponential - mean  " << mean);
-    //NS_LOG_DEBUG ("Exponential - jamtime  " << jamtime);
-  }
-    else
-    {
-    sendtime = timeonair.GetSeconds()*(1/dutycycle-1);
-    }
+// Send the packets without considering ACK nor re-transmissions
 
+while (cumultime < simtime){
+
+	sendtime = GetNextTxTime();
 	send_times.push_back (sendtime);
 	sendtries.push_back (1);
-	// NS_LOG_DEBUG ("No Exponential - Sent a packet at " << cumultime + jamtime);
-	//NS_LOG_DEBUG ("Packet scheduled at " << cumultime);
 	cumultime = cumultime + sendtime;
-	m_sendEvent = Simulator::Schedule (Seconds(cumultime), &PeriodicSender::SendPacketMac, this);
-				  //Simulator::Schedule (m_initialDelay, &PeriodicSender::SendPacket, this);
+	m_sendEvent = Simulator::Schedule (Seconds(cumultime), &PeriodicSender::SendPacketMacUnconfirmed, this);
+	//Simulator::Schedule (m_initialDelay, &PeriodicSender::SendPacket, this);
+
+
+	NS_LOG_DEBUG ("Times " << sendtime << " " << cumultime << " " << simtime);
+	}
+		//m_sendEvent = Simulator::Schedule (m_interval, &PeriodicSender::SendPacket, this);
+
+
+double sum_of_elems = std::accumulate(send_times.begin(), send_times.end(), 0);
+
+NS_LOG_DEBUG ("Mean - ed " << sum_of_elems/send_times.size());
+NS_LOG_DEBUG ("Ed sent " << send_times.size());
 }
 
-
-  //m_sendEvent = Simulator::Schedule (m_interval, &PeriodicSender::SendPacket, this);
-  //NS_LOG_DEBUG ("Sent a packet of size " << packet->GetSize ());
-	double sum_of_elems = std::accumulate(send_times.begin(), send_times.end(), 0);
-
-	NS_LOG_DEBUG ("Mean - ed " << sum_of_elems/send_times.size());
-	NS_LOG_DEBUG ("Ed sent " << send_times.size());
-}
 
 void
-PeriodicSender::SendPacketMac ()
+PeriodicSender::SendPacketMacUnconfirmed ()
 {
     NS_LOG_FUNCTION (this);
 
@@ -296,7 +262,7 @@ PeriodicSender::SendPacketMac ()
 		  if (sendtries[ID-1] <= 5){
 		  sendtries[ID-1] ++;
 		  double sendtime = m_exprandomdelay->GetValue (m_mean,m_mean*100);
-		  m_sendEvent = Simulator::Schedule (Seconds(sendtime), &PeriodicSender::SendPacketMac, this);
+		  m_sendEvent = Simulator::Schedule (Seconds(sendtime), &PeriodicSender::SendPacketMacUnconfirmed, this);
 		  DecreasePacketID();
 		  }
 		  else {
@@ -307,6 +273,134 @@ PeriodicSender::SendPacketMac ()
 	NS_LOG_DEBUG ("---->> Packet ID " << ID);
   //NS_LOG_DEBUG ("Sent counter " << sent);
 
+
+}
+
+void
+PeriodicSender::ConfirmedTraffic (uint8_t ntx, uint32_t ID, bool confirmed)
+{
+	Time sendtime = Seconds(0);
+	sendtime = Seconds(GetNextTxTime());
+
+	// Sending first packet
+	if (ntx == 0 && ID == 0 && confirmed == false)
+	{
+		IncreasePacketID();
+		m_sendEvent =	Simulator::Schedule (sendtime, &PeriodicSender::SendPacketMacConfirmed, this, 1, 1);
+		return;
+	}
+
+	if (confirmed || ntx >= m_rxnumber){
+
+		IncreasePacketID();
+		ID = GetPacketID();
+		ntx = 1;
+		m_sendEvent =	Simulator::Schedule (sendtime, &PeriodicSender::SendPacketMacConfirmed, this, ID, ntx);
+	}
+
+	else {
+		m_sendEvent =	Simulator::Schedule (sendtime, &PeriodicSender::SendPacketMacConfirmed, this, ID, ntx+1);
+	}
+
+}
+
+void
+PeriodicSender::SendPacketMacConfirmed (uint32_t ID, uint8_t ntx)
+{
+    NS_LOG_FUNCTION (this);
+
+
+	Ptr<Packet> packet;
+
+	packet = Create<Packet>(m_pktSize);
+
+	Time timeonair;
+	LoraTxParameters params;
+	params.sf = GetSpreadingFactor ();
+
+	LoraTag tag;
+	packet->RemovePacketTag (tag);
+	tag.SetSpreadingFactor (params.sf);
+	tag.SetPktID (ID);
+	tag.SetMean (m_mean);
+	tag.Setntx(ntx);
+	packet->AddPacketTag (tag);
+
+	//NS_LOG_DEBUG ("Sent a packet (MAC LEVEL) at " << Simulator::Now ().GetSeconds ());
+
+	bool sent;
+	sent = m_mac->Send (packet);
+
+
+	if (not sent)
+	  {
+		  m_sendEvent = Simulator::Schedule (Seconds(GetNextTxTime()), &PeriodicSender::SendPacketMacConfirmed, this, ID, ntx);
+	  }
+
+	NS_LOG_DEBUG ("---->> Packet ID " << ID);
+  //NS_LOG_DEBUG ("Sent counter " << sent);
+
+
+}
+
+double
+PeriodicSender::GetNextTxTime (void)
+{
+	// NS_LOG_FUNCTION (this);
+	// Create and send a new packet
+    //NS_LOG_DEBUG ("Starting up application with a Exp =  " << GetExp() << " and SF = " << unsigned(GetSpreadingFactor()));
+
+	uint16_t size = 0;
+	Ptr<Packet> packet;
+
+	double ppm = 30;
+	double error = ppm/1e6;
+	double lambda;
+
+	bool Exp = GetExp();
+	double dutycycle = 0.01;
+	double interval = GetInterval().GetSeconds();
+	double simtime = GetSimTime ().GetSeconds();
+	double sendtime;
+
+	packet = Create<Packet>(m_pktSize+8);
+
+	Time timeonair;
+	LoraTxParameters params;
+
+	params.sf = GetSpreadingFactor ();
+
+	NS_LOG_DEBUG ("SpreadingFactor " << unsigned(params.sf));
+
+	// Tag the packet with its Spreading Factor and the Application Packet ID
+	LoraTag tag;
+	packet->RemovePacketTag (tag);
+	tag.SetSpreadingFactor (params.sf);
+	packet->AddPacketTag (tag);
+
+	// Compute the time on air as a function of the DC and SF
+
+	timeonair = m_phy->GetOnAirTime (packet,params);
+	NS_LOG_DEBUG ("time on air " << timeonair.GetSeconds());
+	//NS_LOG_DEBUG ("preamble bits " << params.nPreamble);
+
+
+	// Compute the interval as a function of the duty-cycle
+
+	lambda = dutycycle/timeonair.GetSeconds();
+
+	m_mean = timeonair.GetSeconds()/dutycycle;
+
+	NS_LOG_DEBUG ("Mean - ED " << m_mean);
+	NS_LOG_DEBUG ("Lambda - ED " << lambda);
+
+	NS_LOG_DEBUG ("simtime " << simtime);
+
+	if (Exp) {sendtime = m_exprandomdelay->GetValue (m_mean,m_mean*100);}
+
+    else {sendtime = timeonair.GetSeconds()*(1/dutycycle-1);}
+
+    return sendtime;
 
 }
 
@@ -330,7 +424,21 @@ PeriodicSender::StartApplication (void)
   NS_LOG_DEBUG ("Starting up application with a first event with a " <<
                 m_initialDelay.GetSeconds () << " seconds delay");
 
-  m_sendEvent = Simulator::Schedule (m_initialDelay, &PeriodicSender::SendPacket, this);
+
+  bool retransmissions;
+
+  retransmissions = GetRetransmissions();
+
+  if (retransmissions)
+  {
+	  m_sendEvent = Simulator::Schedule (m_initialDelay, &PeriodicSender::ConfirmedTraffic, this, 0 , 0, false);
+  }
+
+  else {
+	  m_sendEvent = Simulator::Schedule (m_initialDelay, &PeriodicSender::UnconfirmedTraffic, this);
+  }
+
+
 
   NS_LOG_DEBUG ("Event Id: " << m_sendEvent.GetUid ());
 }
@@ -346,5 +454,6 @@ PeriodicSender::StopApplication (void)
 
   Simulator::Cancel (m_sendEvent);
 }
+
 }
 

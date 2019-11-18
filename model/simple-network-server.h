@@ -107,12 +107,12 @@ public:
   /**
    * Send a packet through a gateway to an ED, using the first receive window
    */
-  void SendOnFirstWindow (LoraDeviceAddress address, uint32_t pkt_ID);
+  void SendOnFirstWindow (LoraDeviceAddress address, uint32_t ed_ID, uint32_t pkt_ID);
 
   /**
    * Send a packet through a gateway to an ED, using the second receive window
    */
-  void SendOnSecondWindow (LoraDeviceAddress address, uint32_t pkt_ID);
+  void SendOnSecondWindow (LoraDeviceAddress address, uint32_t ed_ID, uint32_t pkt_ID);
 
   /**
    * Check whether a reply to the device with a certain address already exists
@@ -132,10 +132,18 @@ public:
    */
   Address GetGatewayForReply (LoraDeviceAddress deviceAddress, double frequency);
 
+  // Function to handle the reception of ACK
+  void AddAckSent(uint32_t pkt_ID, uint32_t ed_ID);
+
+  void RemoveAckSent(uint32_t pkt_ID, uint32_t ed_ID);
+
+  // Function to verify if an ACK was already sent
+  bool AckSent(uint32_t pkt_ID, uint32_t ed_ID);
+
+  // Function to handle the eception of a packet
   void PacketCounter (uint32_t pkt_ID, uint32_t gw_ID, uint32_t ed_ID);
 
   void InterArrivalTime(uint32_t ed_ID, double arrival_time);
-
 
   void EWMA(vector<double> IAT, uint32_t ed_ID);
 
@@ -183,10 +191,18 @@ public:
   vector<uint32_t> m_gateways_pktreceive;
   vector<uint32_t> m_gateways_pktduplicate;
 
+  // Vector to keep track of the ACK packet already sent
+
+  vector<vector<uint32_t> > m_ack_pktid_device;
+
+  // Interarrival time vectors
+
   vector<vector<double> > m_devices_interarrivaltime;
   vector<vector<double> > m_devices_arrivaltime;
   vector<double> m_last_arrivaltime_known;
   vector<vector<double> > m_devices_ewma;
+
+
 
   vector<double> m_ucl;
   vector<double> m_lcl;
