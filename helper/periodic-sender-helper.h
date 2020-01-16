@@ -93,7 +93,7 @@ private:
 
   bool m_retransmissions;
 
-  uint8_t m_rxnumber;
+  int m_rxnumber;
 
   uint8_t m_sf;
 

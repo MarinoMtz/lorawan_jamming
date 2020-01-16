@@ -168,7 +168,7 @@ private:
 
   TracedCallback< uint8_t > m_sendpacket;
 
-  uint8_t m_rxnumber;
+  int m_rxnumber;
 
 };
 
