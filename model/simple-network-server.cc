@@ -326,7 +326,7 @@ SimpleNetworkServer::Receive (Ptr<NetDevice> device, Ptr<const Packet> packet,
   uint32_t pkt_ID = tag.GetPktID();
   uint32_t gw_ID = tag.GetGWID();
   uint32_t ed_ID = tag.GetSenderID();
-  uint8_t ntx = tag.Getntx();
+  uint32_t ntx = tag.Getntx();
 
   //Fire the resend tracesource if the packet was resed
 

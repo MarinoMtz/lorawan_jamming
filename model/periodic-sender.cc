@@ -277,7 +277,7 @@ PeriodicSender::SendPacketMacUnconfirmed ()
 }
 
 void
-PeriodicSender::ConfirmedTraffic (uint8_t ntx, uint32_t ID, bool confirmed)
+PeriodicSender::ConfirmedTraffic (int ntx, uint32_t ID, bool confirmed)
 {
 	Time sendtime = Seconds(0);
 	sendtime = Seconds(GetNextTxTime());
@@ -305,7 +305,7 @@ PeriodicSender::ConfirmedTraffic (uint8_t ntx, uint32_t ID, bool confirmed)
 }
 
 void
-PeriodicSender::SendPacketMacConfirmed (uint32_t ID, uint8_t ntx)
+PeriodicSender::SendPacketMacConfirmed (uint32_t ID, uint32_t ntx)
 {
     NS_LOG_FUNCTION (this);
 

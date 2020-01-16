@@ -69,7 +69,7 @@ public:
 
   void SetExp (bool Exp);
 
-  void SetRetransmissions (bool retrans, uint8_t rxnumber);
+  void SetRetransmissions (bool retrans, uint32_t rxnumber);
 
   void SetSpreadingFactor (uint8_t sf);
 
@@ -93,7 +93,7 @@ private:
 
   bool m_retransmissions;
 
-  int m_rxnumber;
+  uint32_t m_rxnumber;
 
   uint8_t m_sf;
 

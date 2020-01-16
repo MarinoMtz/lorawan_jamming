@@ -129,7 +129,7 @@ public:
 
   // Set Retransmission params
 
-  void SetRRX (bool retransmission, int rxnumber);
+  void SetRRX (bool retransmission, uint32_t rxnumber);
 
 
 private:
@@ -165,7 +165,7 @@ private:
 
   // Retransmission params
   bool m_retransmission;
-  int m_rxnumber;
+  uint32_t m_rxnumber;
 
 
 

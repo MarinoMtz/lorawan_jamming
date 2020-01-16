@@ -109,6 +109,7 @@ PeriodicSenderHelper::InstallPriv (Ptr<Node> node) const
   		app->SetInitialDelay (Seconds (unsigned (m_initialDelay->GetValue (0, 100))));
 	  }
 
+  NS_LOG_DEBUG ("Created an application with interval = " << m_rxnumber << " m_rxnumber");
   app -> SetRetransmissions (m_retransmissions, m_rxnumber);
   app->SetNode (node);
   node->AddApplication (app);
@@ -149,7 +150,7 @@ PeriodicSenderHelper::SetExp (bool Exp)
 }
 
 void
-PeriodicSenderHelper::SetRetransmissions (bool retrans, uint8_t rxnumber)
+PeriodicSenderHelper::SetRetransmissions (bool retrans, uint32_t rxnumber)
 {
 	m_retransmissions = retrans;
 	m_rxnumber = rxnumber;

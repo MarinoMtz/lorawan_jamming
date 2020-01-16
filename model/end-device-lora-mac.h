@@ -99,9 +99,9 @@ public:
    */
   void CloseSecondReceiveWindow (void);
 
-  void CheckAndResend (uint32_t ID, uint8_t ntx, uint32_t size, double mean);
+  void CheckAndResend (uint32_t ID, int ntx, uint32_t size, double mean);
 
-  bool PacketTrack (uint32_t ID, uint8_t ntx, uint8_t type);
+  bool PacketTrack (uint32_t ID, int ntx, uint8_t type);
 
   void AddPacketID (uint32_t ID);
 
@@ -109,7 +109,7 @@ public:
 
   bool CheckAckPacket (uint32_t ID);
 
-  void AddRetransmission(uint32_t ID, uint8_t ntx);
+  void AddRetransmission(uint32_t ID, int ntx);
 
   /////////////////////////
   // Getters and Setters //
@@ -173,7 +173,7 @@ public:
 
   // Set Retransmissions parameters
 
-  void SetRRX (bool retransmission, int rxnumber);
+  void SetRRX (bool retransmission, uint32_t rxnumber);
 
 
   uint8_t GetFirstReceiveWindowDataRate (void);

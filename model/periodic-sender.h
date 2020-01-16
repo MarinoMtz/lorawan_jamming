@@ -72,12 +72,12 @@ public:
    */
   void UnconfirmedTraffic (void);
 
-  void ConfirmedTraffic (uint8_t ntx, uint32_t ID, bool confirmed);
+  void ConfirmedTraffic (int ntx, uint32_t ID, bool confirmed);
 
 
   void SendPacketMacUnconfirmed ();
 
-  void SendPacketMacConfirmed (uint32_t ID, uint8_t ntx);
+  void SendPacketMacConfirmed (uint32_t ID, uint32_t ntx);
 
   /**
    * Start the application by scheduling the first SendPacket event

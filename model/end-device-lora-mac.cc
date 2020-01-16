@@ -566,7 +566,7 @@ EndDeviceLoraMac::TxFinished (Ptr<Packet const> packet)
 }
 
 void
-EndDeviceLoraMac::CheckAndResend (uint32_t ID, uint8_t ntx, uint32_t size, double mean)
+EndDeviceLoraMac::CheckAndResend (uint32_t ID, int ntx, uint32_t size, double mean)
 {
 
 	NS_LOG_INFO (" Inside the function to check and resend ");
@@ -584,7 +584,7 @@ EndDeviceLoraMac::CheckAndResend (uint32_t ID, uint8_t ntx, uint32_t size, doubl
 }
 
 bool
-EndDeviceLoraMac::PacketTrack (uint32_t ID, uint8_t ntx, uint8_t type)
+EndDeviceLoraMac::PacketTrack (uint32_t ID, int ntx, uint8_t type)
 {
 
 bool ackited = false;
@@ -662,7 +662,7 @@ EndDeviceLoraMac::CheckAckPacket (uint32_t ID)
 }
 
 void
-EndDeviceLoraMac::AddRetransmission (uint32_t ID, uint8_t ntx)
+EndDeviceLoraMac::AddRetransmission (uint32_t ID, int ntx)
 {
 	std::vector<uint32_t>::iterator it = std::find(pkstsentids.begin(), pkstsentids.end(), ID);
 
@@ -1232,7 +1232,7 @@ EndDeviceLoraMac::SetACKParams (bool differentchannel, bool secondreceivewindow,
 }
 
 void
-EndDeviceLoraMac::SetRRX (bool retransmission, int rxnumber)
+EndDeviceLoraMac::SetRRX (bool retransmission, uint32_t rxnumber)
 {
 	NS_LOG_FUNCTION (this << retransmission << " No " << rxnumber);
 	m_retransmission = retransmission;

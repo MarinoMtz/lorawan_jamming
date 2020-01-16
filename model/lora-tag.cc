@@ -70,7 +70,7 @@ LoraTag::GetSerializedSize (void) const
 {
   // Each datum about a SF is 1 byte + receivePower (the size of a double) +
   // frequency (the size of a double)
-  return 5 + 4*sizeof(double) + 3*sizeof(uint32_t);
+  return 4 + 4*sizeof(double) + 4*sizeof(uint32_t);
 }
 
 void
@@ -86,7 +86,7 @@ LoraTag::Serialize (TagBuffer i) const
   i.WriteU8 (m_jammer);
   i.WriteU32 (m_pktid);
   i.WriteU32 (m_gwid);
-  i.WriteU8 (m_ntx);
+  i.WriteU32 (m_ntx);
   i.WriteDouble (m_mean);
 
 
@@ -237,14 +237,14 @@ LoraTag::SetGWid (uint32_t gwid)
 	m_gwid = gwid;
 }
 
-uint8_t
+uint32_t
 LoraTag::Getntx (void)
 {
   return m_ntx;
 }
 
 void
-LoraTag::Setntx (uint8_t ntx)
+LoraTag::Setntx (uint32_t ntx)
 {
 	m_ntx = ntx;
 }

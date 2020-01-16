@@ -142,8 +142,8 @@ public:
   uint32_t GetGWID (void);
   void SetGWid (uint32_t gwid);
 
-  uint8_t Getntx (void);
-  void Setntx (uint8_t ntx);
+  uint32_t Getntx (void);
+  void Setntx (uint32_t ntx);
   double GetMean (void);
   void SetMean (double mean);
 
@@ -161,7 +161,7 @@ private:
   uint32_t m_pktid;
   uint32_t m_gwid;
 
-  uint8_t m_ntx;
+  uint32_t m_ntx;
   double m_mean;
 
 };

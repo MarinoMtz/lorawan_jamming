@@ -420,10 +420,11 @@ LoraMacHelper::SetACKParams (bool differentchannel, bool secondreceivewindow, do
 }
 
 void
-LoraMacHelper::SetRRX (bool retransmission, int rxnumber)
+LoraMacHelper::SetRRX (bool retransmission, uint32_t rxnumber)
 {
 	m_retransmission = retransmission;
 	m_rxnumber = rxnumber;
+	NS_LOG_FUNCTION ("maxtx "  << rxnumber );
 
 }
 
