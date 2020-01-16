@@ -102,7 +102,7 @@ public:
 
   double GetNextTxTime (void);
 
-  void SetRetransmissions (bool retrans, uint8_t rxnumber);
+  void SetRetransmissions (bool retrans, int rxnumber);
 
   bool GetRetransmissions (void);
 

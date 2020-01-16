@@ -172,7 +172,7 @@ PeriodicSender::SetExp (bool Exp)
 }
 
 void
-PeriodicSender::SetRetransmissions (bool retrans, uint8_t rxnumber)
+PeriodicSender::SetRetransmissions (bool retrans, int rxnumber)
 {
 	m_retransmissions = retrans;
 	m_rxnumber = rxnumber;
