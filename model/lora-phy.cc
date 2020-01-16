@@ -80,6 +80,9 @@ LoraPhy::GetTypeId (void)
 	.AddTraceSource ("DurationCallback",
 					 "Trace source indicating the duration of a packet treated by a GW",
 					 MakeTraceSourceAccessor (&LoraPhy::m_packetduration))
+	.AddTraceSource ("MessageSent",
+					 "Trace source indicating the PHY layer has sent a message",
+					 MakeTraceSourceAccessor (&LoraPhy::m_messageSend))
 	.AddTraceSource ("CaptureEffectCallback",
 					 "Trace source indicating if a packet was received thanks to CE",
 					 MakeTraceSourceAccessor (&LoraPhy::m_packetce));

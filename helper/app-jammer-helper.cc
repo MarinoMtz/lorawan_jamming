@@ -92,6 +92,7 @@ AppJammerHelper::InstallPriv (Ptr<Node> node) const
   app->SetRanSF (m_ransf);
   app->SetSpreadingFactor (m_sf);
   app->SetSimTime (m_simtime);
+  app->SetLambda(m_lambda);
 
   if (m_exp)
   {
@@ -156,6 +157,15 @@ void
 AppJammerHelper::SetSpreadingFactor (uint8_t sf)
 {
   m_sf = sf;
+}
+
+void
+AppJammerHelper::SetLambda (double lambda)
+{
+
+  m_lambda = lambda;
+  NS_LOG_DEBUG ("Lambda " << m_lambda);
+
 }
 
 } // namespace ns3

@@ -261,6 +261,14 @@ protected:
   TracedCallback<Ptr<const Packet>, uint32_t, double, uint8_t> m_startSending;
 
   /**
+   * The trace source fired when a message is sent (first time a packet is sent).
+   *
+   * \see class CallBackTraceSource
+   */
+
+  TracedCallback<Ptr<const Packet>, uint32_t, double, uint8_t> m_messageSend;
+
+  /**
    * The trace source fired when a packet begins the reception process from the
    * medium.
    *

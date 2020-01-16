@@ -193,6 +193,7 @@ EndDeviceLoraPhy::Send (Ptr<Packet> packet, LoraTxParameters txParams,
   tag.SetSpreadingFactor (txParams.sf);
   tag.SetPreamble(preamble.ToDouble(Time::S));
   tag.SetSenderID (m_device->GetNode ()->GetId ());
+  int ntx = tag.Getntx ();
   packet->AddPacketTag (tag);
 
   // Send the packet over the channel
@@ -231,6 +232,7 @@ EndDeviceLoraPhy::Send (Ptr<Packet> packet, LoraTxParameters txParams,
   if (m_device)
     {
       m_startSending (packet, m_device->GetNode ()->GetId (), frequencyMHz, txParams.sf);
+      if (ntx == 1) {m_messageSend (packet, 0, 0, 0);}
     }
   else
     {

@@ -182,6 +182,22 @@ AppJammer::GetSpreadingFactor ()
 }
 
 void
+AppJammer::SetLambda (double lambda)
+{
+
+  m_lambda = lambda;
+  NS_LOG_DEBUG ("Lambda " << m_lambda);
+
+}
+
+double
+AppJammer::GetLambda (void)
+{
+ // NS_LOG_FUNCTION (this);
+  return m_lambda;
+}
+
+void
 AppJammer::SendPacket (void)
 {
 // NS_LOG_FUNCTION (this);
@@ -189,7 +205,6 @@ AppJammer::SendPacket (void)
 
   double ppm = 30;
   double error = ppm/1e6;
-
   double lambda;
   double mean;
   bool Exp = GetExp();

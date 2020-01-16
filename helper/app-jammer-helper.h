@@ -85,6 +85,9 @@ public:
 
   void SetSpreadingFactor (uint8_t sf);
 
+  void SetLambda (double lambda);
+
+
 private:
 
   Ptr<Application> InstallPriv (Ptr<Node> node) const;
@@ -106,6 +109,9 @@ private:
   uint8_t m_sf;
 
   Time m_simtime;
+
+  double m_lambda;
+
 
 };
 

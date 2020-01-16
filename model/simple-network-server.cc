@@ -65,6 +65,11 @@ SimpleNetworkServer::GetTypeId (void)
 					 "packet re-transmission",
 					  MakeTraceSourceAccessor
 					  (&SimpleNetworkServer::m_resendpacket))
+	.AddTraceSource ("MessageRx",
+					 "Trace source indicating a reception of a "
+					 "message",
+					  MakeTraceSourceAccessor
+					  (&SimpleNetworkServer::m_rxmessage))
 					 ;
   return tid;
 }
@@ -182,19 +187,15 @@ SimpleNetworkServer:: SetEWMA (bool ewma, double target, double lambda, double U
 
 	m_target = target;
 	m_lambda = lambda;
-
 	m_ewma = ewma;
 
 	m_pre_ucl = UCL;
 	m_pre_lcl = LCL;
 
-
 	//Initialize the vectors related to EWMA to detect attacks
 	m_devices_ewma.resize(m_devices, vector<double>(m_buffer_length));
-
 	m_ucl.resize(m_devices,0);
 	m_lcl.resize(m_devices,0);
-
 	// ucl, lcl and ewma for tracing purposes
 	m_devices_ucl.resize(m_devices, vector<double>(0));
 	m_devices_lcl.resize(m_devices, vector<double>(0));
@@ -205,16 +206,11 @@ SimpleNetworkServer:: SetEWMA (bool ewma, double target, double lambda, double U
 void
 SimpleNetworkServer::SetInterArrival (void)
 {
-
 	m_interarrivaltime = true;
-
 	//Initialize the vectors related to the inter-arrival time
-
 	m_devices_interarrivaltime.resize(m_devices, vector<double>(m_buffer_length));
 	m_devices_arrivaltime.resize(m_devices,vector<double>(m_buffer_length));
-
 	m_last_arrivaltime_known.resize(m_devices,double(0));
-
 	m_devices_interarrivaltime_total.resize(m_devices, vector<double>(0));
 	m_devices_arrivaltime_total.resize(m_devices, vector<double>(0));
 
@@ -298,7 +294,6 @@ SimpleNetworkServer::AddNode (Ptr<Node> node)
   if (m_deviceStatuses.find (deviceAddress) == m_deviceStatuses.end ())
     {
       // The device doesn't exist
-
       // Create new DeviceStatus
       DeviceStatus devStatus = DeviceStatus (edLoraMac);
       // Add it to the map
@@ -339,8 +334,11 @@ SimpleNetworkServer::Receive (Ptr<NetDevice> device, Ptr<const Packet> packet,
 	  m_resendpacket(ntx);
   }
 
+  //Fire the resend tracesource if this is the first time we receive this packet
 
-  PacketCounter(pkt_ID,gw_ID,ed_ID);
+  if (AlreadyReceived(m_devices_pktid[ed_ID],pkt_ID) == false) {
+	  m_rxmessage (1);
+  }
 
   // Register which gateway this packet came from
   double rcvPower = tag.GetReceivePower ();
@@ -349,14 +347,16 @@ SimpleNetworkServer::Receive (Ptr<NetDevice> device, Ptr<const Packet> packet,
   bool Send_ACK;
   bool AR;
 
-  Send_ACK = AckSent(pkt_ID, ed_ID);
-  AR = AlreadyReceived(m_devices_pktid[ed_ID],pkt_ID);
 
+  Send_ACK = AckSent(pkt_ID, ed_ID);
+
+  AR = AlreadyReceived(m_devices_pktid[ed_ID],pkt_ID);
 
   NS_LOG_DEBUG ("Receive -- Pkt ID" << pkt_ID << " ED ID " << ed_ID);
 
   // Determine whether the packet requires a reply
-  if (macHdr.GetMType () == LoraMacHeader::CONFIRMED_DATA_UP &&  !Send_ACK)
+
+  if (macHdr.GetMType () == LoraMacHeader::CONFIRMED_DATA_UP && AR == false)
 		 // &&      !m_deviceStatuses.at (frameHdr.GetAddress ()).HasReply ()
     {
      NS_LOG_DEBUG ("Scheduling a reply for this device");
@@ -397,6 +397,8 @@ SimpleNetworkServer::Receive (Ptr<NetDevice> device, Ptr<const Packet> packet,
      Simulator::Schedule (Seconds (1), &SimpleNetworkServer::SendOnFirstWindow,
                            this, frameHdr.GetAddress (), ed_ID, pkt_ID);
     }
+
+  PacketCounter(pkt_ID,gw_ID,ed_ID);
   return true;
 }
 

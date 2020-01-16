@@ -160,7 +160,8 @@ public:
 
   TracedCallback< vector<double>, vector<double> > m_ewma_vector;
 
-  TracedCallback< uint8_t > m_resendpacket;
+  TracedCallback< uint8_t > m_resendpacket; // Trace source indicating when the packet received correspond to a re-transmission
+  TracedCallback< uint8_t > m_rxmessage; // Trace source indicating when a new message is received
 
   uint32_t m_devices;
   uint32_t m_gateways;

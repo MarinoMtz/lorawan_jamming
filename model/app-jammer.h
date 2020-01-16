@@ -105,6 +105,11 @@ public:
   uint8_t GetSpreadingFactor ();
 
 
+  void SetLambda (double lambda);
+
+  double GetLambda (void);
+
+
   /**
    * Send a packet using the LoraNetDevice's Send method
    */
@@ -182,6 +187,9 @@ private:
   vector<double> send_times;
   double cumultime;
   double sent = 0;
+
+  double m_lambda;
+
 
 
 };
