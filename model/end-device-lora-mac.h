@@ -483,7 +483,8 @@ private:
   // Retransmission variables
 
   bool m_retransmission;
-  uint8_t m_rxnumber;
+
+  int m_rxnumber;
 
 
   /**
