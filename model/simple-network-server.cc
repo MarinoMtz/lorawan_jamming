@@ -394,7 +394,7 @@ SimpleNetworkServer::Receive (Ptr<NetDevice> device, Ptr<const Packet> packet,
      AddAckSent(pkt_ID, ed_ID);
 
      // Schedule a reply on the first receive window
-     Simulator::Schedule (Seconds (1), &SimpleNetworkServer::SendOnFirstWindow,
+     Simulator::Schedule (Seconds (0), &SimpleNetworkServer::SendOnFirstWindow,
                            this, frameHdr.GetAddress (), ed_ID, pkt_ID);
     }
 

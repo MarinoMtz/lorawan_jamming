@@ -74,7 +74,6 @@ public:
 
   void ConfirmedTraffic (int ntx, uint32_t ID, bool confirmed);
 
-
   void SendPacketMacUnconfirmed ();
 
   void SendPacketMacConfirmed (uint32_t ID, uint32_t ntx);
@@ -105,6 +104,8 @@ public:
   void SetRetransmissions (bool retrans, int rxnumber);
 
   bool GetRetransmissions (void);
+
+  double SentTime (void);
 
 
 private:

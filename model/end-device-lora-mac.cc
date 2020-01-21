@@ -85,11 +85,11 @@ EndDeviceLoraMac::EndDeviceLoraMac () :
   m_txPower (14),
   m_codingRate (1),                         	// LoraWAN default
   m_headerDisabled (0),                     	// LoraWAN default
-  m_receiveDelay1 (Seconds (1)),            	// LoraWAN default
+  m_receiveDelay1 (Seconds (0)),            	// LoraWAN default
   m_receiveDelay2 (Seconds (2)),            	// LoraWAN default
   m_ackdifferentchannel(false),					// Bool to set if ACKs are sent in a diffent channel
   m_sendsecondreceivewindow(false),					// Bool to set if the second receive window is used
-  m_FirstReceiveWindowDuration (Seconds (0.2)), // This will be set as the time necessary to detect a preamble at the corresponding sf
+  m_FirstReceiveWindowDuration (Seconds (0.05)), // This will be set as the time necessary to detect a preamble at the corresponding sf
   m_SecondReceiveWindowDuration (Seconds (0.2)),// This will be set as the time necessary to detect a preamble at the corresponding sf
   m_firstReceiveWindowDataRate (0), 			// First rx window DR if it is sent on the same channel as the frame
   m_secondReceiveWindowDataRate (0),			// Second rx window DR
@@ -513,6 +513,7 @@ EndDeviceLoraMac::TxFinished (Ptr<Packet const> packet)
   // Schedule the opening of the second receive window
 
   NS_LOG_INFO ("----> OPEN SECOND " << m_sendsecondreceivewindow);
+  NS_LOG_INFO ("----> m_receiveDelay1 " << m_receiveDelay1.GetSeconds());
 
   if (m_sendsecondreceivewindow)
   {
@@ -1237,7 +1238,6 @@ EndDeviceLoraMac::SetRRX (bool retransmission, uint32_t rxnumber)
 	NS_LOG_FUNCTION (this << retransmission << " No " << rxnumber);
 	m_retransmission = retransmission;
 	m_rxnumber = rxnumber;
-
 }
 
 double

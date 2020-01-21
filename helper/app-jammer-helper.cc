@@ -43,6 +43,7 @@ AppJammerHelper::AppJammerHelper ()
   m_ransf = false;
   m_sf = 7;
   m_simtime = Seconds(0);
+  m_lambda = 0;
 }
 
 AppJammerHelper::~AppJammerHelper ()

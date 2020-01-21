@@ -209,7 +209,7 @@ AttackHelper::SetFrequency(NodeContainer Jammers,double Frequency)
 }
 
 void
-AttackHelper::SetPacketSize (NodeContainer Jammers,uint16_t PacketSize)
+AttackHelper::SetPacketSize (NodeContainer Jammers, uint16_t PacketSize)
 {
 	for (NodeContainer::Iterator j = Jammers.Begin (); j != Jammers.End (); ++j)
 	    {

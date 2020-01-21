@@ -58,9 +58,9 @@ Ptr<UniformRandomVariable> rnd_alloc = CreateObject<UniformRandomVariable> ();
 
 double simulationTime = 300;
 double appPeriodSeconds = 50;
-
 double appPeriodJamSeconds = 1;
 
+// Simulation counters (results)
 double noMoreReceivers = 0;
 double collision_jm = 0;
 double collision_ed = 0;
@@ -83,11 +83,10 @@ double cumulative_time_ed = 0;
 double ce_ed = 0;
 double ce_jm = 0;
 
-int PayloadSize=41;
-double PayloadJamSize=50;
 
-bool Conf_UP = true;
-bool Net_Ser = true;
+// ED Parameters
+int PayloadSize=41; // Peyload siwe of an ED Packet
+bool Conf_UP = true; // bool variable to set if User message need to be ackited
 bool Random_SF = false;
 bool All_SF = false;
 bool Exponential = true;
@@ -103,7 +102,14 @@ double JammerFrequency = 868.1;
 double JammerTxPower = 25;
 double JammerDutyCycle = 0.5;
 double JammerSF = 7;
-double lambda_jam_up = 10;
+double lambda_jam_dw = 10; // lambda to be used by uplink jammers
+double lambda_jam_up = 10; // lambda to be used by downlink jammers
+bool updw; // Variable indicating if the simulation will consider jammers transmitting on both channels
+double PayloadJamSize=50;
+//double PayloadJamSize=50;
+
+
+//int PayloadSize=41;
 
 // ACK Parameters
 bool differentchannel = true;
@@ -117,7 +123,7 @@ int acklength = 1;
 ***********************************/
 
 bool retransmission = true;
-int maxtx = 1;
+uint32_t maxtx = 1;
 
 // Output control
 bool printEDs = false;
@@ -125,18 +131,20 @@ bool Trans = true;
 bool SimTime = true;
 bool buildingsEnabled = false;
 
-// variables for the NS algorithms
-bool InterArrival = false;
-int NS_buffer = 10;
-double lambda = 0;
+// variables related to the Network Server and algorithms runing on it
 
-//Authenticated preambles at the GW level
-bool authpre = false;
+bool Net_Ser = true; // bool veariable to set if there will be a Networkserver
+bool InterArrival = false; // bool variable to set if the NS will track the Inter Arrival Time
+int NS_buffer = 10; // Length of the NS buffer
+double lambda = 0; // internal value of the attack detection algorithm / Moving average
 
 // Detection algs at the NetServer level.
 bool EWMA = false;
 double ucl = 15;
 double lcl = 3;
+
+//Authenticated preambles at the GW level
+bool authpre = false;
 
 // Interference model, -- set up at the GW level (phy)
 // 1 - Pure_ALOHA
@@ -663,7 +671,7 @@ int main (int argc, char *argv[])
 //  LogComponentEnable("NetworkServerHelper", LOG_LEVEL_ALL);
 //  LogComponentEnable("AppJammer", LOG_LEVEL_ALL);
 //  LogComponentEnable("LoraInterferenceHelper", LOG_LEVEL_ALL);
-//  LogComponentEnable("LoraMac", LOG_LEVEL_ALL);
+//  LogComponentEnable("LoraMacHelper", LOG_LEVEL_ALL);
 //  LogComponentEnable("EndDeviceLoraMac", LOG_LEVEL_ALL);
 //  LogComponentEnable("JammerLoraMac", LOG_LEVEL_ALL);
 //  LogComponentEnable("GatewayLoraMac", LOG_LEVEL_ALL);
@@ -1017,6 +1025,8 @@ int main (int argc, char *argv[])
   ///////////////
 
   cout << "Conf_UP " << Conf_UP << endl;
+  cout << "maxtx " << maxtx << endl;
+
 
   if (Net_Ser == true)
   {
@@ -1103,60 +1113,54 @@ int main (int argc, char *argv[])
   //  double receivedProbGivenAboveSensitivity = gwreceived/(edsent - underSensitivity);
   //  double interferedProbGivenAboveSensitivity = collision/(edsent - underSensitivity);
   //  double noMoreReceiversProbGivenAboveSensitivity = noMoreReceivers/(edsent - underSensitivity);
-
   //  cout << edsent << " " << gwreceived << " " << collision << " " << dropped << " " << noMoreReceiversProb << " " << underSensitivityProb << endl;
-
   //  cout << nDevices <<  " " << collision_ed << " " << dropped_ed << " " << gwreceived_ed << " " << underSensitivity_ed << " " << edsent << " "  << collision_ed + dropped_ed + gwreceived_ed + underSensitivity_ed  << " " << collisionProb_ed << " " << noMoreReceiversProb_ed  << " " << receivedProb_ed << endl;
-
   //  cout << nJammers  << " " << collision_jm << " " << dropped_jm << " " << gwreceived_jm << " " << underSensitivity_jm << " " << jmsent << " "  << collision_jm + dropped_jm + gwreceived_jm + underSensitivity_jm  << " " << collisionProb_jm << " " << noMoreReceiversProb_jm  << " " << receivedProb_jm << endl;
 
 	  string Result_File = Path + "/" + Filename;
 
-	  cout << "Jammer Type " << JammerType << endl;
-	  cout << "Jammer DutyCycle " << JammerDutyCycle << endl;
-	  cout << "Number of Jammers " << nJammers << endl;
+	 // cout << "Jammer Type " << JammerType << endl;
+	 //cout << "Jammer DutyCycle " << JammerDutyCycle << endl;
+	 // cout << "Number of Jammers " << nJammers << endl;
 	  cout << "Number of Devices " << nDevices << endl;
 	  cout << "Pkt Sent ed " << edsent << endl;
 	  cout << "Msg Sent ed " << edsentmsg << endl;
-	  cout << "Sent jm " << jmsent << endl;
+	//  cout << "Sent jm " << jmsent << endl;
 	  cout << "Success ed " << gwreceived_ed << endl;
-	  cout << "Success jm " << gwreceived_jm << endl;
-	  cout << "collision ed " << collision_ed << endl;
-	  cout << "collision jm " << collision_jm << endl;
-	  cout << "underSensitivity ed " << underSensitivity_ed << endl;
-	  cout << "underSensitivity jm " << underSensitivity_jm << endl;
-	  cout << "cumulative time ed " << cumulative_time_ed << endl;
-	  cout << "cumulative time jm " << cumulative_time_jm << endl;
-	  cout << "dropped ed " << dropped_ed << endl;
-	  cout << "dropped jm " << dropped_jm << endl;
-	  cout << "Real mean jam " << simulationTime/jmsent << endl;
-	  cout << "Real mean ed " << simulationTime/edsent << endl;
-	  cout << "ACK Received " << edreceived << endl;
-	  cout << "Retransmissions Sent " << edretransmission << endl;
-	  cout << "Retransmissions Received " << edretransmissionreceived << endl;
-	  cout << "Message Received at NS " << nsmessagerx << endl;
+	//  cout << "Success jm " << gwreceived_jm << endl;
+	//  cout << "collision ed " << collision_ed << endl;
+	//  cout << "collision jm " << collision_jm << endl;
+	//  cout << "underSensitivity ed " << underSensitivity_ed << endl;
+	//  cout << "underSensitivity jm " << underSensitivity_jm << endl;
+	//  cout << "cumulative time ed " << cumulative_time_ed << endl;
+	//  cout << "cumulative time jm " << cumulative_time_jm << endl;
+	//  cout << "dropped ed " << dropped_ed << endl;
+	//  cout << "dropped jm " << dropped_jm << endl;
+	//  cout << "Real mean jam " << simulationTime/jmsent << endl;
+	//  cout << "Real mean ed " << simulationTime/edsent/nDevices << endl;
+	//  cout << "ACK Received " << edreceived << endl;
+	//  cout << "Retransmissions Sent " << edretransmission << endl;
+	//  cout << "Retransmissions Received " << edretransmissionreceived << endl;
+	//  cout << "Message Received at NS " << nsmessagerx << endl;
 
+	//  for (uint32_t i = 0; i != nGateways; i++)
+	//    {
+	//	  cout << "loss GW - " << i <<  " " << pkt_loss_gw [i] << endl;
+	//	  cout << "drop GW - " << i <<  " "  << pkt_drop_gw [i] << endl;
+	//	  cout << "received GW - " << i <<  " " << pkt_success_gw [i] << endl;
+	//    }
 
-	  for (uint32_t i = 0; i != nGateways; i++)
-	    {
-		  cout << "loss GW - " << i <<  " " << pkt_loss_gw [i] << endl;
-		  cout << "drop GW - " << i <<  " "  << pkt_drop_gw [i] << endl;
-		  cout << "received GW - " << i <<  " " << pkt_success_gw [i] << endl;
-	    }
-
-	   cout << "success ED - " << accumulate(pkt_success_ed.begin(), pkt_success_ed.end(), 0) << endl;
-
-	 // for(uint32_t i = 0; i < pkt_success_ed.size(); i++)
-	 //   {
-	 //	  	cout << "success ED - " << i <<  " " << pkt_success_ed [i] << endl;
-	 //   	 cout << pkt_success_ed[i] << endl;
-	 //   }
+	//   cout << "success ED - " << accumulate(pkt_success_ed.begin(), pkt_success_ed.end(), 0) << endl;
+	//   for(uint32_t i = 0; i < pkt_success_ed.size(); i++)
+	//   {
+	//	  	cout << "success ED - " << i <<  " " << pkt_success_ed [i] << endl;
+	//      cout << pkt_success_ed[i] << endl;
+	//   }
 
 	  PrintResults ( nGateways, nDevices, nJammers, receivedProb_ed, collisionProb_ed, noMoreReceiversProb_ed,
 			  underSensitivityProb_ed, receivedProb_jm, collisionProb_jm, noMoreReceiversProb_jm,
 			  underSensitivityProb_jm, gwreceived_ed, gwreceived_jm, edsent, jmsent, cumulative_time_ed,
 			  cumulative_time_jm, ce_ed, ce_jm, edsentmsg, nsmessagerx, msgreceiveProb, edretransmission, Result_File);
-
 
   return 0;
 }

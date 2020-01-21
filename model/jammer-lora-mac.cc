@@ -76,9 +76,9 @@ JammerLoraMac::JammerLoraMac () :
   m_txPower (14),
   m_codingRate (1),                         // LoraWAN default
   m_headerDisabled (0),                     // LoraWAN default
-  m_receiveDelay1 (Seconds (1)),            // LoraWAN default
+  m_receiveDelay1 (Seconds (0)),            // LoraWAN default
   m_receiveDelay2 (Seconds (2)),            //WAN default
-  m_FirstReceiveWindowDuration (Seconds (0.2)),  // This will be set as the time necessary to detect a preamble at the corresponding sf
+  m_FirstReceiveWindowDuration (Seconds (0.04)),  // This will be set as the time necessary to detect a preamble at the corresponding sf
   m_SecondReceiveWindowDuration (Seconds (0.2)),  // This will be set as the time necessary to detect a preamble at the corresponding sf
   m_closeWindow (EventId ()),               // Initialize as the default eventId
   m_secondReceiveWindow (EventId ()),       // Initialize as the default eventId
