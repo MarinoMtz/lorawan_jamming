@@ -55,9 +55,10 @@ AppJammer::GetTypeId (void)
 }
 
 AppJammer::AppJammer () :
+
+  m_simtime (Seconds(0)),
   m_interval (Seconds (0)),
   m_initialDelay (Seconds (0)),
-  m_simtime (Seconds(0)),
   m_pktSize (0),
   m_jammer_type (0),
   m_dutycycle (0.01),
@@ -65,13 +66,14 @@ AppJammer::AppJammer () :
   m_exp(false),
   m_sf(7),
   send_times(0),
-  cumultime(0)
+  cumultime(0),
+  m_lambda(0)
 {
 //  NS_LOG_FUNCTION_NOARGS ();
   m_exprandomdelay = CreateObject<ExponentialRandomVariable> ();
   m_randomsf = CreateObject<UniformRandomVariable> ();
-
 }
+
 
 AppJammer::~AppJammer ()
 {

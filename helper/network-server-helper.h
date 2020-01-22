@@ -62,7 +62,7 @@ public:
    */
   void SetEndDevices (NodeContainer endDevices);
 
-  void SetJammers (NodeContainer jammers);
+  void SetJammers (uint32_t jammers);
 
   Ptr<SimpleNetworkServer> m_ns = 0;
 
@@ -112,7 +112,7 @@ private:
 
   NodeContainer m_endDevices;   //!< Set of endDevices to connect to this NS
 
-  NodeContainer m_jammers;   //!< Set of endDevices to connect to this NS
+  uint32_t m_jammers;   //!< Set of endDevices to connect to this NS
 
   PointToPointHelper p2pHelper; //!< Helper to create PointToPoint links
 };

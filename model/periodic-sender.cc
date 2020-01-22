@@ -382,6 +382,7 @@ PeriodicSender::GetNextTxTime (void)
 	// Compute the interval as a function of the duty-cycle
 	lambda = dutycycle/timeonair.GetSeconds();
 	m_mean = timeonair.GetSeconds()/dutycycle;
+	m_mean = 6.5;
 
 	//NS_LOG_DEBUG ("Lambda - ED " << lambda);
 	//NS_LOG_DEBUG ("simtime " << simtime);
@@ -389,8 +390,8 @@ PeriodicSender::GetNextTxTime (void)
 	if (Exp) {sendtime = m_exprandomdelay->GetValue (m_mean,m_mean*100);}
     else {sendtime = timeonair.GetSeconds()*(1/dutycycle-1);}
 
-	//NS_LOG_DEBUG ("SF " << unsigned(params.sf) << " ToA " << timeonair.GetSeconds()
-	//		<< " Mean - ED " << m_mean << " Lambda - ED " << lambda << " Send-time " << sendtime);
+	NS_LOG_DEBUG ("SF " << unsigned(params.sf) << " ToA " << timeonair.GetSeconds()
+			<< " Mean - ED " << m_mean << " Lambda - ED " << lambda << " Send-time " << sendtime);
 
     return sendtime;
 }
