@@ -50,7 +50,6 @@ NS_LOG_COMPONENT_DEFINE ("LorawanNetworkAttackExample");
 // Network settings
 uint32_t nDevices = 2;
 uint32_t nGateways = 1;
-uint32_t nJammers = 0;
 double radius = 1000;
 
 // Uniform random variable to allocate nodes
@@ -95,18 +94,28 @@ bool Exponential = true;
 bool Specific_SF = true;
 double ED_SF = 7;
 
+
 // Jammer Parameters
 
 double JammerType = 3;
-double JammerFrequency = 868.1;
+double JammerFrequency_up = 868.1;
+double JammerFrequency_dw = 869.525;
+
 double JammerTxPower = 25;
 double JammerDutyCycle = 0.5;
 double JammerSF = 7;
+
 double lambda_jam_dw = 10; // lambda to be used by uplink jammers
 double lambda_jam_up = 10; // lambda to be used by downlink jammers
+
 bool updw; // Variable indicating if the simulation will consider jammers transmitting on both channels
-double PayloadJamSize=50;
-//double PayloadJamSize=50;
+
+double PayloadJamSize_up = 50; // Payload length to be used by jammers transmitting in uplink
+double PayloadJamSize_dw = 50; // Payload length to be used by jammers transmitting in downlink
+
+uint32_t nJammers_up = 0; // Number of jammers transmitting on up
+uint32_t nJammers_dw = 0; // Number of jammers transmitting on
+
 
 
 //int PayloadSize=41;
@@ -155,11 +164,11 @@ int Int_Model = 1;
 double delta;
 
 
-vector<uint32_t> pkt_success_ed(nDevices+nJammers,0);
-vector<uint32_t> msg_send(nDevices+nJammers,0);
-vector<uint32_t> pkt_drop_ed(nDevices+nJammers,0);
-vector<uint32_t> pkt_loss_ed(nDevices+nJammers,0);
-vector<uint32_t> pkt_send(nDevices+nJammers,0);
+vector<uint32_t> pkt_success_ed(nDevices + nJammers_up + nJammers_dw,0);
+vector<uint32_t> msg_send(nDevices + nJammers_up + nJammers_dw,0);
+vector<uint32_t> pkt_drop_ed(nDevices+ nJammers_up + nJammers_dw,0);
+vector<uint32_t> pkt_loss_ed(nDevices+ nJammers_up + nJammers_dw,0);
+vector<uint32_t> pkt_send(nDevices+ nJammers_up + nJammers_dw,0);
 
 vector<uint32_t> pkt_loss_gw(nGateways,0);
 vector<uint32_t> pkt_drop_gw(nGateways,0);
@@ -392,7 +401,7 @@ CollisionCallback (Ptr<Packet const> packet, uint32_t systemId, uint32_t SenderI
  //packet->AddPacketTag (tag);
 
  pkt_loss_ed [SenderID] ++;
- pkt_loss_gw [systemId-nDevices-nJammers] ++;
+ pkt_loss_gw [systemId-nDevices-nJammers_up - nJammers_dw] ++;
 
  if (jammer == uint8_t(0))
   {
@@ -419,7 +428,7 @@ NoMoreReceiversCallback (Ptr<Packet const> packet, uint32_t systemId, uint32_t S
   //packet->AddPacketTag (tag);
 
   pkt_drop_ed [SenderID] += 1;
-  pkt_drop_gw [systemId-nDevices-nJammers] ++;
+  pkt_drop_gw [systemId-nDevices- nJammers_up - nJammers_dw] ++;
 
   if (jammer == uint8_t(0))
 	  {
@@ -588,7 +597,7 @@ int main (int argc, char *argv[])
 
   CommandLine cmd;
   cmd.AddValue ("nDevices", "Number of end devices to include in the simulation", nDevices);
-  cmd.AddValue ("nJammers", "Number of Jammers to include in the simulation", nJammers);
+
   cmd.AddValue ("nGateways", "Number of Gateways to include in the simulation", nGateways);
   cmd.AddValue ("Conf_UP", "Confirmed data UP", Conf_UP);
   cmd.AddValue ("radius", "radius of the disc where nodes will be deployed", radius);
@@ -598,19 +607,30 @@ int main (int argc, char *argv[])
   cmd.AddValue ("printEDs", "Whether or not to print a file containing the ED's positions", printEDs);
   cmd.AddValue ("PayloadSize", "Payload size of the Packet - Lora Node", PayloadSize);
 
-
   // imput variables related to jammers
 
-  cmd.AddValue ("PayloadJamSize", "Payload size of the Packet - Jamming Node", PayloadJamSize);
+  cmd.AddValue ("nJammers_up", "Number of Uplink Jammers to include in the simulation", nJammers_up);
+  cmd.AddValue ("nJammers_dw", "Number of Downlink Jammers to include in the simulation", nJammers_dw);
+
+  cmd.AddValue ("PayloadJamSize_up", "Payload size of the Packet - Jamming Node", PayloadJamSize_up);
+  cmd.AddValue ("PayloadJamSize_dw", "Payload size of the Packet - Jamming Node", PayloadJamSize_dw);
+
+
   cmd.AddValue ("JammerType", "Attacker Profile", JammerType);
-  cmd.AddValue ("JammerFrequency", "Jammer Frequency in MHz (if Type 2: the frequency the device is listening for; if type 3: the frequency the device will transmit)", JammerFrequency);
+  cmd.AddValue ("JammerFrequency_up", "Jammer Frequency in MHz", JammerFrequency_up);
+  cmd.AddValue ("JammerFrequency_dw", "Jammer Frequency in MHz", JammerFrequency_dw);
+
   cmd.AddValue ("JammerSF", "Jammer SF, if not random", JammerSF);
   cmd.AddValue ("JammerTxPower", "Jammer TX Poxer in dBm ", JammerTxPower);
   cmd.AddValue ("Random_SF", "Boolean variable to set whether the Jammer select a random SF to transmit", Random_SF);
   cmd.AddValue ("All_SF", "Boolean variable to set whether the Jammer transmits in all SF at the same time (Jammers 3 and 4)", All_SF);
   cmd.AddValue ("JammerDutyCycle", "Jammer duty cycle", JammerDutyCycle);
   cmd.AddValue ("Exponential", "Exponential inter-arrival time", Exponential);
+
   cmd.AddValue ("lambda_jam_up", "Lambda to be used by the jammer to jam on the uplink channel", lambda_jam_up);
+  cmd.AddValue ("lambda_jam_dw", "Lambda to be used by the jammer to jam on the uplink channel", lambda_jam_dw);
+
+  cmd.AddValue ("updw", "boolean variable indicating if thre will be uplink and downlink jammers in the simulation", updw);
 
   // imput variables related to ACKs
 
@@ -651,10 +671,10 @@ int main (int argc, char *argv[])
 
   cmd.Parse (argc, argv);
 
-  pkt_success_ed.resize(nDevices+nJammers, 0);
-  pkt_drop_ed.resize(nDevices+nJammers, 0);
-  pkt_loss_ed.resize(nDevices+nJammers, 0);
-  pkt_send.resize(nDevices+nJammers, 0);
+  pkt_success_ed.resize(nDevices + nJammers_up + nJammers_dw, 0);
+  pkt_drop_ed.resize(nDevices+ nJammers_up + nJammers_dw, 0);
+  pkt_loss_ed.resize(nDevices+ nJammers_up + nJammers_dw, 0);
+  pkt_send.resize(nDevices + nJammers_up + nJammers_dw, 0);
 
   pkt_loss_gw.resize(nGateways,0);
   pkt_drop_gw.resize(nGateways,0);
@@ -810,18 +830,10 @@ int main (int argc, char *argv[])
       Ptr<LoraMac> mac = loraNetDevice->GetMac ();
       mac->TraceConnectWithoutContext ("ReceivedPacket",
                                          MakeCallback (&EnDeviceReceiveCallback));
-    }
-
-
-  for (NodeContainer::Iterator j = endDevices.Begin ();
-       j != endDevices.End (); ++j)
-    {
-      Ptr<Node> node = *j;
-      Ptr<LoraNetDevice> loraNetDevice = node->GetDevice (0)->GetObject<LoraNetDevice> ();
-      Ptr<LoraMac> mac = loraNetDevice->GetMac ();
       mac->TraceConnectWithoutContext ("ResendPacket",
                                                MakeCallback (&EnDeviceRetransmissionCallback));
     }
+
 
   /************************
   *  Create Jammers  *
@@ -829,7 +841,7 @@ int main (int argc, char *argv[])
 
   // Create a set of Jammers
   NodeContainer Jammers;
-  Jammers.Create (nJammers);
+  Jammers.Create (nJammers_up);
 
   // Assign a mobility model to each node
   mobility.Install (Jammers);
@@ -861,6 +873,50 @@ int main (int argc, char *argv[])
       phy->TraceConnectWithoutContext ("StartSending",
                                        MakeCallback (&JMTransmissionCallback));
     }
+
+
+
+  /************************
+  *  Create Jammers dw*
+  ************************/
+
+	 NodeContainer Jammers_dw;
+	 Jammers_dw.Create (nJammers_dw);
+
+	 // Assign a mobility model to each node
+	 mobility.Install (Jammers_dw);
+
+
+	 // Make it so that nodes are at a certain height > 0
+	 for (NodeContainer::Iterator j = Jammers_dw.Begin ();
+	      j != Jammers_dw.End (); ++j)
+	   {
+	     Ptr<MobilityModel> mobility = (*j)->GetObject<MobilityModel> ();
+	     Vector position = mobility->GetPosition ();
+	     position.z = 1;
+	     mobility->SetPosition (position);
+	   }
+
+	  // Create the LoraNetDevices of the end devices
+	  phyHelper.SetDeviceType (LoraPhyHelper::JM);
+	  macHelper.SetDeviceType (LoraMacHelper::JM);
+	  helper.Install (phyHelper, macHelper, Jammers_dw);
+
+
+	  // Now Jammers are connected to the channel
+
+	  // Connect trace sources
+	  for (NodeContainer::Iterator j = Jammers_dw.Begin ();
+	       j != Jammers_dw.End (); ++j)
+	    {
+	      Ptr<Node> node = *j;
+	      Ptr<LoraNetDevice> loraNetDevice = node->GetDevice (0)->GetObject<LoraNetDevice> ();
+	      Ptr<LoraPhy> phy = loraNetDevice->GetPhy ();
+	      phy->TraceConnectWithoutContext ("StartSending",
+	                                       MakeCallback (&JMTransmissionCallback));
+	    }
+
+
 
   /*********************
   *  Create Gateways  *
@@ -962,12 +1018,25 @@ int main (int argc, char *argv[])
   AttackProfile.SetType (Jammers, JammerType);
   AttackProfile.ConfigureForEuRegionJm (Jammers);
   //AttackProfile.ConfigureBand (Jammers, 868, 868.6, JammerDutyCycle, 14, 802.3, 0, 5);
-  AttackProfile.SetFrequency(Jammers,JammerFrequency);
+  AttackProfile.SetFrequency(Jammers,JammerFrequency_up);
   AttackProfile.SetTxPower(Jammers,JammerTxPower);
-  AttackProfile.SetPacketSize (Jammers,PayloadJamSize);
+  AttackProfile.SetPacketSize (Jammers,PayloadJamSize_up);
+
+
+  /***********************************
+  *  Set up the jammer's parameters downlink *
+  ************************************/
+
+  AttackProfile.SetType (Jammers_dw, JammerType);
+  AttackProfile.ConfigureForEuRegionJm (Jammers_dw);
+  //AttackProfile.ConfigureBand (Jammers, 868, 868.6, JammerDutyCycle, 14, 802.3, 0, 5);
+  AttackProfile.SetFrequency(Jammers_dw,JammerFrequency_dw);
+  AttackProfile.SetTxPower(Jammers_dw,JammerTxPower);
+  AttackProfile.SetPacketSize (Jammers_dw,PayloadJamSize_dw);
+
 
   /*********************************************
-  *  Install applications on the Jammer *
+  *  Install applications on the Jammer up*
   *********************************************/
 
 
@@ -978,7 +1047,7 @@ int main (int argc, char *argv[])
 
 	  AttackProfile.ConfigureBand (Jammers, JammerDutyCycle);
 
-	  appJamHelper.SetPacketSize (PayloadJamSize);
+	  appJamHelper.SetPacketSize (PayloadJamSize_up);
    	  appJamHelper.SetPeriod (Seconds (appPeriodJamSeconds));
    	  appJamHelper.SetDC (JammerDutyCycle);
    	  appJamHelper.SetExp (Exponential);
@@ -994,6 +1063,38 @@ int main (int argc, char *argv[])
 
 
   }
+
+
+  /*********************************************
+  *  Install applications on the Jammer dw *
+  *********************************************/
+
+
+  if (JammerType == 3  || JammerType == 4 )
+  {
+	  Time appJamStopTime = Seconds (simulationTime);
+	  AppJammerHelper appJamHelper_dw = AppJammerHelper ();
+
+	  AttackProfile.ConfigureBand (Jammers_dw, JammerDutyCycle);
+
+	  appJamHelper_dw.SetPacketSize (PayloadJamSize_up);
+	  appJamHelper_dw.SetPeriod (Seconds (appPeriodJamSeconds));
+	  appJamHelper_dw.SetDC (JammerDutyCycle);
+	  appJamHelper_dw.SetExp (Exponential);
+	  appJamHelper_dw.SetRanSF (Random_SF);
+	  appJamHelper_dw.SetSpreadingFactor (JammerSF);
+	  appJamHelper_dw.SetSimTime (appJamStopTime);
+	  appJamHelper_dw.SetLambda (lambda_jam_up);
+
+	  ApplicationContainer appJamContainer = appJamHelper_dw.Install (Jammers_dw);
+
+	  appJamContainer.Start (Seconds (0));
+	  appJamContainer.Stop (appJamStopTime);
+
+
+  }
+
+
 
   /*********************************************
   *  Install applications on the end devices  *
@@ -1046,7 +1147,7 @@ int main (int argc, char *argv[])
 
 	  networkServerHelper.SetStopTime (Seconds(simulationTime));
 	  networkServerHelper.SetGateways (gateways);
-	  networkServerHelper.SetJammers (Jammers);
+	  networkServerHelper.SetJammers (nJammers_up + nJammers_dw);
 	  networkServerHelper.SetEndDevices (endDevices);
 	  networkServerHelper.SetBuffer (NS_buffer);
 	  networkServerHelper.Install (networkServers);
@@ -1122,12 +1223,12 @@ int main (int argc, char *argv[])
 	 // cout << "Jammer Type " << JammerType << endl;
 	 //cout << "Jammer DutyCycle " << JammerDutyCycle << endl;
 	 // cout << "Number of Jammers " << nJammers << endl;
-	  cout << "Number of Devices " << nDevices << endl;
-	  cout << "Pkt Sent ed " << edsent << endl;
-	  cout << "Msg Sent ed " << edsentmsg << endl;
-	//  cout << "Sent jm " << jmsent << endl;
-	  cout << "Success ed " << gwreceived_ed << endl;
-	//  cout << "Success jm " << gwreceived_jm << endl;
+	 // cout << "Number of Devices " << nDevices << endl;
+	 cout << "Pkt Sent ed " << edsent << endl;
+	 // cout << "Msg Sent ed " << edsentmsg << endl;
+	 cout << "Sent jm " << jmsent << endl;
+	 // cout << "Success ed " << gwreceived_ed << endl;
+     // cout << "Success jm " << gwreceived_jm << endl;
 	//  cout << "collision ed " << collision_ed << endl;
 	//  cout << "collision jm " << collision_jm << endl;
 	//  cout << "underSensitivity ed " << underSensitivity_ed << endl;
@@ -1157,7 +1258,7 @@ int main (int argc, char *argv[])
 	//      cout << pkt_success_ed[i] << endl;
 	//   }
 
-	  PrintResults ( nGateways, nDevices, nJammers, receivedProb_ed, collisionProb_ed, noMoreReceiversProb_ed,
+	  PrintResults ( nGateways, nDevices, nJammers_up, receivedProb_ed, collisionProb_ed, noMoreReceiversProb_ed,
 			  underSensitivityProb_ed, receivedProb_jm, collisionProb_jm, noMoreReceiversProb_jm,
 			  underSensitivityProb_jm, gwreceived_ed, gwreceived_jm, edsent, jmsent, cumulative_time_ed,
 			  cumulative_time_jm, ce_ed, ce_jm, edsentmsg, nsmessagerx, msgreceiveProb, edretransmission, Result_File);
