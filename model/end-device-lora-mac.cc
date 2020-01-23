@@ -225,6 +225,7 @@ EndDeviceLoraMac::Send (Ptr<Packet> packet)
       // Compute the duration of the receive windows as the time necessary to detect a preamble
 
       m_FirstReceiveWindowDuration = m_phy->GetReceiveWindowTime (params,1);
+      //m_FirstReceiveWindowDuration = Seconds(0);
       m_SecondReceiveWindowDuration = m_phy->GetReceiveWindowTime (params,1);
 
       // Wake up PHY layer and directly send the packet

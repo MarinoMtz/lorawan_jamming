@@ -47,7 +47,7 @@ class LoraChannel;
 struct LoraTxParameters
 {
   uint8_t sf = 7; //!< Spreading Factor
-  bool headerDisabled = 0; //!< Whether to use implicit header mode
+  bool headerDisabled = 1; //!< Whether to use implicit header mode
   uint8_t codingRate = 1; //!< Code rate (obtained as 4/(codingRate+4))
   double bandwidthHz = 125000; //!< Bandwidth in Hz
   uint32_t nPreamble = 8; //!< Number of preamble symbols

@@ -1225,9 +1225,9 @@ int main (int argc, char *argv[])
 	 // cout << "Number of Jammers " << nJammers << endl;
 	 // cout << "Number of Devices " << nDevices << endl;
 	 cout << "Pkt Sent ed " << edsent << endl;
-	 // cout << "Msg Sent ed " << edsentmsg << endl;
+	 cout << "Msg Sent ed " << edsentmsg << endl;
 	 cout << "Sent jm " << jmsent << endl;
-	 // cout << "Success ed " << gwreceived_ed << endl;
+	 cout << "Success ed " << gwreceived_ed << endl;
      // cout << "Success jm " << gwreceived_jm << endl;
 	//  cout << "collision ed " << collision_ed << endl;
 	//  cout << "collision jm " << collision_jm << endl;
@@ -1239,10 +1239,10 @@ int main (int argc, char *argv[])
 	//  cout << "dropped jm " << dropped_jm << endl;
 	//  cout << "Real mean jam " << simulationTime/jmsent << endl;
 	//  cout << "Real mean ed " << simulationTime/edsent/nDevices << endl;
-	//  cout << "ACK Received " << edreceived << endl;
+	  cout << "ACK Received " << edreceived << endl;
 	//  cout << "Retransmissions Sent " << edretransmission << endl;
 	//  cout << "Retransmissions Received " << edretransmissionreceived << endl;
-	//  cout << "Message Received at NS " << nsmessagerx << endl;
+	  cout << "Message Received at NS " << nsmessagerx << endl;
 
 	//  for (uint32_t i = 0; i != nGateways; i++)
 	//    {
