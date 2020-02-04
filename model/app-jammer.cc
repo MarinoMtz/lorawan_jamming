@@ -206,7 +206,6 @@ AppJammer::SendPacket (void)
 // Create and send a new packet
 
   double ppm = 30;
-  double error = ppm/1e6;
   double lambda;
   double mean;
   bool Exp = GetExp();
@@ -236,8 +235,10 @@ AppJammer::SendPacket (void)
 
   timeonair = m_phy->GetOnAirTime (packet,params);
   lambda = dutycycle/timeonair.GetSeconds();
+
   mean = timeonair.GetSeconds()/dutycycle;
   NS_LOG_DEBUG ("Mean - jam " << mean);
+  NS_LOG_DEBUG ("duty-cycle " << GetDC ());
 
 
 cumultime = 0;
@@ -263,8 +264,10 @@ while (cumultime < simtime)
 
 	double sum_of_elems = std::accumulate(send_times.begin(), send_times.end(), 0);
 
-	NS_LOG_DEBUG ("Mean - jam " << simtime/send_times.size());
-	NS_LOG_DEBUG ("Jammer sent " << send_times.size());
+	NS_LOG_DEBUG ("Mean - jam " << mean);
+	NS_LOG_DEBUG ("duty-cycle " << GetDC ());
+	//NS_LOG_DEBUG ("Mean - jam " << simtime/send_times.size());
+	//NS_LOG_DEBUG ("Jammer sent " << send_times.size());
 }
 
 
