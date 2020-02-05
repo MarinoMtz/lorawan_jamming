@@ -311,6 +311,8 @@ EndDeviceLoraPhy::StartReceive (Ptr<Packet> packet, double rxPowerDbm,
 
         // Check frequency
         //////////////////
+        NS_LOG_INFO ("Packet is on frequency " << frequencyMHz <<
+        		" MHz and we are listening at " << m_frequency << " MHz");
         if (!IsOnFrequency (frequencyMHz))
           {
             NS_LOG_INFO ("Packet lost because it's on frequency " <<
@@ -516,13 +518,13 @@ m_battery_level = battery_level;
 
 switch(ConsoType) {
 
-	case 1 : m_consumption (NodeId, ConsoType, Cumulative_Tx_Conso, battery_level);
+	case 1 : m_consumption (NodeId, ConsoType, Cumulative_Tx_Conso, event_conso);
 			 break;
-	case 2 : m_consumption (NodeId, ConsoType, Cumulative_Rx_Conso, battery_level);
+	case 2 : m_consumption (NodeId, ConsoType, Cumulative_Rx_Conso, event_conso);
          	 break;
-	case 3 : m_consumption (NodeId, ConsoType, Cumulative_Stb_Conso, battery_level);
+	case 3 : m_consumption (NodeId, ConsoType, Cumulative_Stb_Conso, event_conso);
          	 break;
-	case 4 : m_consumption (NodeId, ConsoType, Cumulative_Sleep_Conso, battery_level);
+	case 4 : m_consumption (NodeId, ConsoType, Cumulative_Sleep_Conso, event_conso);
          	 break;
 	default :
 			 break;

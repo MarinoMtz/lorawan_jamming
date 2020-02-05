@@ -33,8 +33,6 @@
 #include "ns3/object.h"
 
 #include "ns3/command-line.h"
-#include "ns3/random-variable-stream.h"
-
 #include <vector>
 #include <algorithm>
 #include <ctime>
@@ -163,6 +161,7 @@ bool authpre = false;
 int Int_Model = 1;
 double delta;
 
+// Statistics related to packet reception/lost/collision desagregated by GW
 
 vector<uint32_t> pkt_success_ed(nDevices + nJammers_up + nJammers_dw,0);
 vector<uint32_t> msg_send(nDevices + nJammers_up + nJammers_dw,0);
@@ -174,6 +173,13 @@ vector<uint32_t> pkt_loss_gw(nGateways,0);
 vector<uint32_t> pkt_drop_gw(nGateways,0);
 vector<uint32_t> pkt_success_gw(nGateways,0);
 
+// Statistics related to the energy consumption of nodes.
+
+double tx_conso = 0;
+double rx_conso = 0;
+double stb_conso = 0;
+double sleep_conso = 0;
+double total_conso = 0;
 
 enum PrintType {
 	GR,
@@ -228,7 +234,8 @@ PrintResults(uint32_t nGateways, uint32_t nDevices, uint32_t nJammers, double re
 		double noMoreReceiversProb_ed, double underSensitivityProb_ed, double receivedProb_jm, double collisionProb_jm,
 		double noMoreReceiversProb_jm, double underSensitivityProb_jm, double gwreceived_ed, double gwreceived_jm,
 		double edsent, double jmsent, double cumulative_time_ed, double cumulative_time_jm, double ce_ed,
-		double ce_jm, double edsentmsg, double nsmessagerx, double msgreceiveProb, double edretransmission, string filename)
+		double ce_jm, double edsentmsg, double nsmessagerx, double msgreceiveProb, double edretransmission,
+		double total_conso, string filename)
 {
 
 	const char * c = filename.c_str ();
@@ -241,7 +248,7 @@ PrintResults(uint32_t nGateways, uint32_t nDevices, uint32_t nJammers, double re
 			<< " " << cumulative_time_ed << " " << cumulative_time_jm
 			<< " " << cumulative_time_ed << " " << cumulative_time_jm
 			<< " " << edsentmsg << " " << nsmessagerx << " " <<  msgreceiveProb << " " << edretransmission
-			<< " " << edretransmission/nsmessagerx
+			<< " " << edretransmission/nsmessagerx //<< "" << total_conso/nsmessagerx
 			<< endl;
     //cumulative_time_ed << " " << cumulative_time_jm << endl;
 	Plot.close ();
@@ -466,12 +473,27 @@ UnderSensitivityCallback (Ptr<Packet const> packet, uint32_t systemId, uint32_t 
 }
 
 void
-EnergyConsumptionCallback (uint32_t NodeId, int ConsoType, double event_conso, double battery_level)
+EnergyConsumptionCallback (uint32_t NodeId, int ConsoType, double Cumulative_event_Conso, double event_conso)
 {
-  // NS_LOG_INFO ("The energy consumption of Node " << NodeId << event_conso << "Conso type " << " " << ConsoType << "at " << Simulator::Now ().GetSeconds ());
+  NS_LOG_INFO ("The energy consumption of Node " << NodeId << event_conso << "Conso type " << " " << ConsoType << "at " << Simulator::Now ().GetSeconds ());
 	//Conso Type: 1 for TX, 2 for RX, 3 for Standby and 4 Sleep
 
-  //cout << "E " << NodeId << " " << ConsoType << " " << event_conso << " " << " " << battery_level << " " << Simulator::Now ().GetSeconds () << endl;
+  switch(ConsoType) {
+
+  	  case 1 : tx_conso  = tx_conso + event_conso;
+  	           break;
+  	  case 2 : rx_conso  = rx_conso + event_conso;
+  	           break;
+  	  case 3 : stb_conso  = stb_conso + event_conso;
+  	           break;
+  	  case 4 : sleep_conso =  sleep_conso + event_conso;
+  	           break;
+  	  default :
+  	           break;
+  	  }
+
+  total_conso = total_conso + event_conso;
+  cout << "E " << NodeId << " " << ConsoType << " " << event_conso << " " << " " << event_conso << " " << Simulator::Now ().GetSeconds () << endl;
 
 }
 
@@ -717,11 +739,19 @@ int main (int argc, char *argv[])
   Time appPeriodJam = Seconds (appPeriodJamSeconds);
 
   // Mobility
-
   MobilityHelper mobility;
-  mobility.SetPositionAllocator ("ns3::RandomRectanglePositionAllocator",
-                                   "X", StringValue ("ns3::UniformRandomVariable[Min=0.0|Max=3000]"),
-								   "Y", StringValue ("ns3::UniformRandomVariable[Min=0.0|Max=1000]"));
+
+  if (nGateways == 1) {
+
+	  mobility.SetPositionAllocator ("ns3::RandomRectanglePositionAllocator",
+	                                  "X", StringValue ("ns3::UniformRandomVariable[Min=0.0|Max=1000]"),
+									  "Y", StringValue ("ns3::UniformRandomVariable[Min=0.0|Max=1000]"));
+  } else{
+	  mobility.SetPositionAllocator ("ns3::RandomRectanglePositionAllocator",
+	                                  "X", StringValue ("ns3::UniformRandomVariable[Min=0.0|Max=3000]"),
+									  "Y", StringValue ("ns3::UniformRandomVariable[Min=0.0|Max=1000]"));
+  }
+
 
   mobility.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
 
@@ -992,6 +1022,9 @@ int main (int argc, char *argv[])
                                        MakeCallback (&GWReceivedurationCallback));
       gwPhy->TraceConnectWithoutContext ("CaptureEffectCallback",
                                        MakeCallback (&GWCaptureEffectCallback));
+      gwPhy->TraceConnectWithoutContext ("StartSending",
+                                             MakeCallback (&GWTransmissionCallback));
+
     }
 
 
@@ -1231,7 +1264,7 @@ int main (int argc, char *argv[])
 	  cout << "Sent jm " << jmsent << endl;
 	  cout << "Success ed " << gwreceived_ed << endl;
       cout << "Success jm " << gwreceived_jm << endl;
-	//  cout << "collision ed " << collision_ed << endl;
+	  cout << "lost ed " << collision_ed + underSensitivity_ed + dropped_ed << endl;
 	//  cout << "collision jm " << collision_jm << endl;
 	//  cout << "underSensitivity ed " << underSensitivity_ed << endl;
 	//  cout << "underSensitivity jm " << underSensitivity_jm << endl;
@@ -1245,13 +1278,14 @@ int main (int argc, char *argv[])
 	//  cout << "Retransmissions Sent " << edretransmission << endl;
 	//  cout << "Retransmissions Received " << edretransmissionreceived << endl;
 	  cout << "Message Received at NS " << nsmessagerx << endl;
+	  cout << "ACK Sent " << gwsent << endl;
 
-	//  for (uint32_t i = 0; i != nGateways; i++)
-	//    {
+	  for (uint32_t i = 0; i != nGateways; i++)
+	    {
 	//	  cout << "loss GW - " << i <<  " " << pkt_loss_gw [i] << endl;
 	//	  cout << "drop GW - " << i <<  " "  << pkt_drop_gw [i] << endl;
-	//	  cout << "received GW - " << i <<  " " << pkt_success_gw [i] << endl;
-	//    }
+		  cout << "received GW - " << i <<  " " << pkt_success_gw [i] << endl;
+	    }
 
 	//   cout << "success ED - " << accumulate(pkt_success_ed.begin(), pkt_success_ed.end(), 0) << endl;
 	//   for(uint32_t i = 0; i < pkt_success_ed.size(); i++)
@@ -1263,7 +1297,7 @@ int main (int argc, char *argv[])
 	  PrintResults ( nGateways, nDevices, nJammers_up, receivedProb_ed, collisionProb_ed, noMoreReceiversProb_ed,
 			  underSensitivityProb_ed, receivedProb_jm, collisionProb_jm, noMoreReceiversProb_jm,
 			  underSensitivityProb_jm, gwreceived_ed, gwreceived_jm, edsent, jmsent, cumulative_time_ed,
-			  cumulative_time_jm, ce_ed, ce_jm, edsentmsg, nsmessagerx, msgreceiveProb, edretransmission, Result_File);
+			  cumulative_time_jm, ce_ed, ce_jm, edsentmsg, nsmessagerx, msgreceiveProb, edretransmission, total_conso, Result_File);
 
   return 0;
 }
