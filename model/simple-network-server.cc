@@ -328,7 +328,7 @@ SimpleNetworkServer::Receive (Ptr<NetDevice> device, Ptr<const Packet> packet,
   uint32_t ed_ID = tag.GetSenderID();
   uint32_t ntx = tag.Getntx();
 
-  //Fire the resend tracesource if the packet was resed
+  //Fire the resend tracesource if the packet was resent
 
   if (ntx > 1) {
 	  m_resendpacket(ntx);
@@ -344,11 +344,8 @@ SimpleNetworkServer::Receive (Ptr<NetDevice> device, Ptr<const Packet> packet,
   double rcvPower = tag.GetReceivePower ();
   m_deviceStatuses.at (frameHdr.GetAddress ()).UpdateGatewayData (address, rcvPower);
 
-  bool Send_ACK;
   bool AR;
 
-
-  Send_ACK = AckSent(pkt_ID, ed_ID);
 
   AR = AlreadyReceived(m_devices_pktid[ed_ID],pkt_ID);
 

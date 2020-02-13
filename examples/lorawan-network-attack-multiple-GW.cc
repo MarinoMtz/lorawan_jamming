@@ -48,7 +48,7 @@ NS_LOG_COMPONENT_DEFINE ("LorawanNetworkAttackExample");
 // Network settings
 uint32_t nDevices = 2;
 uint32_t nGateways = 1;
-double radius = 1000;
+double radius = 4200;
 
 // Uniform random variable to allocate nodes
 Ptr<UniformRandomVariable> rnd_alloc = CreateObject<UniformRandomVariable> ();
@@ -133,7 +133,7 @@ bool retransmission = true;
 uint32_t maxtx = 1;
 
 // Output control
-bool printEDs = false;
+bool printEDs = true;
 bool Trans = true;
 bool SimTime = true;
 bool buildingsEnabled = false;
@@ -493,7 +493,7 @@ EnergyConsumptionCallback (uint32_t NodeId, int ConsoType, double Cumulative_eve
   	  }
 
   total_conso = total_conso + event_conso;
-  cout << "E " << NodeId << " " << ConsoType << " " << event_conso << " " << " " << event_conso << " " << Simulator::Now ().GetSeconds () << endl;
+  //cout << "E " << NodeId << " " << ConsoType << " " << event_conso << " " << " " << event_conso << " " << Simulator::Now ().GetSeconds () << endl;
 
 }
 
@@ -571,6 +571,16 @@ PrintEndDevices (NodeContainer endDevices, NodeContainer Jammers, NodeContainer 
   ofstream Plot;
   Plot.open (c);
 
+  // Also print the gateways
+  for (NodeContainer::Iterator j = gateways.Begin (); j != gateways.End (); ++j)
+    {
+	  Ptr<MobilityModel> mobility = (*j)->GetObject<MobilityModel> ();
+      Vector pos = mobility->GetPosition ();
+      uint32_t DeviceID = (*j)->GetId();
+      Plot <<"GW " << DeviceID << " " << pos.x << " " << pos.y << endl;
+      //cout <<"GW " << DeviceID << " " << pos.x << " " << pos.y << endl;
+    }
+
   for (NodeContainer::Iterator j = endDevices.Begin (); j != endDevices.End (); ++j)
     {
       Ptr<Node> object = *j;
@@ -584,6 +594,7 @@ PrintEndDevices (NodeContainer endDevices, NodeContainer Jammers, NodeContainer 
       Vector pos = position->GetPosition ();
       uint32_t DeviceID = object->GetId();
       Plot << "ED " << DeviceID << " " << pos.x << " " << pos.y << " " << sf << " " << 	pkt_send [DeviceID] << " "<< pkt_success_ed [DeviceID] << " " << pkt_loss_ed [DeviceID] << " " << pkt_drop_ed [DeviceID]<< endl;
+      //cout << "ED " << DeviceID << " " << pos.x << " " << pos.y << " " << sf << " " << 	pkt_send [DeviceID] << " "<< pkt_success_ed [DeviceID] << " " << pkt_loss_ed [DeviceID] << " " << pkt_drop_ed [DeviceID]<< endl;
 
     }
 
@@ -603,14 +614,7 @@ PrintEndDevices (NodeContainer endDevices, NodeContainer Jammers, NodeContainer 
 
     }
 
-  // Also print the gateways
-  for (NodeContainer::Iterator j = gateways.Begin (); j != gateways.End (); ++j)
-    {
-      Ptr<Node> object = *j;
-      Ptr<MobilityModel> position = object->GetObject<MobilityModel> ();
-      Vector pos = position->GetPosition ();
-      //Plot <<"GW " << pos.x << " " << pos.y << endl;
-    }
+
   Plot.close ();
 }
 
@@ -744,14 +748,13 @@ int main (int argc, char *argv[])
   if (nGateways == 1) {
 
 	  mobility.SetPositionAllocator ("ns3::RandomRectanglePositionAllocator",
-	                                  "X", StringValue ("ns3::UniformRandomVariable[Min=0.0|Max=1000]"),
-									  "Y", StringValue ("ns3::UniformRandomVariable[Min=0.0|Max=1000]"));
+	                                  "X", StringValue ("ns3::UniformRandomVariable[Min=0.0|Max=8200]"),
+									  "Y", StringValue ("ns3::UniformRandomVariable[Min=0.0|Max=8200]"));
   } else{
 	  mobility.SetPositionAllocator ("ns3::RandomRectanglePositionAllocator",
-	                                  "X", StringValue ("ns3::UniformRandomVariable[Min=0.0|Max=3000]"),
-									  "Y", StringValue ("ns3::UniformRandomVariable[Min=0.0|Max=1000]"));
+	                                  "X", StringValue ("ns3::UniformRandomVariable[Min=0.0|Max=12600]"),
+									  "Y", StringValue ("ns3::UniformRandomVariable[Min=0.0|Max=8200]"));
   }
-
 
   mobility.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
 
@@ -813,6 +816,9 @@ int main (int argc, char *argv[])
       Vector position = mobility->GetPosition ();
       position.z = 10;
       mobility->SetPosition (position);
+      //cout << "Position ed " << position.x << " " << position.y << endl;
+
+
     }
 
   // Set the Address Generator
@@ -959,7 +965,7 @@ int main (int argc, char *argv[])
   mobility.SetPositionAllocator (allocator);
   mobility.Install (gateways);
   int id_gw = 0;
-
+  cout << "Position " << id_gw<< endl;
   // Make it so that nodes are at a certain height > 0
   for (NodeContainer::Iterator j = gateways.Begin ();
        j != gateways.End (); ++j)
@@ -968,9 +974,12 @@ int main (int argc, char *argv[])
       Ptr<MobilityModel> mobility = (*j)->GetObject<MobilityModel> ();
       Vector position = mobility->GetPosition ();
       position.x = id_gw*radius;
-      cout << "Position " << position.x << endl;
-      position.y = 1000;
-      position.z = 1;
+      //
+      position.y = radius;
+      //position.x = 0;
+      //position.y = 0;
+      //position.z = 1;
+      cout << "Position " << position.x << " " << position.y << endl;
       mobility->SetPosition (position);
     }
 
@@ -1130,7 +1139,6 @@ int main (int argc, char *argv[])
   }
 
 
-
   /*********************************************
   *  Install applications on the end devices  *
   *********************************************/
@@ -1219,12 +1227,12 @@ int main (int argc, char *argv[])
 
   // PrintSimulationTime ();
 
-  Simulator::Run ();
-
   if (printEDs)
     {
 	  PrintEndDevices (endDevices, Jammers, gateways, "scratch/Devices.dat");
     }
+
+  Simulator::Run ();
 
   Simulator::Destroy ();
 
@@ -1281,7 +1289,7 @@ int main (int argc, char *argv[])
 	  cout << "ACK Sent " << gwsent << endl;
 
 	  for (uint32_t i = 0; i != nGateways; i++)
-	    {
+	   {
 	//	  cout << "loss GW - " << i <<  " " << pkt_loss_gw [i] << endl;
 	//	  cout << "drop GW - " << i <<  " "  << pkt_drop_gw [i] << endl;
 		  cout << "received GW - " << i <<  " " << pkt_success_gw [i] << endl;
@@ -1294,10 +1302,10 @@ int main (int argc, char *argv[])
 	//      cout << pkt_success_ed[i] << endl;
 	//   }
 
-	  PrintResults ( nGateways, nDevices, nJammers_up, receivedProb_ed, collisionProb_ed, noMoreReceiversProb_ed,
-			  underSensitivityProb_ed, receivedProb_jm, collisionProb_jm, noMoreReceiversProb_jm,
-			  underSensitivityProb_jm, gwreceived_ed, gwreceived_jm, edsent, jmsent, cumulative_time_ed,
-			  cumulative_time_jm, ce_ed, ce_jm, edsentmsg, nsmessagerx, msgreceiveProb, edretransmission, total_conso, Result_File);
+	//  PrintResults ( nGateways, nDevices, nJammers_up, receivedProb_ed, collisionProb_ed, noMoreReceiversProb_ed,
+	//		  underSensitivityProb_ed, receivedProb_jm, collisionProb_jm, noMoreReceiversProb_jm,
+	//		  underSensitivityProb_jm, gwreceived_ed, gwreceived_jm, edsent, jmsent, cumulative_time_ed,
+	//		  cumulative_time_jm, ce_ed, ce_jm, edsentmsg, nsmessagerx, msgreceiveProb, edretransmission, total_conso, Result_File);
 
   return 0;
 }
