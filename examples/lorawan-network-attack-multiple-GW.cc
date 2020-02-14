@@ -133,7 +133,7 @@ bool retransmission = true;
 uint32_t maxtx = 1;
 
 // Output control
-bool printEDs = true;
+bool printEDs = false;
 bool Trans = true;
 bool SimTime = true;
 bool buildingsEnabled = false;
@@ -248,7 +248,7 @@ PrintResults(uint32_t nGateways, uint32_t nDevices, uint32_t nJammers, double re
 			<< " " << cumulative_time_ed << " " << cumulative_time_jm
 			<< " " << cumulative_time_ed << " " << cumulative_time_jm
 			<< " " << edsentmsg << " " << nsmessagerx << " " <<  msgreceiveProb << " " << edretransmission
-			<< " " << edretransmission/nsmessagerx //<< "" << total_conso/nsmessagerx
+			<< " " << edretransmission/nsmessagerx << " " << total_conso/nsmessagerx
 			<< endl;
     //cumulative_time_ed << " " << cumulative_time_jm << endl;
 	Plot.close ();
@@ -749,11 +749,20 @@ int main (int argc, char *argv[])
 
 	  mobility.SetPositionAllocator ("ns3::RandomRectanglePositionAllocator",
 	                                  "X", StringValue ("ns3::UniformRandomVariable[Min=0.0|Max=8200]"),
-									  "Y", StringValue ("ns3::UniformRandomVariable[Min=0.0|Max=8200]"));
-  } else{
+									  "Y", StringValue ("ns3::UniformRandomVariable[Min=0.0|Max=8200]"));}
+
+  else if (nGateways == 2) {
+
+	  mobility.SetPositionAllocator ("ns3::RandomRectanglePositionAllocator",
+		                                  "X", StringValue ("ns3::UniformRandomVariable[Min=0.0|Max=8200]"),
+										  "Y", StringValue ("ns3::UniformRandomVariable[Min=0.0|Max=8200]"));}
+
+
+   else{
+
 	  mobility.SetPositionAllocator ("ns3::RandomRectanglePositionAllocator",
 	                                  "X", StringValue ("ns3::UniformRandomVariable[Min=0.0|Max=12600]"),
-									  "Y", StringValue ("ns3::UniformRandomVariable[Min=0.0|Max=8200]"));
+									  "Y", StringValue ("ns3::UniformRandomVariable[Min=0.0|Max=12600]"));
   }
 
   mobility.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
@@ -1302,10 +1311,10 @@ int main (int argc, char *argv[])
 	//      cout << pkt_success_ed[i] << endl;
 	//   }
 
-	//  PrintResults ( nGateways, nDevices, nJammers_up, receivedProb_ed, collisionProb_ed, noMoreReceiversProb_ed,
-	//		  underSensitivityProb_ed, receivedProb_jm, collisionProb_jm, noMoreReceiversProb_jm,
-	//		  underSensitivityProb_jm, gwreceived_ed, gwreceived_jm, edsent, jmsent, cumulative_time_ed,
-	//		  cumulative_time_jm, ce_ed, ce_jm, edsentmsg, nsmessagerx, msgreceiveProb, edretransmission, total_conso, Result_File);
+	  PrintResults ( nGateways, nDevices, nJammers_up, receivedProb_ed, collisionProb_ed, noMoreReceiversProb_ed,
+			  underSensitivityProb_ed, receivedProb_jm, collisionProb_jm, noMoreReceiversProb_jm,
+			  underSensitivityProb_jm, gwreceived_ed, gwreceived_jm, edsent, jmsent, cumulative_time_ed,
+			  cumulative_time_jm, ce_ed, ce_jm, edsentmsg, nsmessagerx, msgreceiveProb, edretransmission, total_conso, Result_File);
 
   return 0;
 }
