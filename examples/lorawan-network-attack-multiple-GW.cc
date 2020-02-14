@@ -120,6 +120,7 @@ uint32_t nJammers_dw = 0; // Number of jammers transmitting on
 
 // ACK Parameters
 bool differentchannel = true;
+
 bool secondreceivewindow = false;
 double ackfrequency = 869.525; //869.525 , 868.1
 int ackdatarate = 4;
