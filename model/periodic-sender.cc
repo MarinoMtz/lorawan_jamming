@@ -20,7 +20,6 @@
  * LoRaWAN Jamming author: Ivan Martinez <ivamarti@insa-rennes.fr>
  */
 
-
 #include "ns3/periodic-sender.h"
 #include "ns3/pointer.h"
 #include "ns3/log.h"
@@ -73,11 +72,13 @@ PeriodicSender::PeriodicSender () :
   m_retransmissions(false),
   m_sf(7),
   m_mean(0),
-  m_rxnumber(1)
+  m_rxnumber(1),
+  m_percentage_rtx(100)
 {
 //  NS_LOG_FUNCTION_NOARGS ();
   m_randomdelay = CreateObject<UniformRandomVariable> ();
   m_exprandomdelay = CreateObject<ExponentialRandomVariable> ();
+  m_prioritypkt = CreateObject<UniformRandomVariable> ();
 }
 
 PeriodicSender::~PeriodicSender ()
@@ -172,10 +173,11 @@ PeriodicSender::SetExp (bool Exp)
 }
 
 void
-PeriodicSender::SetRetransmissions (bool retrans, int rxnumber)
+PeriodicSender::SetRetransmissions (bool retrans, int rxnumber, double percentage_rtx)
 {
 	m_retransmissions = retrans;
 	m_rxnumber = rxnumber;
+	m_percentage_rtx = percentage_rtx;
 }
 
 bool
@@ -235,10 +237,9 @@ PeriodicSender::SendPacketMacUnconfirmed ()
 	params.sf = GetSpreadingFactor ();
 
 	LoraTag tag;
-	packet->RemovePacketTag (tag);
+	packet->PeekPacketTag (tag);
 	tag.SetSpreadingFactor (params.sf);
 	tag.SetPktID (ID);
-	tag.SetMean (m_mean);
 	tag.Setntx(1);
 	packet->AddPacketTag (tag);
 
@@ -272,37 +273,53 @@ PeriodicSender::SendPacketMacUnconfirmed ()
 }
 
 void
-PeriodicSender::ConfirmedTraffic (int ntx, uint32_t ID, bool confirmed)
+PeriodicSender::ConfirmedTraffic (uint32_t ntx, uint32_t ID, bool confirmed, uint8_t retx)
 {
 	Time sendtime = Seconds(0);
 	sendtime = Seconds(SentTime());
 	Time simtime = GetSimTime ();
 
+	NS_LOG_DEBUG ("noack " << unsigned(retx));
+
 	if (Simulator::Now () < simtime){
-		// Sending first packet
-		if (ntx == 0 && ID == 0 && confirmed == false)
+
+		if (ntx == 0 && ID == 0 && confirmed == false) // Sending first packet
 		{
 			IncreasePacketID();
-			m_sendEvent = Simulator::Schedule (sendtime, &PeriodicSender::SendPacketMacConfirmed, this, 1, 1);
+			m_sendEvent = Simulator::Schedule (sendtime, &PeriodicSender::SendPacketMacConfirmed, this, 1, 1, 0);
 			return;
 		}
-		if (confirmed || ntx >= m_rxnumber){
+		if (confirmed || ntx >= m_rxnumber || retx){
 
 			IncreasePacketID();
 			ID = GetPacketID();
 			ntx = 1;
-			m_sendEvent = Simulator::Schedule (sendtime, &PeriodicSender::SendPacketMacConfirmed, this, ID, ntx);
+			m_sendEvent = Simulator::Schedule (sendtime, &PeriodicSender::SendPacketMacConfirmed, this, ID, ntx, retx);
 		}
 		else {
-			m_sendEvent = Simulator::Schedule (sendtime, &PeriodicSender::SendPacketMacConfirmed, this, ID, ntx + 1);
+			m_sendEvent = Simulator::Schedule (sendtime, &PeriodicSender::SendPacketMacConfirmed, this, ID, ntx + 1, retx);
 		}
 	}
 }
 
 void
-PeriodicSender::SendPacketMacConfirmed (uint32_t ID, uint32_t ntx)
+PeriodicSender::SendPacketMacConfirmed (uint32_t ID, uint32_t ntx, uint8_t retx)
 {
     //NS_LOG_FUNCTION (this);
+
+	// Decide whether or not the packet will be ackited or not
+
+	if (ntx == 1){ // First time we sent this packet, we decide if it'll be ackited
+		double ack = m_prioritypkt->GetValue (0,100);
+		if (ack <= m_percentage_rtx) {retx = 0;}
+		else {retx = 1;}
+
+		NS_LOG_DEBUG ("To be ACK ? " << unsigned(retx) << " "<< ack);
+	}
+
+	NS_LOG_DEBUG ("re-tx app ? " << unsigned(retx));
+	NS_LOG_DEBUG ("ntx app ? " << unsigned(ntx));
+	NS_LOG_DEBUG ("m_rxnumber ? " << unsigned(m_rxnumber));
 
 	Ptr<Packet> packet;
 
@@ -313,11 +330,11 @@ PeriodicSender::SendPacketMacConfirmed (uint32_t ID, uint32_t ntx)
 	params.sf = GetSpreadingFactor ();
 
 	LoraTag tag;
-	packet->RemovePacketTag (tag);
+	//packet->RemovePacketTag (tag);
 	tag.SetSpreadingFactor (params.sf);
 	tag.SetPktID (ID);
-	tag.SetMean (m_mean);
 	tag.Setntx(ntx);
+	tag.SetRetx(retx);
 	packet->AddPacketTag (tag);
 
 	//NS_LOG_DEBUG ("Sent a packet (MAC LEVEL) at " << Simulator::Now ().GetSeconds ());
@@ -339,7 +356,6 @@ PeriodicSender::SendPacketMacConfirmed (uint32_t ID, uint32_t ntx)
 	}
 
 	//NS_LOG_DEBUG ("Sending packet at " << Simulator::Now ().GetSeconds() << " Packet ID " << ID);
-
 
 }
 
@@ -371,10 +387,10 @@ PeriodicSender::GetNextTxTime (void)
 	params.sf = GetSpreadingFactor ();
 
 	// Tag the packet with its Spreading Factor and the Application Packet ID
-	LoraTag tag;
-	packet->RemovePacketTag (tag);
-	tag.SetSpreadingFactor (params.sf);
-	packet->AddPacketTag (tag);
+	//LoraTag tag;
+	//packet->RemovePacketTag (tag);
+	//tag.SetSpreadingFactor (params.sf);
+	//packet->AddPacketTag (tag);
 
 	// Compute the time on air as a function of the DC and SF
 	timeonair = m_phy->GetOnAirTime (packet,params);
@@ -424,7 +440,7 @@ PeriodicSender::StartApplication (void)
 
   if (retransmissions)
   {
-	  m_sendEvent = Simulator::Schedule (m_initialDelay, &PeriodicSender::ConfirmedTraffic, this, 0 , 0, false);
+	  m_sendEvent = Simulator::Schedule (m_initialDelay, &PeriodicSender::ConfirmedTraffic, this, 0 , 0, false, 1);
   }
 
   else {
@@ -465,7 +481,6 @@ PeriodicSender::StartApplication (void)
 	NS_LOG_DEBUG ("simtime " << simtime);
 	NS_LOG_DEBUG ("m_pktSize " << m_pktSize);
 	NS_LOG_DEBUG ("ToA " << m_mean*0.01);
-
 
 }
 

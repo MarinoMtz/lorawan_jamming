@@ -154,8 +154,9 @@ EndDeviceLoraPhy::Send (Ptr<Packet> packet, LoraTxParameters txParams,
 
 
   NS_LOG_FUNCTION (this << packet << txParams << frequencyMHz << txPowerDbm);
-
   NS_LOG_INFO ("Current state: " << m_state);
+
+  Ptr<Packet> PacketCopy = packet->Copy ();
 
   // We must be either in STANDBY or SLEEP mode to send a packet
 
@@ -182,23 +183,28 @@ EndDeviceLoraPhy::Send (Ptr<Packet> packet, LoraTxParameters txParams,
   SwitchToTx ();
 
   // Compute the duration of the transmission
-  Time duration = GetOnAirTime (packet, txParams);
+  Time duration = GetOnAirTime (PacketCopy, txParams);
 
   // Compute the duration preamble, this will be used for the interference helper
   Time preamble = GetPreambleTime (txParams.sf, txParams.bandwidthHz, txParams.nPreamble);
 
   // Tag the packet with information about its Spreading Factor, the preamble and the sender ID
   LoraTag tag;
-  packet->RemovePacketTag (tag);
-  tag.SetSpreadingFactor (txParams.sf);
+  PacketCopy->RemovePacketTag (tag);
+  uint32_t ntx = tag.Getntx ();
+  uint8_t retx = tag.GetRetx ();
+  //tag.SetSpreadingFactor (txParams.sf);
   tag.SetPreamble(preamble.ToDouble(Time::S));
   tag.SetSenderID (m_device->GetNode ()->GetId ());
-  int ntx = tag.Getntx ();
-  packet->AddPacketTag (tag);
+  PacketCopy->AddPacketTag (tag);
 
   // Send the packet over the channel
   NS_LOG_INFO ("Sending the packet in the channel");
-  m_channel->Send (this, packet, txPowerDbm, txParams, duration, frequencyMHz);
+
+  NS_LOG_INFO ("********* --- re-tx phy "<< unsigned (retx));
+
+
+  m_channel->Send (this, PacketCopy, txPowerDbm, txParams, duration, frequencyMHz);
 
   // Schedule the switch back to STANDBY mode.
   // For reference see SX1272 datasheet, section 4.1.6
@@ -216,7 +222,7 @@ EndDeviceLoraPhy::Send (Ptr<Packet> packet, LoraTxParameters txParams,
     {
       Simulator::Schedule (duration + NanoSeconds (10),
                            &EndDeviceLoraPhy::m_txFinishedCallback, this,
-                           packet);
+						   PacketCopy);
 
     }
 
@@ -231,12 +237,12 @@ EndDeviceLoraPhy::Send (Ptr<Packet> packet, LoraTxParameters txParams,
   // Call the trace source
   if (m_device)
     {
-      m_startSending (packet, m_device->GetNode ()->GetId (), frequencyMHz, txParams.sf);
-      if (ntx == 1) {m_messageSend (packet, 0, 0, 0);}
+      m_startSending (PacketCopy, m_device->GetNode ()->GetId (), frequencyMHz, txParams.sf);
+      if (ntx == 1) {m_messageSend (PacketCopy, 0, 0, 0);}
     }
   else
     {
-      m_startSending (packet, 0, 0, 0);
+      m_startSending (PacketCopy, 0, 0, 0);
     }
   }
 }

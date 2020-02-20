@@ -110,20 +110,6 @@ public:
    */
   double GetFrequency (void);
 
-  /**
-   * Get the data rate for this packet.
-   *
-   * \return The data rate that needs to be employed for this packet.
-   */
-  uint8_t GetDataRate (void);
-
-  /**
-   * Get the preamble for this packet.
-   *
-   * \return The preamble of this packet.
-   */
-  void SetDataRate (uint8_t dataRate);
-
   double GetPreamble(void);
 
   void SetPreamble (double Preamble);
@@ -144,15 +130,14 @@ public:
 
   uint32_t Getntx (void);
   void Setntx (uint32_t ntx);
-  double GetMean (void);
-  void SetMean (double mean);
 
+  uint8_t GetRetx (void);
+  void SetRetx (uint8_t retx);
 
 private:
   uint8_t m_sf; //!< The Spreading Factor used by the packet.
   uint8_t m_destroyedBy; //!< The Spreading Factor that destroyed the packet.
   double m_receivePower; //!< The reception power of this packet.
-  uint8_t m_dataRate; //!< The Data Rate that needs to be used to send this
                       //!packet.
   double m_frequency; //!< The frequency of this packet
   double m_preamble; //!< The preamble time of this packet
@@ -162,7 +147,8 @@ private:
   uint32_t m_gwid;
 
   uint32_t m_ntx;
-  double m_mean;
+
+  uint8_t m_retx; // Variable indicating if this packet is needed to be ackited
 
 };
 } // namespace ns3

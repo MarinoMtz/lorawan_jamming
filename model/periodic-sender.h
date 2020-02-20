@@ -72,11 +72,11 @@ public:
    */
   void UnconfirmedTraffic (void);
 
-  void ConfirmedTraffic (int ntx, uint32_t ID, bool confirmed);
+  void ConfirmedTraffic (uint32_t ntx, uint32_t ID, bool confirmed, uint8_t retx);
 
   void SendPacketMacUnconfirmed ();
 
-  void SendPacketMacConfirmed (uint32_t ID, uint32_t ntx);
+  void SendPacketMacConfirmed (uint32_t ID, uint32_t ntx, uint8_t retx);
 
   /**
    * Start the application by scheduling the first SendPacket event
@@ -101,7 +101,7 @@ public:
 
   double GetNextTxTime (void);
 
-  void SetRetransmissions (bool retrans, int rxnumber);
+  void SetRetransmissions (bool retrans, int rxnumber, double percentage_rtx);
 
   bool GetRetransmissions (void);
 
@@ -155,6 +155,7 @@ private:
 
   Ptr<UniformRandomVariable> m_randomdelay;
   Ptr<ExponentialRandomVariable> m_exprandomdelay;
+  Ptr<UniformRandomVariable> m_prioritypkt;
   vector<double> send_times;
 
   /**
@@ -170,6 +171,8 @@ private:
   TracedCallback< uint8_t > m_sendpacket;
 
   int m_rxnumber;
+
+  double m_percentage_rtx;
 
 };
 

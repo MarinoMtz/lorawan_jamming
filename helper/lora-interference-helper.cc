@@ -952,15 +952,15 @@ LoraInterferenceHelper::GetFirst (Ptr<LoraInterferenceHelper::Event> event1,
 
 
   LoraTag tag1;
-  packet1->RemovePacketTag (tag1);
+  packet1->PeekPacketTag (tag1);
   Time p1 = Seconds(tag1.GetPreamble ());
-  packet1->AddPacketTag (tag1);
+  //packet1->AddPacketTag (tag1);
 
 
   LoraTag tag2;
-  packet2->RemovePacketTag (tag2);
+  packet2->PeekPacketTag (tag2);
   Time p2= Seconds(tag2.GetPreamble ());
-  packet2->AddPacketTag (tag2);
+  //packet2->AddPacketTag (tag2);
 
   // Get handy values
   Time s1 = event1->GetStartTime (); // Start times

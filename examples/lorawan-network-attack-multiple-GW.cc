@@ -125,6 +125,7 @@ bool secondreceivewindow = false;
 double ackfrequency = 869.525; //869.525 , 868.1
 int ackdatarate = 4;
 int acklength = 1;
+double percentage_rtx;
 
 /**********************************
 *  Retransmission parameters  *
@@ -672,6 +673,7 @@ int main (int argc, char *argv[])
   // imput related to retransmissions
 
   cmd.AddValue ("retransmission", " boolean variable indicating if the ED resends packets or not", retransmission);
+  cmd.AddValue ("percentage_rtx", " Percentage of re-transmitted packets", percentage_rtx);
   cmd.AddValue ("maxtx", " Maximum number of transmissions for each packets", maxtx);
 
   // imput variables related to the NS
@@ -720,7 +722,11 @@ int main (int argc, char *argv[])
 //  LogComponentEnable("AppJammer", LOG_LEVEL_ALL);
 //  LogComponentEnable("LoraInterferenceHelper", LOG_LEVEL_ALL);
 //  LogComponentEnable("LoraMacHelper", LOG_LEVEL_ALL);
+
 //  LogComponentEnable("EndDeviceLoraMac", LOG_LEVEL_ALL);
+//  LogComponentEnable("LoraTag", LOG_LEVEL_ALL);
+//  LogComponentEnable("PacketTagList", LOG_LEVEL_ALL);
+
 //  LogComponentEnable("JammerLoraMac", LOG_LEVEL_ALL);
 //  LogComponentEnable("GatewayLoraMac", LOG_LEVEL_ALL);
 //  LogComponentEnable("LogicalLoraChannelHelper", LOG_LEVEL_ALL);
@@ -729,6 +735,7 @@ int main (int argc, char *argv[])
 //  LogComponentEnable("LoraPhyHelper", LOG_LEVEL_ALL);
 //  LogComponentEnable("LoraMacHelper", LOG_LEVEL_ALL);
 //  LogComponentEnable("PeriodicSenderHelper", LOG_LEVEL_ALL);
+
 //  LogComponentEnable("PeriodicSender", LOG_LEVEL_ALL);
 //  LogComponentEnable("LoraMacHeader", LOG_LEVEL_ALL);
 //  LogComponentEnable("LoraFrameHeader", LOG_LEVEL_ALL);
@@ -755,7 +762,7 @@ int main (int argc, char *argv[])
   else if (nGateways == 2) {
 
 	  mobility.SetPositionAllocator ("ns3::RandomRectanglePositionAllocator",
-		                                  "X", StringValue ("ns3::UniformRandomVariable[Min=0.0|Max=8200]"),
+		                                  "X", StringValue ("ns3::UniformRandomVariable[Min=0.0|Max=12600]"),
 										  "Y", StringValue ("ns3::UniformRandomVariable[Min=0.0|Max=8200]"));}
 
 
@@ -827,8 +834,6 @@ int main (int argc, char *argv[])
       position.z = 10;
       mobility->SetPosition (position);
       //cout << "Position ed " << position.x << " " << position.y << endl;
-
-
     }
 
   // Set the Address Generator
@@ -1159,7 +1164,7 @@ int main (int argc, char *argv[])
   appHelper.SetPacketSize (PayloadSize);
 
   appHelper.SetExp (Exponential);
-  appHelper.SetRetransmissions(retransmission, maxtx);
+  appHelper.SetRetransmissions(retransmission, maxtx, percentage_rtx);
   appHelper.SetSpreadingFactor (ED_SF);
   appHelper.SetSimTime (appStopTime);
 
@@ -1297,6 +1302,7 @@ int main (int argc, char *argv[])
 	//  cout << "Retransmissions Received " << edretransmissionreceived << endl;
 	  cout << "Message Received at NS " << nsmessagerx << endl;
 	  cout << "ACK Sent " << gwsent << endl;
+	  cout << "msg prov " << msgreceiveProb << endl;
 
 	  for (uint32_t i = 0; i != nGateways; i++)
 	   {

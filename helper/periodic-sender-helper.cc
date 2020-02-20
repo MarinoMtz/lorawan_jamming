@@ -90,8 +90,6 @@ PeriodicSenderHelper::InstallPriv (Ptr<Node> node) const
   Ptr<EndDeviceLoraMac> mac = loraNetDevice->GetMac ()->GetObject<EndDeviceLoraMac> ();
   mac -> SetApp(app);
 
-
-
   Time interval;
 
   interval = m_period;
@@ -110,7 +108,7 @@ PeriodicSenderHelper::InstallPriv (Ptr<Node> node) const
 	  }
 
   NS_LOG_DEBUG ("Created an application with interval = " << m_rxnumber << " m_rxnumber");
-  app -> SetRetransmissions (m_retransmissions, m_rxnumber);
+  app -> SetRetransmissions (m_retransmissions, m_rxnumber, m_percentage_rtx);
   app->SetNode (node);
   node->AddApplication (app);
   app->SetPktSize (m_size);
@@ -150,11 +148,13 @@ PeriodicSenderHelper::SetExp (bool Exp)
 }
 
 void
-PeriodicSenderHelper::SetRetransmissions (bool retrans, uint32_t rxnumber)
+PeriodicSenderHelper::SetRetransmissions (bool retrans, uint32_t rxnumber, double percentage_rtx)
 {
 	m_retransmissions = retrans;
 	m_rxnumber = rxnumber;
+	m_percentage_rtx = percentage_rtx;
 }
+
 
 void
 PeriodicSenderHelper::SetSpreadingFactor (uint8_t sf)

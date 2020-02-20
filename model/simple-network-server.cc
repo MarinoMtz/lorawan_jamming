@@ -448,7 +448,7 @@ SimpleNetworkServer::SendOnFirstWindow (LoraDeviceAddress address, uint32_t ed_I
       NS_LOG_INFO ("---> NET SERVER Using parameters 1st rx: " << frequency << "Hz, DR"
                                         << unsigned(dataRate));
 
-      replyPacketTag.SetDataRate (dataRate);
+      //replyPacketTag.SetDataRate (dataRate);
       replyPacketTag.SetFrequency (frequency);
       replyPacketTag.SetPktID(pkt_ID);
 
@@ -503,7 +503,7 @@ SimpleNetworkServer::SendOnSecondWindow (LoraDeviceAddress address, uint32_t ed_
       NS_LOG_INFO ("---> NET SERVER Using parameters 2nd rx: " << frequency << "Hz, DR"
                                         << unsigned(dataRate));
 
-      replyPacketTag.SetDataRate (dataRate);
+      //replyPacketTag.SetDataRate (dataRate);
       replyPacketTag.SetFrequency (frequency);
       replyPacketTag.SetPktID(pkt_ID);
 

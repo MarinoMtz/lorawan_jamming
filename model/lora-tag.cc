@@ -34,8 +34,7 @@ LoraTag::GetTypeId (void)
   static TypeId tid = TypeId ("ns3::LoraTag")
     .SetParent<Tag> ()
     .SetGroupName ("lorawan")
-    .AddConstructor<LoraTag> ()
-  ;
+    .AddConstructor<LoraTag> ();
   return tid;
 }
 
@@ -49,7 +48,6 @@ LoraTag::LoraTag () :
   m_sf (8),
   m_destroyedBy (0),
   m_receivePower (0),
-  m_dataRate (0),
   m_frequency (868.2),
   m_preamble (0.01254),
   m_senderid (0),
@@ -57,7 +55,7 @@ LoraTag::LoraTag () :
   m_pktid(0),
   m_gwid(0),
   m_ntx(0),
-  m_mean(0)
+  m_retx(0)
 {
 }
 
@@ -70,51 +68,46 @@ LoraTag::GetSerializedSize (void) const
 {
   // Each datum about a SF is 1 byte + receivePower (the size of a double) +
   // frequency (the size of a double)
-  return 4 + 4*sizeof(double) + 4*sizeof(uint32_t);
+
+  return 4 + 3*sizeof(double) + 4*sizeof(uint32_t);
 }
 
 void
 LoraTag::Serialize (TagBuffer i) const
 {
   i.WriteU8 (m_sf);
+  i.WriteU8 (m_retx);
   i.WriteU8 (m_destroyedBy);
+  i.WriteU8 (m_jammer);
   i.WriteDouble (m_receivePower);
-  i.WriteU8 (m_dataRate);
   i.WriteDouble (m_frequency);
   i.WriteDouble (m_preamble);
   i.WriteU32 (m_senderid);
-  i.WriteU8 (m_jammer);
   i.WriteU32 (m_pktid);
   i.WriteU32 (m_gwid);
   i.WriteU32 (m_ntx);
-  i.WriteDouble (m_mean);
-
-
 }
 
 void
 LoraTag::Deserialize (TagBuffer i)
 {
   m_sf = i.ReadU8 ();
+  m_retx = i.ReadU8 ();
   m_destroyedBy = i.ReadU8 ();
+  m_jammer = i.ReadU8 ();
   m_receivePower = i.ReadDouble ();
-  m_dataRate = i.ReadU8 ();
   m_frequency = i.ReadDouble ();
   m_preamble = i.ReadDouble ();
   m_senderid = i.ReadU32 ();
-  m_jammer = i.ReadU8 ();
   m_pktid = i.ReadU32 ();
   m_gwid = i.ReadU32 ();
-  m_ntx = i.ReadU8 ();
-  m_mean = i.ReadDouble ();
-
+  m_ntx = i.ReadU32 ();
 }
 
 void
 LoraTag::Print (std::ostream &os) const
 {
-  os << m_sf << " " << m_destroyedBy << " " << m_receivePower << " " <<
-  m_dataRate;
+  os << m_sf << " " << m_destroyedBy << " " << m_receivePower;
 }
 
 uint8_t
@@ -163,18 +156,6 @@ double
 LoraTag::GetFrequency (void)
 {
   return m_frequency;
-}
-
-uint8_t
-LoraTag::GetDataRate (void)
-{
-  return m_dataRate;
-}
-
-void
-LoraTag::SetDataRate (uint8_t dataRate)
-{
-  m_dataRate = dataRate;
 }
 
 double
@@ -249,17 +230,17 @@ LoraTag::Setntx (uint32_t ntx)
 	m_ntx = ntx;
 }
 
-double
-LoraTag::GetMean (void)
+uint8_t
+LoraTag::GetRetx (void)
 {
-  return m_mean;
+
+  return m_retx;
 }
 
 void
-LoraTag::SetMean (double mean)
+LoraTag::SetRetx (uint8_t retx)
 {
-	m_mean = mean;
+	m_retx = retx;
 }
-
 
 } // namespace ns3

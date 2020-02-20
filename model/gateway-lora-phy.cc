@@ -260,11 +260,11 @@ GatewayLoraPhy::StartReceive (Ptr<Packet> packet, double rxPowerDbm,
   NS_LOG_FUNCTION (this << packet << rxPowerDbm << duration << frequencyMHz);
 
   LoraTag tag;
-  packet->RemovePacketTag (tag);
+  packet->PeekPacketTag (tag);
   uint32_t SenderID = tag.GetSenderID();
   bool jammer = tag.GetJammer();
   double preamble = tag.GetPreamble();
-  packet->AddPacketTag (tag);
+  //packet->AddPacketTag (tag);
 
   NS_LOG_INFO ("Jammer ? " << jammer);
   NS_LOG_INFO ("preamble ? " << preamble);
@@ -389,11 +389,14 @@ GatewayLoraPhy::EndReceive (Ptr<Packet> packet, Ptr<LoraInterferenceHelper::Even
   // method returns a 0.
   // uint8_t packetDestroyed = 0;
 
+  // Make a copy of the packet
+  Ptr<Packet> packetCopy = packet->Copy ();
+
   LoraTag tag;
-  packet->RemovePacketTag (tag);
+  packetCopy->RemovePacketTag (tag);
   uint32_t SenderID = tag.GetSenderID();
   tag.SetGWid (m_device->GetNode ()->GetId ());
-  packet->AddPacketTag (tag);
+  packetCopy->AddPacketTag (tag);
 
   uint8_t packetDestroyed = m_interference.IsDestroyedByInterference (event);
   NS_LOG_INFO ("verified at " << Simulator::Now ().GetSeconds ());
@@ -410,22 +413,22 @@ GatewayLoraPhy::EndReceive (Ptr<Packet> packet, Ptr<LoraInterferenceHelper::Even
 	  uint8_t colsf = m_interference.GetSF ();
 
       // Update the packet's LoraTag
-      LoraTag tag;
-      packet->RemovePacketTag (tag);
-      tag.SetDestroyedBy (packetDestroyed);
-      packet->AddPacketTag (tag);
+      LoraTag tag1;
+      packetCopy->RemovePacketTag (tag1);
+      tag1.SetDestroyedBy (packetDestroyed);
+      packetCopy->AddPacketTag (tag1);
 
       NS_LOG_DEBUG ("Packet destroyed - collision Parameters: start time = " << colstart.GetSeconds() << " end time = " << colend.GetSeconds() << " on the preamble = " << OnThePreamble <<" Sender ID = " << SenderID << " SF = " << unsigned(colsf));
 
       // Fire the trace source
       if (m_device)
         {
-          m_interferedPacket (packet,m_device->GetNode ()->GetId () , SenderID, colsf, event->GetFrequency (), colstart, colend, OnThePreamble);
+          m_interferedPacket (packetCopy,m_device->GetNode ()->GetId () , SenderID, colsf, event->GetFrequency (), colstart, colend, OnThePreamble);
           m_interference.CleanParameters ();
         }
       else
         {
-          m_interferedPacket (packet, 0, SenderID, colsf, event->GetFrequency (), colstart, colend, OnThePreamble);
+          m_interferedPacket (packetCopy, 0, SenderID, colsf, event->GetFrequency (), colstart, colend, OnThePreamble);
           m_interference.CleanParameters ();
         }
     }
@@ -437,34 +440,35 @@ GatewayLoraPhy::EndReceive (Ptr<Packet> packet, Ptr<LoraInterferenceHelper::Even
 
       if (CE){
 
-    	  m_packetce (packet, m_device->GetNode ()->GetId (), SenderID, event->GetFrequency (),CE);
+    	  m_packetce (packetCopy, m_device->GetNode ()->GetId (), SenderID, event->GetFrequency (),CE);
 
       }
 
       // Fire the trace source
       if (m_device)
         {
-          m_successfullyReceivedPacket (packet, m_device->GetNode ()->GetId (), SenderID, event->GetFrequency (), event->GetSpreadingFactor () );
+          m_successfullyReceivedPacket (packetCopy, m_device->GetNode ()->GetId (), SenderID, event->GetFrequency (), event->GetSpreadingFactor () );
         }
       else
         {
-          m_successfullyReceivedPacket (packet, 0, SenderID, event->GetFrequency (), event->GetSpreadingFactor ());
+          m_successfullyReceivedPacket (packetCopy, 0, SenderID, event->GetFrequency (), event->GetSpreadingFactor ());
         }
 
       // Forward the packet to the upper layer
       if (!m_rxOkCallback.IsNull ())
         {
-          // Make a copy of the packet
-          Ptr<Packet> packetCopy1 = packet->Copy ();
 
-          // Set the receive power and frequency of this packet in the LoraTag: this
+    	  // Set the receive power and frequency of this packet in the LoraTag: this
           // information can be useful for upper layers trying to control link
           // quality.
-          LoraTag tag1;
-          packetCopy1->RemovePacketTag (tag1);
-          tag1.SetReceivePower (event->GetRxPowerdBm ());
-          tag1.SetFrequency (event->GetFrequency ());
-          packetCopy1->AddPacketTag (tag1);
+
+    	  Ptr<Packet> packetCopy1 = packetCopy->Copy ();
+
+          LoraTag tag2;
+          packetCopy1->RemovePacketTag (tag2);
+          tag2.SetReceivePower (event->GetRxPowerdBm ());
+          tag2.SetFrequency (event->GetFrequency ());
+          packetCopy1->AddPacketTag (tag2);
 
           m_rxOkCallback (packetCopy1);
         }

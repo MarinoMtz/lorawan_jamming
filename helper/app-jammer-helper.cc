@@ -83,7 +83,7 @@ AppJammerHelper::InstallPriv (Ptr<Node> node) const
 
   Time interval;
   interval = m_period;
-  double m_interval = interval.GetSeconds();
+  //double m_interval = interval.GetSeconds();
   app->SetInterval (interval);
   app->SetNode (node);
   node->AddApplication (app);

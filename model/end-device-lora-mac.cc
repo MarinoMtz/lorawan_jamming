@@ -80,7 +80,7 @@ EndDeviceLoraMac::GetTypeId (void)
   return tid;
 }
 
-EndDeviceLoraMac::EndDeviceLoraMac () :
+EndDeviceLoraMac::EndDeviceLoraMac ():
   m_dataRate (0),
   m_txPower (14),
   m_codingRate (1),                         	// LoraWAN default
@@ -131,6 +131,8 @@ EndDeviceLoraMac::Send (Ptr<Packet> packet)
 {
   NS_LOG_FUNCTION (this << packet);
 
+  Ptr<Packet> PacketCopy = packet->Copy ();
+
   bool sent;
 
   if (m_phy->GetObject<EndDeviceLoraPhy> ()->IsDead ()) {
@@ -156,16 +158,16 @@ EndDeviceLoraMac::Send (Ptr<Packet> packet)
     }
 
   // Check that payload length is below the allowed maximum
-  if (packet->GetSize () > m_maxAppPayloadForDataRate.at (m_dataRate))
-    {
-      NS_LOG_WARN ("Attempting to send a packet larger than the maximum allowed"
-                   << " size at this DataRate (DR" << unsigned(m_dataRate) <<
-                   "). Transmission canceled.");
-      //return;
-	  sent = false;
-	  return sent;
+  //if (packet->GetSize () > m_maxAppPayloadForDataRate.at (m_dataRate))
+  //  {
+  //    NS_LOG_WARN ("Attempting to send a packet larger than the maximum allowed"
+  //                 << " size at this DataRate (DR" << unsigned(m_dataRate) <<
+  //                 "). Transmission canceled.");
+  //    //return;
+  //  sent = false;
+  //	  return sent;
 
-    }
+  //  }
 
   // Check that we can transmit according to the aggregate duty cycle timer
   //if (m_channelHelper.GetAggregatedWaitingTime () != Seconds (0))
@@ -185,13 +187,18 @@ EndDeviceLoraMac::Send (Ptr<Packet> packet)
       ///////////////////////////////////////
       // Get information about this packet //
       ///////////////////////////////////////
-	  uint8_t ntx;
+	  uint32_t ntx;
+	  uint8_t retx;
 
 	  LoraTag tag;
-	  packet->RemovePacketTag (tag);
+	  PacketCopy -> PeekPacketTag (tag);
 	  uint32_t ID = tag.GetPktID();
 	  ntx = tag.Getntx();
-	  packet->AddPacketTag (tag);
+	  retx = tag.GetRetx();
+
+	  //packet->AddPacketTag (tag);
+
+	  NS_LOG_INFO ("**** Re tx mac " << unsigned (retx));
 
       /////////////////////////////////////////////////////////
       // Add headers, prepare TX parameters and send the packet
@@ -200,14 +207,14 @@ EndDeviceLoraMac::Send (Ptr<Packet> packet)
       // Add the Lora Frame Header to the packet
       LoraFrameHeader frameHdr;
       ApplyNecessaryOptions (frameHdr);
-      packet->AddHeader (frameHdr);
+      PacketCopy->AddHeader (frameHdr);
       NS_LOG_INFO ("Added frame header of size " << frameHdr.GetSerializedSize () <<
                    " bytes");
 
       // Add the Lora Mac header to the packet
       LoraMacHeader macHdr;
       ApplyNecessaryOptions (macHdr);
-      packet->AddHeader (macHdr);
+      PacketCopy->AddHeader (macHdr);
       NS_LOG_INFO ("Added MAC header of size " << macHdr.GetSerializedSize () <<
                    " bytes");
 
@@ -233,7 +240,7 @@ EndDeviceLoraMac::Send (Ptr<Packet> packet)
       // Make sure we can transmit at the current power on this channel
       //NS_ASSERT (m_txPower <= m_channelHelper.GetTxPowerForChannel (txChannel));
       m_phy->GetObject<EndDeviceLoraPhy> ()->SwitchToStandby ();
-      m_phy->Send (packet, params, txChannel->GetFrequency (), m_txPower);
+      m_phy->Send (PacketCopy, params, txChannel->GetFrequency (), m_txPower);
 
       //NS_LOG_INFO ("MAC ---> Sending on Freq: " << txChannel->GetFrequency () << " MHz");
 
@@ -243,7 +250,7 @@ EndDeviceLoraMac::Send (Ptr<Packet> packet)
       ////////////////////////////////////////////////
 
       // Compute packet duration
-      Time duration = m_phy->GetOnAirTime (packet, params);
+      Time duration = m_phy->GetOnAirTime (PacketCopy, params);
 
       // Register the sent packet into the DutyCycleHelper
       m_channelHelper.AddEvent (duration, txChannel);
@@ -269,7 +276,7 @@ EndDeviceLoraMac::Send (Ptr<Packet> packet)
       //NS_LOG_INFO ("--->> replyDataRate " << unsigned (replyDataRate));
 
 	  sent = true;
-	  if (ntx > 1) {m_resendpacket (packet,m_device->GetNode ()->GetId (),
+	  if (ntx > 1) {m_resendpacket (PacketCopy,m_device->GetNode ()->GetId (),
 			  txChannel->GetFrequency (),params.sf);}
 
       /////////////////////////////////////
@@ -333,9 +340,9 @@ EndDeviceLoraMac::Receive (Ptr<Packet const> packet)
           m_receivedPacket (packet);
 
     	  LoraTag tag;
-    	  packetCopy->RemovePacketTag (tag);
+    	  packetCopy->PeekPacketTag (tag);
     	  uint32_t ID = tag.GetPktID();
-    	  packetCopy->AddPacketTag (tag);
+    	  //packetCopy->AddPacketTag (tag);
 
     	  PacketTrack (ID, 0, 1);
 
@@ -507,6 +514,8 @@ EndDeviceLoraMac::TxFinished (Ptr<Packet const> packet)
 {
   //NS_LOG_FUNCTION_NOARGS ();
 
+  Ptr<Packet> PacketCopy = packet->Copy ();
+
   //Schedule the opening of the first receive window
   Simulator::Schedule (m_receiveDelay1,
                        &EndDeviceLoraMac::OpenFirstReceiveWindow, this);
@@ -545,48 +554,47 @@ EndDeviceLoraMac::TxFinished (Ptr<Packet const> packet)
 
   // Get the Packet information
 
-  Ptr<Packet> PacketCopy = packet->Copy ();
+  //Ptr<Packet> PacketCopy = packet->Copy ();
 
   LoraTag tag;
-  PacketCopy -> RemovePacketTag (tag);
+  PacketCopy -> PeekPacketTag (tag);
   uint32_t ID = tag.GetPktID();
-  uint8_t ntx = tag.Getntx();
-  double mean = tag.GetMean();
+  uint32_t ntx = tag.Getntx();
+  uint8_t retx = tag.GetRetx();
+  uint8_t sff = tag.GetSpreadingFactor();
   uint32_t size = PacketCopy->GetSize();
 
+  NS_LOG_INFO ("---->> retx mac ? " << unsigned(retx));
+  NS_LOG_INFO ("---->> ntx mac? " << unsigned(ntx));
+  NS_LOG_INFO ("---->> SF? " << unsigned(sff));
 
-  // Schedule the Check and Resend function if according to the variable
+  // Schedule the Check and Resend function according to the variable
 
   if (m_retransmission)
   {
-	  Simulator::Schedule (m_receiveDelay2 + ackduration , &EndDeviceLoraMac::CheckAndResend, this, ID, ntx, size, mean);
+	  Simulator::Schedule (m_receiveDelay2 + ackduration , &EndDeviceLoraMac::CheckAndResend, this, ID, ntx, size, retx);
   }
-
-
   // Switch the PHY to sleep
   m_phy->GetObject<EndDeviceLoraPhy> ()->SwitchToSleep ();
 }
 
 void
-EndDeviceLoraMac::CheckAndResend (uint32_t ID, int ntx, uint32_t size, double mean)
+EndDeviceLoraMac::CheckAndResend (uint32_t ID, uint32_t ntx, uint32_t size, uint8_t retx)
 {
-
 	NS_LOG_INFO (" Inside the function to check and resend ");
 	NS_LOG_INFO ("---->> Packet to be checked info " << ID <<" Nb transmissions "<< unsigned (ntx) << " size " << size);
-
 	NS_LOG_INFO ("---->> Packet Ackited ? " << pktackited[ID-1]);
 
-
 	bool pktack = PacketTrack (ID, 0, 2);
+	bool noack;
 
 	//Scheduling next transmission
 
-    m_app -> ConfirmedTraffic (ntx, ID, pktack);
-
+    m_app -> ConfirmedTraffic (ntx, ID, pktack, retx);
 }
 
 bool
-EndDeviceLoraMac::PacketTrack (uint32_t ID, int ntx, uint8_t type)
+EndDeviceLoraMac::PacketTrack (uint32_t ID, uint32_t ntx, uint8_t type)
 {
 
 bool ackited = false;
@@ -664,7 +672,7 @@ EndDeviceLoraMac::CheckAckPacket (uint32_t ID)
 }
 
 void
-EndDeviceLoraMac::AddRetransmission (uint32_t ID, int ntx)
+EndDeviceLoraMac::AddRetransmission (uint32_t ID, uint32_t ntx)
 {
 	std::vector<uint32_t>::iterator it = std::find(pkstsentids.begin(), pkstsentids.end(), ID);
 
