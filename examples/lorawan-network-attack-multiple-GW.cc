@@ -1303,6 +1303,7 @@ int main (int argc, char *argv[])
 	  cout << "Message Received at NS " << nsmessagerx << endl;
 	  cout << "ACK Sent " << gwsent << endl;
 	  cout << "msg prov " << msgreceiveProb << endl;
+	  cout << "re-transmissions per message " << edsent/edsentmsg << endl;
 
 	  for (uint32_t i = 0; i != nGateways; i++)
 	   {
