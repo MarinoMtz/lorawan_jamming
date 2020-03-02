@@ -250,7 +250,7 @@ PrintResults(uint32_t nGateways, uint32_t nDevices, uint32_t nJammers, double re
 			<< " " << cumulative_time_ed << " " << cumulative_time_jm
 			<< " " << cumulative_time_ed << " " << cumulative_time_jm
 			<< " " << edsentmsg << " " << nsmessagerx << " " <<  msgreceiveProb << " " << edretransmission
-			<< " " << edretransmission/nsmessagerx << " " << total_conso/nsmessagerx
+			<< " " << edretransmission/nsmessagerx << " " << total_conso
 			<< endl;
     //cumulative_time_ed << " " << cumulative_time_jm << endl;
 	Plot.close ();
