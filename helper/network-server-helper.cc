@@ -137,8 +137,7 @@ NetworkServerHelper::InstallPriv (Ptr<Node> node)
   app->AddNodes (m_endDevices);
   app->SetStopTime(m_stop_time);
 
-  app->SetACKParams (m_differentchannel, m_secondreceivewindow,
-		  m_ackfrequency, m_ackdatarate, m_acklength);
+  app->SetACKParams (m_two_rx, m_ackfrequency, m_ack_sf, m_acklength);
 
   if (m_ewma) {app->SetEWMA(m_ewma, m_target, m_lambda, m_ucl, m_lcl);}
   if (m_interarrivaltime) {app->SetInterArrival();}
@@ -173,14 +172,12 @@ NetworkServerHelper::InstallPriv (Ptr<Node> node)
 	  m_ucl = ucl;
 	  m_lcl = lcl;
   }
-
   void
-  NetworkServerHelper::SetACKParams (bool differentchannel, bool secondreceivewindow, double ackfrequency, int ackdatarate, int acklength)
+  NetworkServerHelper::SetACKParams (bool two_rx, double ackfrequency, int ack_sf, int acklength)
   {
-	  m_differentchannel = differentchannel;
-	  m_secondreceivewindow = secondreceivewindow;
+	  m_two_rx = two_rx;
 	  m_ackfrequency = ackfrequency;
-	  m_ackdatarate = ackdatarate;
+	  m_ack_sf = ack_sf;
 	  m_acklength = acklength;
   }
 

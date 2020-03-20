@@ -161,7 +161,9 @@ LoraMacHelper::ConfigureForEuRegion (Ptr<EndDeviceLoraMac> edMac) const
 	// ACK Parameters //
 	////////////////////
 
-	edMac-> SetACKParams (m_ackdifferentchannel, m_secondreceivewindow, m_ReceiveWindowFrequency, m_ackdatarate, m_acklength);
+	edMac-> SetACKParams (m_two_rx, m_ReceiveWindowFrequency, m_ack_sf, m_acklength);
+
+
 
 	////////////////////////////////
 	// Retransmissions Parameters //
@@ -269,6 +271,8 @@ LoraMacHelper::ApplyCommonEuConfigurations (Ptr<LoraMac> loraMac) const
   ///////////////////////////////////////////////
 
   loraMac->SetSfForDataRate (std::vector<uint8_t> {12,11,10,9,8,7,7});
+  loraMac->SetDataRateForSF (std::vector<uint8_t> {0,1,2,3,4,5,5});
+
   loraMac->SetBandwidthForDataRate (std::vector<double>
                                     {125000,125000,125000,125000,125000,125000,250000});
   loraMac->SetMaxAppPayloadForDataRate (std::vector<uint32_t>
@@ -410,12 +414,11 @@ LoraMacHelper::SetMType (NodeContainer endDevices, LoraMacHeader::MType mType)
 }
 
 void
-LoraMacHelper::SetACKParams (bool differentchannel, bool secondreceivewindow, double ackfrequency, int ackdatarate, int acklength)
+LoraMacHelper::SetACKParams (bool two_rx, double ackfrequency, int ack_sf, int acklength)
 {
-	m_ackdifferentchannel = differentchannel;
-	m_secondreceivewindow = secondreceivewindow;
+	m_two_rx = two_rx;
 	m_ReceiveWindowFrequency = ackfrequency;
-	m_ackdatarate = ackdatarate;
+	m_ack_sf = ack_sf;
 	m_acklength = acklength;
 }
 

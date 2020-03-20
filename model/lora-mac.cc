@@ -112,6 +112,20 @@ LoraMac::GetSfFromDataRate (uint8_t dataRate)
   return m_sfForDataRate.at (dataRate);
 }
 
+uint8_t
+LoraMac::GetDataRateFromSf (uint8_t sf)
+{
+  NS_LOG_FUNCTION (this << unsigned(sf));
+
+  // Check we are in range
+  if (sf >= m_DataRateForSF.size ())
+    {
+      return 0;
+    }
+
+  return m_DataRateForSF.at (sf);
+}
+
 double
 LoraMac::GetBandwidthFromDataRate (uint8_t dataRate)
 {
@@ -143,6 +157,12 @@ void
 LoraMac::SetSfForDataRate (std::vector<uint8_t> sfForDataRate)
 {
   m_sfForDataRate = sfForDataRate;
+}
+
+void
+LoraMac::SetDataRateForSF (std::vector<uint8_t> DataRateForSF)
+{
+  m_DataRateForSF = DataRateForSF;
 }
 
 void

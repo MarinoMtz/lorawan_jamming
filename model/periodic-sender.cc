@@ -279,7 +279,7 @@ PeriodicSender::ConfirmedTraffic (uint32_t ntx, uint32_t ID, bool confirmed, uin
 	sendtime = Seconds(SentTime());
 	Time simtime = GetSimTime ();
 
-	NS_LOG_DEBUG ("noack " << unsigned(retx));
+	//NS_LOG_DEBUG ("noack " << unsigned(retx));
 
 	if (Simulator::Now () < simtime){
 
@@ -314,12 +314,12 @@ PeriodicSender::SendPacketMacConfirmed (uint32_t ID, uint32_t ntx, uint8_t retx)
 		if (ack <= m_percentage_rtx) {retx = 0;}
 		else {retx = 1;}
 
-		NS_LOG_DEBUG ("To be ACK ? " << unsigned(retx) << " "<< ack);
+		//NS_LOG_DEBUG ("To be ACK ? " << unsigned(retx) << " "<< ack);
 	}
 
-	NS_LOG_DEBUG ("re-tx app ? " << unsigned(retx));
-	NS_LOG_DEBUG ("ntx app ? " << unsigned(ntx));
-	NS_LOG_DEBUG ("m_rxnumber ? " << unsigned(m_rxnumber));
+	//NS_LOG_DEBUG ("re-tx app ? " << unsigned(retx));
+	//NS_LOG_DEBUG ("ntx app ? " << unsigned(ntx));
+	//NS_LOG_DEBUG ("m_rxnumber ? " << unsigned(m_rxnumber));
 
 	Ptr<Packet> packet;
 
@@ -338,6 +338,7 @@ PeriodicSender::SendPacketMacConfirmed (uint32_t ID, uint32_t ntx, uint8_t retx)
 	packet->AddPacketTag (tag);
 
 	//NS_LOG_DEBUG ("Sent a packet (MAC LEVEL) at " << Simulator::Now ().GetSeconds ());
+	//NS_LOG_DEBUG ("APP: Packet ID " << ID << " Priority? " << unsigned (retx));
 
 	bool sent;
 	sent = m_mac->Send (packet);
@@ -370,7 +371,7 @@ PeriodicSender::GetNextTxTime (void)
 	Ptr<Packet> packet;
 
 	double ppm = 30;
-	double error = ppm/1e6;
+	//double error = ppm/1e6;
 	double lambda;
 
 	bool Exp = GetExp();
@@ -417,7 +418,7 @@ PeriodicSender::GetNextTxTime (void)
 void
 PeriodicSender::StartApplication (void)
 {
-  NS_LOG_FUNCTION (this);
+  //NS_LOG_FUNCTION (this);
 
   // Make sure we have a MAC layer
   if (m_mac == 0)
@@ -475,12 +476,12 @@ PeriodicSender::StartApplication (void)
   	tries = n_tries/n;
 
 	double sum_of_elems = std::accumulate(send_times.begin(), send_times.end(), 0);
-	NS_LOG_DEBUG ("Number of tries " << tries);
-	NS_LOG_DEBUG ("m_mean " << m_mean);
-	NS_LOG_DEBUG ("real mean " << simtime/tries);
-	NS_LOG_DEBUG ("simtime " << simtime);
-	NS_LOG_DEBUG ("m_pktSize " << m_pktSize);
-	NS_LOG_DEBUG ("ToA " << m_mean*0.01);
+	//NS_LOG_DEBUG ("Number of tries " << tries);
+	//NS_LOG_DEBUG ("m_mean " << m_mean);
+	//NS_LOG_DEBUG ("real mean " << simtime/tries);
+	//NS_LOG_DEBUG ("simtime " << simtime);
+	//NS_LOG_DEBUG ("m_pktSize " << m_pktSize);
+	//NS_LOG_DEBUG ("ToA " << m_mean*0.01);
 
 }
 

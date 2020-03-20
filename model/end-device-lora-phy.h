@@ -143,6 +143,8 @@ public:
    */
   void SetFrequency (double frequencyMHz);
 
+  double GetFrequency (void);
+
   /**
    * Set the Spreading Factor this EndDevice will listen for.
    *

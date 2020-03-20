@@ -81,10 +81,10 @@ SimpleNetworkServer::SimpleNetworkServer():
 		m_jammers(0),
 		m_devices_pktid(0),
 		m_stop_time(0),
-		m_differentchannel(true),
-		m_secondreceivewindow (false),
+		m_two_rx(false),
 		m_ackfrequency (0),
-		m_ackdatarate (0),
+		m_ack_sf (0),
+		m_ackdatarate(0),
 		m_acklength (1),
 		m_interarrivaltime(false),
 		m_devices_interarrivaltime(0),
@@ -170,14 +170,15 @@ SimpleNetworkServer::SetParameters (uint32_t GW, uint32_t ED, uint32_t JM, int b
 }
 
 void
-SimpleNetworkServer::SetACKParams (bool differentchannel, bool secondreceivewindow, double ackfrequency, int ackdatarate, int acklength)
+SimpleNetworkServer::SetACKParams (bool two_rx, double ackfrequency, int ack_sf, int acklength)
 {
 	NS_LOG_FUNCTION_NOARGS ();
-	m_differentchannel = differentchannel;
-	m_secondreceivewindow = secondreceivewindow;
+	m_two_rx = two_rx;
 	m_ackfrequency = ackfrequency;
-	m_ackdatarate = ackdatarate;
+	m_ack_sf = ack_sf;
 	m_acklength = acklength;
+
+	m_ackdatarate = 12 - ack_sf;
 
 }
 
@@ -219,7 +220,7 @@ SimpleNetworkServer::SetInterArrival (void)
 void
 SimpleNetworkServer::AddGateway (Ptr<Node> gateway, Ptr<NetDevice> netDevice)
 {
-  NS_LOG_FUNCTION (this << gateway);
+  //NS_LOG_FUNCTION (this << gateway);
 
   // Get the PointToPointNetDevice
   Ptr<PointToPointNetDevice> p2pNetDevice;
@@ -259,7 +260,7 @@ SimpleNetworkServer::AddGateway (Ptr<Node> gateway, Ptr<NetDevice> netDevice)
 void
 SimpleNetworkServer::AddNodes (NodeContainer nodes)
 {
-  NS_LOG_FUNCTION_NOARGS ();
+  //NS_LOG_FUNCTION_NOARGS ();
 
   // For each node in the container, call the function to add that single node
   NodeContainer::Iterator it;
@@ -327,6 +328,7 @@ SimpleNetworkServer::Receive (Ptr<NetDevice> device, Ptr<const Packet> packet,
   uint32_t gw_ID = tag.GetGWID();
   uint32_t ed_ID = tag.GetSenderID();
   uint32_t ntx = tag.Getntx();
+  uint8_t pri = tag.GetRetx();
 
   //Fire the resend tracesource if the packet was resent
 
@@ -349,11 +351,11 @@ SimpleNetworkServer::Receive (Ptr<NetDevice> device, Ptr<const Packet> packet,
 
   AR = AlreadyReceived(m_devices_pktid[ed_ID],pkt_ID);
 
-  NS_LOG_DEBUG ("Receive -- Pkt ID" << pkt_ID << " ED ID " << ed_ID);
+  NS_LOG_DEBUG ("NS Receive -- Pkt ID" << pkt_ID << " ED ID " << ed_ID);
 
   // Determine whether the packet requires a reply
 
-  if (macHdr.GetMType () == LoraMacHeader::CONFIRMED_DATA_UP && AR == false)
+  if (macHdr.GetMType () == LoraMacHeader::CONFIRMED_DATA_UP && pri == 0 && AR == false)
 		 // &&      !m_deviceStatuses.at (frameHdr.GetAddress ()).HasReply ()
     {
      NS_LOG_DEBUG ("Scheduling a reply for this device");
@@ -381,9 +383,9 @@ SimpleNetworkServer::Receive (Ptr<NetDevice> device, Ptr<const Packet> packet,
 
      // Decide which Frequency will be used, set the same frequancy of the incomming packet if no
      // secondary channel is used for ACKs
-     NS_LOG_DEBUG ("Different channel ? " << m_differentchannel);
+     NS_LOG_DEBUG ("Two receive windows ? " << m_two_rx);
 
-     if (not (m_differentchannel)){
+     if (m_two_rx){
     	 m_deviceStatuses.at (frameHdr.GetAddress ()).SetFirstReceiveWindowFrequency (tag.GetFrequency ());
      }
 
@@ -410,7 +412,7 @@ SimpleNetworkServer::SendOnFirstWindow (LoraDeviceAddress address, uint32_t ed_I
   double firstReceiveWindowFrequency = 0;
   uint8_t firstReceiveWindowDataRate = 0;
 
-  if (not (m_differentchannel)){
+  if (m_two_rx){
 	  firstReceiveWindowFrequency = m_deviceStatuses.at
 	      (address).GetFirstReceiveWindowFrequency ();
 
@@ -445,12 +447,14 @@ SimpleNetworkServer::SendOnFirstWindow (LoraDeviceAddress address, uint32_t ed_I
       double frequency = firstReceiveWindowFrequency;
       uint8_t dataRate = firstReceiveWindowDataRate;
 
-      NS_LOG_INFO ("---> NET SERVER Using parameters 1st rx: " << frequency << "Hz, DR"
+      NS_LOG_INFO ("---> NET SERVER Using parameters 1st rx: " << frequency << "Hz, DR "
                                         << unsigned(dataRate));
 
       //replyPacketTag.SetDataRate (dataRate);
       replyPacketTag.SetFrequency (frequency);
       replyPacketTag.SetPktID(pkt_ID);
+      replyPacketTag.SetSpreadingFactor(12 - firstReceiveWindowDataRate);
+
 
       replyPacket->AddPacketTag (replyPacketTag);
 
@@ -463,18 +467,16 @@ SimpleNetworkServer::SendOnFirstWindow (LoraDeviceAddress address, uint32_t ed_I
       Send (replyPacket, gatewayForReply, 0x0800);
 
     }
-  else
-    {
-      if (m_secondreceivewindow)
-      {
-    	  NS_LOG_FUNCTION ("No suitable GW found, scheduling second window reply");
+
+    if (m_two_rx)
+       {
+    	  NS_LOG_FUNCTION ("Scheduling second window reply");
           // Schedule a reply on the second receive window
           Simulator::Schedule (Seconds (1), &SimpleNetworkServer::SendOnSecondWindow, this,
                                address, ed_ID, pkt_ID);
-      }
+       }
 
       else { RemoveAckSent(pkt_ID, ed_ID);}
-    }
 }
 
 void
@@ -505,6 +507,7 @@ SimpleNetworkServer::SendOnSecondWindow (LoraDeviceAddress address, uint32_t ed_
 
       //replyPacketTag.SetDataRate (dataRate);
       replyPacketTag.SetFrequency (frequency);
+      replyPacketTag.SetSpreadingFactor(12 - dataRate);
       replyPacketTag.SetPktID(pkt_ID);
 
       replyPacket->AddPacketTag (replyPacketTag);

@@ -74,7 +74,7 @@ public:
 
   void SetParameters (uint32_t GW, uint32_t ED, uint32_t JM, int buffer_length);
 
-  void SetACKParams (bool differentchannel, bool secondreceivewindow, double ackfrequency, int ackdatarate, int acklength);
+  void SetACKParams (bool two_rx, double ackfrequency, int ack_sf, int acklength);
 
   void SetEWMA(bool ewma, double target, double lambda, double UCL, double LCL);
 
@@ -169,12 +169,11 @@ public:
 
   // Variables related to ACK
 
-  bool m_differentchannel;
-  bool m_secondreceivewindow;
+  bool m_two_rx;
   double m_ackfrequency;
+  int m_ack_sf;
   int m_ackdatarate;
   int m_acklength;
-
 
   //variables related to the EWMA
   int m_buffer_length;

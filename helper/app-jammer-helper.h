@@ -85,6 +85,8 @@ public:
 
   void SetSpreadingFactor (uint8_t sf);
 
+  void SetFrequency (double Freq);
+
   void SetLambda (double lambda);
 
 
@@ -111,6 +113,10 @@ private:
   Time m_simtime;
 
   double m_lambda;
+
+  double m_frequency;
+
+  double m_length;
 
 
 };

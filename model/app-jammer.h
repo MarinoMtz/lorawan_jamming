@@ -104,10 +104,13 @@ public:
 
   uint8_t GetSpreadingFactor ();
 
+  void SetFrequency (double Freq);
 
   void SetLambda (double lambda);
 
   double GetLambda (void);
+
+  void SetLength (double m_length);
 
 
   /**
@@ -189,8 +192,7 @@ private:
   double sent = 0;
 
   double m_lambda;
-
-
+  double m_frequency;
 
 };
 

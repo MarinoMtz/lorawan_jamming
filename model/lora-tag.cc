@@ -45,7 +45,7 @@ LoraTag::GetInstanceTypeId (void) const
 }
 
 LoraTag::LoraTag () :
-  m_sf (8),
+  m_sf (7),
   m_destroyedBy (0),
   m_receivePower (0),
   m_frequency (868.2),

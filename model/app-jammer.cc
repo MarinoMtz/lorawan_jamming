@@ -67,7 +67,8 @@ AppJammer::AppJammer () :
   m_sf(7),
   send_times(0),
   cumultime(0),
-  m_lambda(0)
+  m_lambda(0),
+  m_frequency(868.1)
 {
 //  NS_LOG_FUNCTION_NOARGS ();
   m_exprandomdelay = CreateObject<ExponentialRandomVariable> ();
@@ -192,6 +193,13 @@ AppJammer::SetLambda (double lambda)
 
 }
 
+void
+AppJammer::SetFrequency (double Freq)
+{
+  m_frequency = Freq;
+  NS_LOG_DEBUG ("Lambda " << m_lambda);
+}
+
 double
 AppJammer::GetLambda (void)
 {
@@ -289,16 +297,14 @@ AppJammer::SendPacketMac ()
 	LoraTag tag;
 	packet->RemovePacketTag (tag);
 	tag.SetSpreadingFactor (params.sf);
+	tag.SetFrequency(m_frequency);
 	tag.SetJammer (uint8_t (1));
 	packet->AddPacketTag (tag);
 
-	//NS_LOG_DEBUG ("Sent a packet (MAC LEVEL) at " << Simulator::Now ().GetSeconds ());
+	NS_LOG_DEBUG ("JAM: Sent a packet (MAC LEVEL) " << " with Freq " << m_frequency);
 	m_mac->Send (packet);
 
-
   //NS_LOG_DEBUG ("Sent counter " << sent);
-
-
 }
 
 void

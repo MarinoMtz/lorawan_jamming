@@ -124,6 +124,8 @@ public:
    */
   uint8_t GetSfFromDataRate (uint8_t dataRate);
 
+  uint8_t GetDataRateFromSf (uint8_t sf);
+
   /**
    * Get the BW corresponding to a data rate, based on this MAC's region
    *
@@ -151,6 +153,8 @@ public:
    * should correspond to DR i.
    */
   void SetSfForDataRate (std::vector<uint8_t> sfForDataRate);
+
+  void SetDataRateForSF (std::vector<uint8_t> DataRateForSF);
 
   /**
    * Set the vector to use to check up correspondence between bandwidth and
@@ -238,6 +242,8 @@ protected:
    * A vector holding the SF each Data Rate corresponds to.
    */
   std::vector<uint8_t> m_sfForDataRate;
+
+  std::vector<uint8_t> m_DataRateForSF;
 
   /**
    * A vector holding the bandwidth each Data Rate corresponds to.

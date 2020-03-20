@@ -139,6 +139,7 @@ JammerLoraMac::Send (Ptr<Packet> packet)
   LoraTag tag;
   packet->RemovePacketTag (tag);
   uint8_t sf = tag.GetSpreadingFactor ();
+  double Freq = tag.GetFrequency ();
   packet->AddPacketTag (tag);
 
 
@@ -146,10 +147,7 @@ JammerLoraMac::Send (Ptr<Packet> packet)
 
   m_phy->GetObject<JammerLoraPhy> ()->SetSpreadingFactor (sf);
 
-
-  if (txChannel) // Proceed with transmission
-    {
-      /////////////////////////////////////////////////////////
+  	  /////////////////////////////////////////////////////////
       // Add headers, prepare TX parameters and send the packet
       /////////////////////////////////////////////////////////
 
@@ -187,7 +185,7 @@ JammerLoraMac::Send (Ptr<Packet> packet)
       // Make sure we can transmit at the current power on this channel
       //NS_ASSERT (m_txPower <= m_channelHelper.GetTxPowerForChannel (txChannel));
       //m_phy->GetObject<JammerLoraPhy> ()->SwitchToStandby ();
-      m_phy->Send (packet, params, txChannel->GetFrequency (), m_txPower);
+      m_phy->Send (packet, params, Freq, m_txPower);
 
       //////////////////////////////////////////////
       // Register packet transmission for duty cycle
@@ -200,11 +198,6 @@ JammerLoraMac::Send (Ptr<Packet> packet)
   	  NS_LOG_INFO ("-------> Params " << params);
   	  NS_LOG_INFO ("-------> Packet size " << unsigned (packet->GetSize()));
 
-
-      // Register the sent packet into the DutyCycleHelper
-      m_channelHelper.AddEvent (duration, txChannel);
-
-           }
 }
 
 void

@@ -125,7 +125,7 @@ public:
 
   void SetMType (NodeContainer endDevices,LoraMacHeader::MType mType);
 
-  void SetACKParams (bool differentchannel, bool secondreceivewindow, double ackfrequency, int ackdatarate, int acklength);
+  void SetACKParams (bool two_rx, double ackfrequency, int ack_sf, int acklength);
 
   // Set Retransmission params
 
@@ -157,11 +157,11 @@ private:
 
   //ACK Parameters
 
-  bool m_ackdifferentchannel;
-  bool m_secondreceivewindow;
+  bool m_two_rx;
   double m_ReceiveWindowFrequency;
-  int m_ackdatarate;
+  int m_ack_sf;
   int m_acklength;
+
 
   // Retransmission params
   bool m_retransmission;

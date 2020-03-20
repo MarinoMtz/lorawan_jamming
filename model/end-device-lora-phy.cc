@@ -428,7 +428,7 @@ EndDeviceLoraPhy::EndReceive (Ptr<Packet> packet,
   // Fire the trace source if packet was destroyed
   if (packetDestroyed)
     {
-      NS_LOG_INFO ("Packet destroyed by interference");
+      NS_LOG_INFO ("ED - Packet destroyed by interference");
 
       bool OnThePreamble = m_interference.GetOnThePreamble ();
       Time colstart = m_interference.GetColStart ();
@@ -455,7 +455,7 @@ EndDeviceLoraPhy::EndReceive (Ptr<Packet> packet,
     }
   else
     {
-      NS_LOG_INFO ("Packet received correctly");
+      NS_LOG_INFO ("ED - Packet received correctly");
 
       uint32_t ID = m_device->GetNode ()->GetId ();
       NS_LOG_DEBUG ("Receiver ID" << ID);
@@ -595,10 +595,17 @@ EndDeviceLoraPhy::SetFrequency (double frequencyMHz)
   m_frequency = frequencyMHz;
 }
 
+double
+EndDeviceLoraPhy::GetFrequency (void)
+{
+  NS_LOG_FUNCTION (this << m_frequency);
+  return m_frequency;
+}
+
 void
 EndDeviceLoraPhy::SwitchToStandby (void)
 {
-  NS_LOG_FUNCTION_NOARGS ();
+  //NS_LOG_FUNCTION_NOARGS ();
 
   if (m_state == DEAD)
     {
@@ -608,13 +615,13 @@ EndDeviceLoraPhy::SwitchToStandby (void)
 
   m_state = STANDBY;
   StateDuration (Simulator::Now (), 3);
-  NS_LOG_FUNCTION (this << "STB" << Simulator::Now ().GetSeconds ());
+  //NS_LOG_FUNCTION (this << "STB" << Simulator::Now ().GetSeconds ());
 }
 
 void
 EndDeviceLoraPhy::SwitchToRx (void)
 {
-  NS_LOG_FUNCTION_NOARGS ();
+  //NS_LOG_FUNCTION_NOARGS ();
 
   if (m_state == DEAD)
     {
@@ -632,7 +639,7 @@ EndDeviceLoraPhy::SwitchToRx (void)
 void
 EndDeviceLoraPhy::SwitchToTx (void)
 {
-  NS_LOG_FUNCTION_NOARGS ();
+  //NS_LOG_FUNCTION_NOARGS ();
 
   if (m_state == DEAD)
     {
@@ -643,7 +650,7 @@ EndDeviceLoraPhy::SwitchToTx (void)
   NS_ASSERT (m_state != RX);
   m_state = TX;
   StateDuration (Simulator::Now (), 1);
-  NS_LOG_FUNCTION (this << "TX" << Simulator::Now ().GetSeconds ());
+  //NS_LOG_FUNCTION (this << "TX" << Simulator::Now ().GetSeconds ());
 
 }
 
@@ -668,7 +675,7 @@ EndDeviceLoraPhy::SwitchToSleep (void)
 void
 EndDeviceLoraPhy::SwitchToDead (void)
 {
-  NS_LOG_FUNCTION_NOARGS ();
+  //NS_LOG_FUNCTION_NOARGS ();
   m_state = DEAD;
 
 }
@@ -676,7 +683,7 @@ EndDeviceLoraPhy::SwitchToDead (void)
 EndDeviceLoraPhy::State
 EndDeviceLoraPhy::GetState (void)
 {
-  NS_LOG_FUNCTION_NOARGS ();
+  //NS_LOG_FUNCTION_NOARGS ();
 
   return m_state;
 }

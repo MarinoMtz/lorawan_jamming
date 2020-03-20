@@ -91,17 +91,14 @@ public:
   double m_ucl = 0;
   double m_lcl = 0;
 
-  void SetACKParams (bool differentchannel, bool secondreceivewindow,
-		  double ackfrequency, int ackdatarate, int acklength);
+  void SetACKParams (bool two_rx, double ackfrequency, int ack_sf, int acklength);
 
   // Variables related to ACK
 
-  bool m_differentchannel;
-  bool m_secondreceivewindow;
+  bool m_two_rx;
   double m_ackfrequency;
-  int m_ackdatarate;
+  int m_ack_sf;
   int m_acklength;
-
 
 private:
   Ptr<Application> InstallPriv (Ptr<Node> node);

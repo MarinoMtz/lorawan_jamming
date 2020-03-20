@@ -192,7 +192,7 @@ AttackHelper::ConfigureBand (NodeContainer Jammers, double DutyCycle)
 }
 
 void
-AttackHelper::SetFrequency(NodeContainer Jammers,double Frequency)
+AttackHelper::SetFrequency(NodeContainer Jammers, double Frequency)
 {
 	for (NodeContainer::Iterator j = Jammers.Begin (); j != Jammers.End (); ++j)
 	    {

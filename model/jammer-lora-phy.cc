@@ -132,8 +132,6 @@ JammerLoraPhy::AppFinish (void)
   m_appfinish=true;
 }
 
-
-
 void
 JammerLoraPhy::Send (Ptr<Packet> packet, LoraTxParameters txParams,
                         double frequencyMHz, double txPowerDbm)

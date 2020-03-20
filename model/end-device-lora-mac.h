@@ -82,7 +82,7 @@ public:
   /**
    * Perform operations needed to open the first receive window.
    */
-  void OpenFirstReceiveWindow (void);
+  void OpenFirstReceiveWindow (double Frequency, uint8_t SF);
 
   /**
    * Perform operations needed to open the second receive window.
@@ -163,8 +163,7 @@ public:
    *
    */
 
-  void SetACKParams (bool differentchannel, bool secondreceivewindow, double ackfrequency, int ackdatarate, int acklength);
-
+  void SetACKParams (bool two_rx, double ackfrequency, int ack_sf, int acklength);
   /**
    * Get the Data Rate that will be used in the first receive window.
    *
@@ -408,13 +407,7 @@ private:
    * Boolean variable to set if ACKs are sent in a different channel
    */
 
-  bool m_ackdifferentchannel;
-
-  /**
-   * Boolean variable to set if the second rx windows is used
-   */
-
-  bool m_sendsecondreceivewindow;
+  bool m_two_rx;
 
   /**
    * ACK length

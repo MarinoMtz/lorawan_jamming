@@ -94,6 +94,7 @@ AppJammerHelper::InstallPriv (Ptr<Node> node) const
   app->SetSpreadingFactor (m_sf);
   app->SetSimTime (m_simtime);
   app->SetLambda(m_lambda);
+  app->SetFrequency(m_frequency);
 
   if (m_exp)
   {
@@ -158,6 +159,12 @@ void
 AppJammerHelper::SetSpreadingFactor (uint8_t sf)
 {
   m_sf = sf;
+}
+
+void
+AppJammerHelper::SetFrequency (double Freq)
+{
+  m_frequency = Freq;
 }
 
 void

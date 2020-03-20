@@ -106,6 +106,9 @@ double JammerSF = 7;
 double lambda_jam_dw = 10; // lambda to be used by uplink jammers
 double lambda_jam_up = 10; // lambda to be used by downlink jammers
 
+double Jammer_length_up = 10; // lambda to be used by uplink jammers
+double Jammer_length_dw = 10; // lambda to be used by downlink jammers
+
 bool updw; // Variable indicating if the simulation will consider jammers transmitting on both channels
 
 double PayloadJamSize_up = 50; // Payload length to be used by jammers transmitting in uplink
@@ -119,11 +122,10 @@ uint32_t nJammers_dw = 0; // Number of jammers transmitting on
 //int PayloadSize=41;
 
 // ACK Parameters
-bool differentchannel = true;
+bool two_rx = true; // true if two tx windows are used
 
-bool secondreceivewindow = false;
 double ackfrequency = 869.525; //869.525 , 868.1
-int ackdatarate = 4;
+int ack_sf = 7;
 int acklength = 1;
 double percentage_rtx;
 
@@ -659,12 +661,16 @@ int main (int argc, char *argv[])
   cmd.AddValue ("lambda_jam_up", "Lambda to be used by the jammer to jam on the uplink channel", lambda_jam_up);
   cmd.AddValue ("lambda_jam_dw", "Lambda to be used by the jammer to jam on the uplink channel", lambda_jam_dw);
 
+  cmd.AddValue ("Jammer_length_up", "Jammer Packet length uplink", lambda_jam_up);
+  cmd.AddValue ("Jammer_length_dw", "Jammer Packet length downlink", lambda_jam_dw);
+
   cmd.AddValue ("updw", "boolean variable indicating if thre will be uplink and downlink jammers in the simulation", updw);
 
   // imput variables related to ACKs
 
-  cmd.AddValue ("Diff_Channel", " boolean variable indicating if ACKs are sent in a different channel", differentchannel);
-  cmd.AddValue ("Second_RX", " boolean variable indicating if the second receive window is used", secondreceivewindow);
+  cmd.AddValue ("two_rx", " boolean variable indicating if there are one or two ack receive windows", two_rx);
+  cmd.AddValue ("ack_sf", " sf to be used in the first rx (if only one rx is used) or in the second (if two rx)", ack_sf);
+
 
   // imput variables related to ED
   cmd.AddValue ("Specific_SF", " boolean variable indicating if EDs use an specific Spreading Factor", Specific_SF);
@@ -723,7 +729,7 @@ int main (int argc, char *argv[])
 //  LogComponentEnable("LoraInterferenceHelper", LOG_LEVEL_ALL);
 //  LogComponentEnable("LoraMacHelper", LOG_LEVEL_ALL);
 
-//  LogComponentEnable("EndDeviceLoraMac", LOG_LEVEL_ALL);
+  LogComponentEnable("EndDeviceLoraMac", LOG_LEVEL_ALL);
 //  LogComponentEnable("LoraTag", LOG_LEVEL_ALL);
 //  LogComponentEnable("PacketTagList", LOG_LEVEL_ALL);
 
@@ -805,7 +811,7 @@ int main (int argc, char *argv[])
   *  Set ACK parameters  *
   ************************/
 
-  macHelper.SetACKParams (differentchannel, secondreceivewindow, ackfrequency, ackdatarate, acklength);
+  macHelper.SetACKParams (two_rx, ackfrequency, ack_sf, acklength);
 
 
   /**********************************
@@ -1112,6 +1118,7 @@ int main (int argc, char *argv[])
    	  appJamHelper.SetExp (Exponential);
    	  appJamHelper.SetRanSF (Random_SF);
    	  appJamHelper.SetSpreadingFactor (JammerSF);
+   	  appJamHelper.SetFrequency(JammerFrequency_up);
    	  appJamHelper.SetSimTime (appJamStopTime);
    	  appJamHelper.SetLambda (lambda_jam_up);
 
@@ -1142,6 +1149,7 @@ int main (int argc, char *argv[])
 	  appJamHelper_dw.SetExp (Exponential);
 	  appJamHelper_dw.SetRanSF (Random_SF);
 	  appJamHelper_dw.SetSpreadingFactor (JammerSF);
+	  appJamHelper_dw.SetFrequency(JammerFrequency_dw);
 	  appJamHelper_dw.SetSimTime (appJamStopTime);
 	  appJamHelper_dw.SetLambda (lambda_jam_up);
 
@@ -1186,7 +1194,6 @@ int main (int argc, char *argv[])
   cout << "Conf_UP " << Conf_UP << endl;
   cout << "maxtx " << maxtx << endl;
 
-
   if (Net_Ser == true)
   {
 
@@ -1197,7 +1204,7 @@ int main (int argc, char *argv[])
 	  NetworkServerHelper networkServerHelper;
 
 	  // Set ACK Parameters on the Network Server
-	  networkServerHelper.SetACKParams (differentchannel, secondreceivewindow, ackfrequency, ackdatarate, acklength);
+	  networkServerHelper.SetACKParams (two_rx, ackfrequency, ack_sf, acklength);
 
 	  if (InterArrival){networkServerHelper.SetInterArrival();}
 	  //Set parameters for EWMA, target = application period, buffer_length
