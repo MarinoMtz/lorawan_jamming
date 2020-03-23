@@ -100,7 +100,8 @@ double JammerFrequency_up = 868.1;
 double JammerFrequency_dw = 869.525;
 
 double JammerTxPower = 25;
-double JammerDutyCycle = 0.5;
+double JammerDutyCycle_up = 0.5;
+double JammerDutyCycle_dw = 0.5;
 double JammerSF = 7;
 
 double lambda_jam_dw = 10; // lambda to be used by uplink jammers
@@ -655,7 +656,9 @@ int main (int argc, char *argv[])
   cmd.AddValue ("JammerTxPower", "Jammer TX Poxer in dBm ", JammerTxPower);
   cmd.AddValue ("Random_SF", "Boolean variable to set whether the Jammer select a random SF to transmit", Random_SF);
   cmd.AddValue ("All_SF", "Boolean variable to set whether the Jammer transmits in all SF at the same time (Jammers 3 and 4)", All_SF);
-  cmd.AddValue ("JammerDutyCycle", "Jammer duty cycle", JammerDutyCycle);
+  cmd.AddValue ("JammerDutyCycle_dw", "Jammer duty cycle", JammerDutyCycle_dw);
+  cmd.AddValue ("JammerDutyCycle_up", "Jammer duty cycle", JammerDutyCycle_up);
+
   cmd.AddValue ("Exponential", "Exponential inter-arrival time", Exponential);
 
   cmd.AddValue ("lambda_jam_up", "Lambda to be used by the jammer to jam on the uplink channel", lambda_jam_up);
@@ -729,7 +732,7 @@ int main (int argc, char *argv[])
 //  LogComponentEnable("LoraInterferenceHelper", LOG_LEVEL_ALL);
 //  LogComponentEnable("LoraMacHelper", LOG_LEVEL_ALL);
 
-  LogComponentEnable("EndDeviceLoraMac", LOG_LEVEL_ALL);
+//  LogComponentEnable("EndDeviceLoraMac", LOG_LEVEL_ALL);
 //  LogComponentEnable("LoraTag", LOG_LEVEL_ALL);
 //  LogComponentEnable("PacketTagList", LOG_LEVEL_ALL);
 
@@ -1110,11 +1113,11 @@ int main (int argc, char *argv[])
 	  Time appJamStopTime = Seconds (simulationTime);
 	  AppJammerHelper appJamHelper = AppJammerHelper ();
 
-	  AttackProfile.ConfigureBand (Jammers, JammerDutyCycle);
+	  AttackProfile.ConfigureBand (Jammers, JammerDutyCycle_up);
 
 	  appJamHelper.SetPacketSize (PayloadJamSize_up);
    	  appJamHelper.SetPeriod (Seconds (appPeriodJamSeconds));
-   	  appJamHelper.SetDC (JammerDutyCycle);
+   	  appJamHelper.SetDC (JammerDutyCycle_up);
    	  appJamHelper.SetExp (Exponential);
    	  appJamHelper.SetRanSF (Random_SF);
    	  appJamHelper.SetSpreadingFactor (JammerSF);
@@ -1141,11 +1144,11 @@ int main (int argc, char *argv[])
 	  Time appJamStopTime = Seconds (simulationTime);
 	  AppJammerHelper appJamHelper_dw = AppJammerHelper ();
 
-	  AttackProfile.ConfigureBand (Jammers_dw, JammerDutyCycle);
+	  AttackProfile.ConfigureBand (Jammers_dw, JammerDutyCycle_dw);
 
-	  appJamHelper_dw.SetPacketSize (PayloadJamSize_up);
+	  appJamHelper_dw.SetPacketSize (PayloadJamSize_dw);
 	  appJamHelper_dw.SetPeriod (Seconds (appPeriodJamSeconds));
-	  appJamHelper_dw.SetDC (JammerDutyCycle);
+	  appJamHelper_dw.SetDC (JammerDutyCycle_dw);
 	  appJamHelper_dw.SetExp (Exponential);
 	  appJamHelper_dw.SetRanSF (Random_SF);
 	  appJamHelper_dw.SetSpreadingFactor (JammerSF);
@@ -1286,7 +1289,8 @@ int main (int argc, char *argv[])
 	  string Result_File = Path + "/" + Filename;
 
 	 // cout << "Jammer Type " << JammerType << endl;
-	  cout << "Jammer DutyCycle " << JammerDutyCycle << endl;
+	  cout << "Jammer DutyCycle UP " << JammerDutyCycle_up << endl;
+	  cout << "Jammer DutyCycle DW " << JammerDutyCycle_dw << endl;
 	  cout << "Number of Jammers " << nJammers_up << endl;
 	  cout << "Number of Devices " << nDevices << endl;
 	  cout << "Pkt Sent ed " << edsent << endl;
@@ -1296,11 +1300,12 @@ int main (int argc, char *argv[])
       cout << "Success jm " << gwreceived_jm << endl;
 	  cout << "lost ed " << collision_ed + underSensitivity_ed + dropped_ed << endl;
 	//  cout << "collision jm " << collision_jm << endl;
-	//  cout << "underSensitivity ed " << underSensitivity_ed << endl;
+	  cout << "collision ed " << collision_ed << endl;
+	  cout << "underSensitivity ed " << underSensitivity_ed << endl;
 	//  cout << "underSensitivity jm " << underSensitivity_jm << endl;
 	//  cout << "cumulative time ed " << cumulative_time_ed << endl;
 	//  cout << "cumulative time jm " << cumulative_time_jm << endl;
-	//  cout << "dropped ed " << dropped_ed << endl;
+	  cout << "dropped ed " << dropped_ed << endl;
 	//  cout << "dropped jm " << dropped_jm << endl;
 	//  cout << "Real mean jam " << simulationTime/jmsent << endl;
 	//  cout << "Real mean ed " << simulationTime/edsent/nDevices << endl;
