@@ -288,7 +288,7 @@ protected:
    *
    * \see class CallBackTraceSource
    */
-  TracedCallback<Ptr<const Packet>, uint32_t, uint32_t, double, uint8_t> m_successfullyReceivedPacket;
+  TracedCallback<Ptr<const Packet>, uint32_t, uint32_t, double, uint8_t, double> m_successfullyReceivedPacket;
 
   TracedCallback<Ptr<const Packet>, Time, uint32_t, uint32_t, double, uint8_t> m_packetduration;
 

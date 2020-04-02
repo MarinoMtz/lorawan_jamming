@@ -48,7 +48,7 @@ NS_LOG_COMPONENT_DEFINE ("LorawanNetworkAttackExample");
 // Network settings
 uint32_t nDevices = 2;
 uint32_t nGateways = 1;
-double radius = 4200;
+double radius = 500;
 
 // Uniform random variable to allocate nodes
 Ptr<UniformRandomVariable> rnd_alloc = CreateObject<UniformRandomVariable> ();
@@ -206,15 +206,14 @@ string Path;
  **********************/
 
 void
-PrintTrace (int Type, uint32_t NodeId, uint32_t SenderID, uint32_t Size, double frequencyMHz, uint8_t sf, Time colstart, Time colend, bool onthepreable, string filename)
+PrintTrace (int Type, uint32_t NodeId, uint32_t SenderID, uint32_t Size, double frequencyMHz, uint8_t sf, Time colstart, Time colend, bool onthepreable, double snir, string filename)
 {
-
 	const char * c = filename.c_str ();
 	ofstream Plot;
 	Plot.open (c, ios::app);
 	switch (Type)
 	{
-		case GR : Plot << "GR " << NodeId << " " << SenderID << " " << Size << " " << frequencyMHz << " " << unsigned(sf) << " " << Simulator::Now ().GetSeconds () << endl;
+		case GR : Plot << "GR " << NodeId << " " << SenderID << " " << Size << " " << frequencyMHz << " " << unsigned(sf) << " " << snir << " " << Simulator::Now ().GetSeconds () << endl;
 		break;
 		case ER : Plot << "ER " << NodeId << " " << SenderID << " " << Size << " " << frequencyMHz << " " << unsigned(sf) << " " << Simulator::Now ().GetSeconds () << endl;
 		break;
@@ -253,7 +252,7 @@ PrintResults(uint32_t nGateways, uint32_t nDevices, uint32_t nJammers, double re
 			<< " " << cumulative_time_ed << " " << cumulative_time_jm
 			<< " " << cumulative_time_ed << " " << cumulative_time_jm
 			<< " " << edsentmsg << " " << nsmessagerx << " " <<  msgreceiveProb << " " << edretransmission
-			<< " " << edretransmission/nsmessagerx << " " << total_conso
+			<< " " << edsent/edsentmsg << " " << total_conso
 			<< endl;
     //cumulative_time_ed << " " << cumulative_time_jm << endl;
 	Plot.close ();
@@ -354,13 +353,13 @@ GWCaptureEffectCallback (Ptr<Packet const> packet, uint32_t systemId, uint32_t S
 
 
 void
-GatewayReceiveCallback (Ptr<Packet const> packet, uint32_t systemId, uint32_t SenderID, double frequencyMHz, uint8_t sf)
+GatewayReceiveCallback (Ptr<Packet const> packet, uint32_t systemId, uint32_t SenderID, double frequencyMHz, uint8_t sf, double RxPowerdBm)
 {
   // Remove the successfully received packet from the list of sent ones
   // NS_LOG_INFO ("A packet was successfully received at gateway " << systemId);
 
   //NS_LOG_INFO ("R " << systemId << " " << SenderID << " " << packet->GetSize () << " " << frequencyMHz << " " << unsigned(sf) << " " << Simulator::Now ().GetSeconds ());
-  //PrintTrace (GR, systemId, SenderID, packet->GetSize (), frequencyMHz, sf, Seconds(0), Seconds(0), 0, "scratch/Trace.dat");
+  //PrintTrace (GR, systemId, SenderID, packet->GetSize (), frequencyMHz, sf, Seconds(0), Seconds(0), 0, RxPowerdBm,"scratch/Trace.dat");
 
   LoraTag tag;
   packet->PeekPacketTag (tag);
@@ -370,6 +369,7 @@ GatewayReceiveCallback (Ptr<Packet const> packet, uint32_t systemId, uint32_t Se
   if (jammer == uint8_t(0))
   {
 	  gwreceived_ed += 1;
+	  PrintTrace (GR, systemId, SenderID, packet->GetSize (), frequencyMHz, sf, Seconds(0), Seconds(0), 0, RxPowerdBm,"scratch/Trace.dat");
   }
 
   else
@@ -673,6 +673,7 @@ int main (int argc, char *argv[])
 
   cmd.AddValue ("two_rx", " boolean variable indicating if there are one or two ack receive windows", two_rx);
   cmd.AddValue ("ack_sf", " sf to be used in the first rx (if only one rx is used) or in the second (if two rx)", ack_sf);
+  cmd.AddValue ("acklength", " ACK Packet length", acklength);
 
 
   // imput variables related to ED
@@ -765,8 +766,8 @@ int main (int argc, char *argv[])
   if (nGateways == 1) {
 
 	  mobility.SetPositionAllocator ("ns3::RandomRectanglePositionAllocator",
-	                                  "X", StringValue ("ns3::UniformRandomVariable[Min=0.0|Max=8200]"),
-									  "Y", StringValue ("ns3::UniformRandomVariable[Min=0.0|Max=8200]"));}
+	                                  "X", StringValue ("ns3::UniformRandomVariable[Min=0.0|Max=500]"),
+									  "Y", StringValue ("ns3::UniformRandomVariable[Min=0.0|Max=500]"));}
 
   else if (nGateways == 2) {
 
@@ -790,8 +791,8 @@ int main (int argc, char *argv[])
 
   // Create the lora channel object
   Ptr<LogDistancePropagationLossModel> loss = CreateObject<LogDistancePropagationLossModel> ();
-  loss->SetPathLossExponent (3.76);
-  loss->SetReference (1, 7.7);
+  loss->SetPathLossExponent (1.609); //2.08
+  loss->SetReference (40, 70); //107.41
 
   Ptr<PropagationDelayModel> delay = CreateObject<ConstantSpeedPropagationDelayModel> ();
   Ptr<LoraChannel> channel = CreateObject<LoraChannel> (loss, delay);
@@ -997,12 +998,12 @@ int main (int argc, char *argv[])
 	  id_gw++;
       Ptr<MobilityModel> mobility = (*j)->GetObject<MobilityModel> ();
       Vector position = mobility->GetPosition ();
-      position.x = id_gw*radius;
+      //position.x = id_gw*radius;
       //
-      position.y = radius;
-      //position.x = 0;
-      //position.y = 0;
-      //position.z = 1;
+      //position.y = radius;
+      position.x = 0;
+      position.y = 0;
+      position.z = 2;
       cout << "Position " << position.x << " " << position.y << endl;
       mobility->SetPosition (position);
     }
@@ -1110,7 +1111,8 @@ int main (int argc, char *argv[])
 
   if (JammerType == 3  || JammerType == 4 )
   {
-	  Time appJamStopTime = Seconds (simulationTime);
+	  //Time appJamStopTime = Seconds (simulationTime);
+	  Time appJamStopTime = Seconds (3000);
 	  AppJammerHelper appJamHelper = AppJammerHelper ();
 
 	  AttackProfile.ConfigureBand (Jammers, JammerDutyCycle_up);
@@ -1127,8 +1129,8 @@ int main (int argc, char *argv[])
 
 	  ApplicationContainer appJamContainer = appJamHelper.Install (Jammers);
 
-	  appJamContainer.Start (Seconds (0));
-	  appJamContainer.Stop (appJamStopTime);
+	  appJamContainer.Start (Seconds (1000));
+	  appJamContainer.Stop (Seconds (1200));
 
 
   }
@@ -1154,7 +1156,7 @@ int main (int argc, char *argv[])
 	  appJamHelper_dw.SetSpreadingFactor (JammerSF);
 	  appJamHelper_dw.SetFrequency(JammerFrequency_dw);
 	  appJamHelper_dw.SetSimTime (appJamStopTime);
-	  appJamHelper_dw.SetLambda (lambda_jam_up);
+	  appJamHelper_dw.SetLambda (lambda_jam_dw);
 
 	  ApplicationContainer appJamContainer = appJamHelper_dw.Install (Jammers_dw);
 
@@ -1248,7 +1250,7 @@ int main (int argc, char *argv[])
   *  Simulation  *
   ****************/
 
-  Simulator::Stop (Seconds (simulationTime*3));
+  Simulator::Stop (Seconds (simulationTime));
 
   // PrintSimulationTime ();
 

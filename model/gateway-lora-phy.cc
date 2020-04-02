@@ -399,6 +399,7 @@ GatewayLoraPhy::EndReceive (Ptr<Packet> packet, Ptr<LoraInterferenceHelper::Even
   packetCopy->AddPacketTag (tag);
 
   uint8_t packetDestroyed = m_interference.IsDestroyedByInterference (event);
+  double snir = m_interference.GetSINR (event);
   NS_LOG_INFO ("verified at " << Simulator::Now ().GetSeconds ());
 
   NS_LOG_INFO ("Checking a packet with duration" << event->GetDuration ().GetSeconds() );
@@ -447,11 +448,11 @@ GatewayLoraPhy::EndReceive (Ptr<Packet> packet, Ptr<LoraInterferenceHelper::Even
       // Fire the trace source
       if (m_device)
         {
-          m_successfullyReceivedPacket (packetCopy, m_device->GetNode ()->GetId (), SenderID, event->GetFrequency (), event->GetSpreadingFactor () );
+          m_successfullyReceivedPacket (packetCopy, m_device->GetNode ()->GetId (), SenderID, event->GetFrequency (), event->GetSpreadingFactor (), snir);
         }
       else
         {
-          m_successfullyReceivedPacket (packetCopy, 0, SenderID, event->GetFrequency (), event->GetSpreadingFactor ());
+          m_successfullyReceivedPacket (packetCopy, 0, SenderID, event->GetFrequency (), event->GetSpreadingFactor (), snir);
         }
 
       // Forward the packet to the upper layer

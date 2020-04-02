@@ -127,6 +127,8 @@ JammerLoraMac::Send (Ptr<Packet> packet)
 {
   NS_LOG_FUNCTION (this << packet);
 
+  if (m_appFinish){return false;}
+
   // Pick a channel on which to transmit the packet
   Ptr<LogicalLoraChannel> txChannel = GetChannelForTx ();
 
@@ -413,7 +415,7 @@ JammerLoraMac::TxFinished (Ptr<Packet const> packet)
 	  	  Send(pa);
 		}
 
-  if (m_appFinish == true && m_jamType == 3)
+  if (m_appFinish == true)
 		{
 	      m_phy->GetObject<JammerLoraPhy> ()->AppFinish ();
 	  	}

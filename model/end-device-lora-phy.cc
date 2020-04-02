@@ -462,11 +462,11 @@ EndDeviceLoraPhy::EndReceive (Ptr<Packet> packet,
 
       if (m_device)
         {
-          m_successfullyReceivedPacket (packet, m_device->GetNode ()->GetId (), SenderID, event->GetFrequency (), event->GetSpreadingFactor () );
+          m_successfullyReceivedPacket (packet, m_device->GetNode ()->GetId (), SenderID, event->GetFrequency (), event->GetSpreadingFactor (), event->GetRxPowerdBm () );
         }
       else
         {
-          m_successfullyReceivedPacket (packet, 0, SenderID, event->GetFrequency (), event->GetSpreadingFactor ());
+          m_successfullyReceivedPacket (packet, 0, SenderID, event->GetFrequency (), event->GetSpreadingFactor (), event->GetRxPowerdBm ());
         }
 
       // If there is one, perform the callback to inform the upper layer

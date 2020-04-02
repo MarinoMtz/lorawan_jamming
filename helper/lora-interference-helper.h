@@ -203,6 +203,8 @@ private:
 
   bool CumulEnergy (Ptr<LoraInterferenceHelper::Event> event);
 
+  double GetSINR(Ptr<LoraInterferenceHelper::Event> event);
+
   bool PowerLevel (Ptr<LoraInterferenceHelper::Event> event);
 
    /**

@@ -272,6 +272,115 @@ LoraInterferenceHelper::PrintEvents (ostream &stream)
     }
 }
 
+double
+LoraInterferenceHelper::GetSINR
+  (Ptr<LoraInterferenceHelper::Event> event)
+{
+
+	 NS_LOG_FUNCTION (this << event);
+	 NS_LOG_INFO ("Current number of events in LoraInterferenceHelper: " << m_events.size ());
+	 NS_LOG_INFO ("PowerCE Interferece model: " << GetInterferenceModel());
+
+	// We want to see the interference affecting this event: cycle through events
+	// that overlap with this one and see whether it survives the interference or
+	// not.
+
+	// Gather information about the event
+	uint8_t sf = event->GetSpreadingFactor ();
+	double frequency = event->GetFrequency ();
+	// Handy information about the time frame when the packet was received
+
+	Time now = Simulator::Now ();
+	Time duration = event->GetDuration ();
+	Time packetStartTime = now - duration;
+	Time packetEndTime = now;
+
+	// Get the list of interfering events
+	list<Ptr<LoraInterferenceHelper::Event> >::iterator it;
+
+	// Energy for interferers of various SFs
+	vector<double> cumulativeInterferenceEnergy (6,0);
+
+	// Energy of the event signal
+	double signalEnergy = 0;
+
+	// Get the Rx Power
+	double rxPowerDbm = event->GetRxPowerdBm ();
+	double delta = double(GetDelta());
+	NS_LOG_INFO ("Delta: " << delta);
+
+	// Cycle over the events
+	for (it = m_events.begin (); it != m_events.end ();)
+	    {
+
+		 	 // Pointer to the current interferer
+		 	 Ptr< LoraInterferenceHelper::Event > interferer = *it;
+
+		 	 // Only consider the current event if the channel is the same: we
+		 	 // assume there's no interchannel interference. Also skip the current
+		 	 // event if it's the same that we want to analyze.
+
+		 	 if (interferer == event)
+		 	 {
+		 		 NS_LOG_DEBUG ("Same event");
+		 		 it++;
+		 		 continue;   // Continues from the first line inside the for cycle
+		 	 }
+
+		 	 if (!(interferer->GetFrequency () == frequency))
+		 	 {
+		 		 NS_LOG_DEBUG ("Different channel");
+		 		 it++;
+		 		 continue;   // Continues from the first line inside the for cycle
+		 	 }
+
+		 	 NS_LOG_DEBUG ("Interferer on same channel");
+
+		 	 // Gather information about this interferer
+		 	 uint8_t interfererSf = interferer->GetSpreadingFactor ();
+		 	 Time interfererStartTime = interferer->GetStartTime ();
+		 	 Time interfererEndTime = interferer->GetEndTime ();
+		     double interfererPower = interferer->GetRxPowerdBm ();
+
+		 	 NS_LOG_INFO ("Found an interferer: sf = " << unsigned(interfererSf)
+						 << ", start time = " << interfererStartTime
+						 << ", end time = " << interfererEndTime);
+
+		 	 // Compute the fraction of time the two events are overlapping
+		 	 Time overlap = GetOverlapTime (event, interferer);
+		 	 NS_LOG_DEBUG ("The two events overlap for " << overlap.GetSeconds () << " s.");
+		 	 it++;
+
+		 	 if (overlap.GetSeconds () != 0) {
+
+			      // Compute the equivalent energy of the interference
+			      // Power [mW] = 10^(Power[dBm]/10)
+			      // Power [W] = Power [mW] / 1000
+			      double interfererPowerW = pow (10, interfererPower/10) / 1000;
+			      // Energy [J] = Time [s] * Power [W]
+			      double interferenceEnergy = overlap.GetSeconds () * interfererPowerW;
+			      cumulativeInterferenceEnergy.at (unsigned(interfererSf)-7) += interferenceEnergy;
+			      NS_LOG_DEBUG ("Interferer power in W: " << interfererPowerW);
+			      NS_LOG_DEBUG ("Interference energy: " << interferenceEnergy);
+		 	 	 }
+
+
+	    }
+
+    double signalPowerW = pow (10, rxPowerDbm/10) / 1000;
+    signalEnergy = signalPowerW*duration.GetSeconds ();
+
+    double sigma = pow (10, -123/10) / 1000;
+
+	NS_LOG_DEBUG ("signalEnergy " << signalEnergy << " [J]");
+	NS_LOG_DEBUG ("cumulativeInterferenceEnergy " << cumulativeInterferenceEnergy.at (unsigned(sf)-7) << " [J]");
+
+	double rssi = 10*log10((signalEnergy / (cumulativeInterferenceEnergy.at (unsigned(sf)-7) + sigma))); ///1000*duration.GetSeconds ()
+
+	return rssi;
+
+}
+
 bool
 LoraInterferenceHelper::IsDestroyedByInterference
   (Ptr<LoraInterferenceHelper::Event> event)

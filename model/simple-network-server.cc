@@ -177,7 +177,6 @@ SimpleNetworkServer::SetACKParams (bool two_rx, double ackfrequency, int ack_sf,
 	m_ackfrequency = ackfrequency;
 	m_ack_sf = ack_sf;
 	m_acklength = acklength;
-
 	m_ackdatarate = 12 - ack_sf;
 
 }

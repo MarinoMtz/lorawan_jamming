@@ -250,8 +250,8 @@ AppJammer::SendPacket (void)
 
 
 cumultime = 0;
-
-while (cumultime < simtime)
+//m_simtime.GetSeconds()
+while (cumultime < m_simtime.GetSeconds())
 {
 //	if (Exp)
 //   {
@@ -303,6 +303,10 @@ AppJammer::SendPacketMac ()
 
 	NS_LOG_DEBUG ("JAM: Sent a packet (MAC LEVEL) " << " with Freq " << m_frequency);
 	m_mac->Send (packet);
+
+	if (Simulator::Now ().GetSeconds () > Seconds(300)) {
+		StopApplication();
+	}
 
   //NS_LOG_DEBUG ("Sent counter " << sent);
 }
