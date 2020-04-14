@@ -369,7 +369,7 @@ GatewayReceiveCallback (Ptr<Packet const> packet, uint32_t systemId, uint32_t Se
   if (jammer == uint8_t(0))
   {
 	  gwreceived_ed += 1;
-	  PrintTrace (GR, systemId, SenderID, packet->GetSize (), frequencyMHz, sf, Seconds(0), Seconds(0), 0, RxPowerdBm,"scratch/Trace.dat");
+	  //PrintTrace (GR, systemId, SenderID, packet->GetSize (), frequencyMHz, sf, Seconds(0), Seconds(0), 0, RxPowerdBm,"scratch/Trace.dat");
   }
 
   else
@@ -1129,8 +1129,12 @@ int main (int argc, char *argv[])
 
 	  ApplicationContainer appJamContainer = appJamHelper.Install (Jammers);
 
-	  appJamContainer.Start (Seconds (1000));
-	  appJamContainer.Stop (Seconds (1200));
+	  appJamContainer.Start (Seconds (0));
+	  appJamContainer.Stop (Seconds (appJamStopTime));
+
+	  // For time traces
+	  //appJamContainer.Start (Seconds (1000));
+	  //appJamContainer.Stop (Seconds (1200));
 
 
   }
