@@ -380,8 +380,11 @@ PeriodicSender::GetNextTxTime (void)
 	double simtime = GetSimTime ().GetSeconds();
 	double sendtime;
 
-	packet = Create<Packet>(m_pktSize-16);
+	packet = Create<Packet>(m_pktSize+1);
 
+	NS_LOG_DEBUG ("m_pktSize " << m_pktSize);
+
+	//m_pktSize-8
 	Time timeonair;
 	LoraTxParameters params;
 
@@ -397,20 +400,20 @@ PeriodicSender::GetNextTxTime (void)
 	timeonair = m_phy->GetOnAirTime (packet,params);
 	//NS_LOG_DEBUG ("preamble bits " << params.nPreamble);
 
-
 	// Compute the interval as a function of the duty-cycle
-	lambda = dutycycle/timeonair.GetSeconds();
 	m_mean = timeonair.GetSeconds()/dutycycle;
-	//m_mean = 6.5;
+	//m_mean = ToA/dutycycle;
 
 	//NS_LOG_DEBUG ("Lambda - ED " << lambda);
 	//NS_LOG_DEBUG ("simtime " << simtime);
 
-	if (Exp) {sendtime = m_exprandomdelay->GetValue (m_mean,m_mean*100);}
-    else {sendtime = timeonair.GetSeconds()*(1/dutycycle-1);}
+	//if (Exp) {
+	sendtime = m_exprandomdelay->GetValue (m_mean,m_mean*100);
 
-	//NS_LOG_DEBUG ("SF " << unsigned(params.sf) << " ToA " << timeonair.GetSeconds()
-	//		<< " Mean - ED " << m_mean << " Lambda - ED " << lambda << " Send-time " << sendtime);
+	//}
+    //else {sendtime = timeonair.GetSeconds()*(1/dutycycle-1);}
+
+	NS_LOG_DEBUG ("SF " << unsigned(params.sf) << " ToA " << timeonair.GetSeconds());
 
     return sendtime;
 }

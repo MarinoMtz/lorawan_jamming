@@ -358,7 +358,7 @@ GatewayReceiveCallback (Ptr<Packet const> packet, uint32_t systemId, uint32_t Se
   // Remove the successfully received packet from the list of sent ones
   // NS_LOG_INFO ("A packet was successfully received at gateway " << systemId);
 
-  //NS_LOG_INFO ("R " << systemId << " " << SenderID << " " << packet->GetSize () << " " << frequencyMHz << " " << unsigned(sf) << " " << Simulator::Now ().GetSeconds ());
+  NS_LOG_INFO ("R " << systemId << " " << SenderID << " " << packet->GetSize () << " " << frequencyMHz << " " << unsigned(sf) << " " << Simulator::Now ().GetSeconds ());
   //PrintTrace (GR, systemId, SenderID, packet->GetSize (), frequencyMHz, sf, Seconds(0), Seconds(0), 0, RxPowerdBm,"scratch/Trace.dat");
 
   LoraTag tag;
@@ -480,7 +480,7 @@ UnderSensitivityCallback (Ptr<Packet const> packet, uint32_t systemId, uint32_t 
 void
 EnergyConsumptionCallback (uint32_t NodeId, int ConsoType, double Cumulative_event_Conso, double event_conso)
 {
-  NS_LOG_INFO ("The energy consumption of Node " << NodeId << event_conso << "Conso type " << " " << ConsoType << "at " << Simulator::Now ().GetSeconds ());
+  //NS_LOG_INFO ("The energy consumption of Node " << NodeId << event_conso << "Conso type " << " " << ConsoType << "at " << Simulator::Now ().GetSeconds ());
 	//Conso Type: 1 for TX, 2 for RX, 3 for Standby and 4 Sleep
 
   switch(ConsoType) {
@@ -1293,6 +1293,19 @@ int main (int argc, char *argv[])
   //  cout << nJammers  << " " << collision_jm << " " << dropped_jm << " " << gwreceived_jm << " " << underSensitivity_jm << " " << jmsent << " "  << collision_jm + dropped_jm + gwreceived_jm + underSensitivity_jm  << " " << collisionProb_jm << " " << noMoreReceiversProb_jm  << " " << receivedProb_jm << endl;
 
 	  string Result_File = Path + "/" + Filename;
+
+	  double G = edsent * 0.082176 / simulationTime;
+	  double Th_math = G*exp(-2*G);
+	  double Th_sim = gwreceived_ed * 0.082176 / simulationTime;
+	  double Good_sim = nsmessagerx * 0.082176 / simulationTime;
+	  double Good_math = G * msgreceiveProb / (edsent/edsentmsg+1);
+
+	  cout << "G = " << G << endl;
+	  cout << "Th math = " << Th_math << endl;
+	  cout << "Th simulated = " << Th_sim << endl;
+	  cout << "Goodput math = " << Good_math << endl;
+	  cout << "Goodput sim = " << Good_sim << endl;
+
 
 	 // cout << "Jammer Type " << JammerType << endl;
 	  cout << "Jammer DutyCycle UP " << JammerDutyCycle_up << endl;
