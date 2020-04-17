@@ -1130,7 +1130,7 @@ int main (int argc, char *argv[])
 	  ApplicationContainer appJamContainer = appJamHelper.Install (Jammers);
 
 	  appJamContainer.Start (Seconds (0));
-	  appJamContainer.Stop (Seconds (appJamStopTime));
+	  appJamContainer.Stop (appJamStopTime);
 
 	  // For time traces
 	  //appJamContainer.Start (Seconds (1000));
