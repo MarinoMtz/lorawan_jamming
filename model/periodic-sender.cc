@@ -375,7 +375,7 @@ PeriodicSender::GetNextTxTime (void)
 	double lambda;
 
 	bool Exp = GetExp();
-	double dutycycle = 0.01;
+	double dutycycle = 0.001;
 	double interval = GetInterval().GetSeconds();
 	double simtime = GetSimTime ().GetSeconds();
 	double sendtime;
