@@ -1150,7 +1150,7 @@ int main (int argc, char *argv[])
 	  Time appJamStopTime = Seconds (simulationTime);
 	  AppJammerHelper appJamHelper_dw = AppJammerHelper ();
 
-	  AttackProfile.ConfigureBand (Jammers_dw, JammerDutyCycle_dw);
+	  AttackProfile.ConfigureBand (Jammers_dw, JammerDutyCycle_dw/2);
 
 	  appJamHelper_dw.SetPacketSize (PayloadJamSize_dw);
 	  appJamHelper_dw.SetPeriod (Seconds (appPeriodJamSeconds));
