@@ -1150,11 +1150,11 @@ int main (int argc, char *argv[])
 	  Time appJamStopTime = Seconds (simulationTime);
 	  AppJammerHelper appJamHelper_dw = AppJammerHelper ();
 
-	  AttackProfile.ConfigureBand (Jammers_dw, JammerDutyCycle_dw/2);
+	  AttackProfile.ConfigureBand (Jammers_dw, JammerDutyCycle_dw/4);
 
 	  appJamHelper_dw.SetPacketSize (PayloadJamSize_dw);
 	  appJamHelper_dw.SetPeriod (Seconds (appPeriodJamSeconds));
-	  appJamHelper_dw.SetDC (JammerDutyCycle_dw);
+	  appJamHelper_dw.SetDC (JammerDutyCycle_dw/4);
 	  appJamHelper_dw.SetExp (Exponential);
 	  appJamHelper_dw.SetRanSF (Random_SF);
 	  appJamHelper_dw.SetSpreadingFactor (JammerSF);
