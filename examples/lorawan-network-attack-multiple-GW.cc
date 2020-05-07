@@ -138,7 +138,7 @@ bool retransmission = true;
 uint32_t maxtx = 1;
 
 // Output control
-bool printEDs = false;
+bool printEDs = true;
 bool Trans = true;
 bool SimTime = true;
 bool buildingsEnabled = false;
@@ -572,6 +572,7 @@ NSEWMA(vector<double> ucl, vector<double> lcl)
 
 }
 
+vector<uint16_t> DataRates(6,0);
 
 void
 PrintEndDevices (NodeContainer endDevices, NodeContainer Jammers, NodeContainer gateways, string filename)
@@ -600,6 +601,7 @@ PrintEndDevices (NodeContainer endDevices, NodeContainer Jammers, NodeContainer 
       NS_ASSERT (loraNetDevice != 0);
       Ptr<EndDeviceLoraMac> mac = loraNetDevice->GetMac ()->GetObject<EndDeviceLoraMac> ();
       int sf = int(mac->GetDataRate ());
+      DataRates[sf]++;
       Vector pos = position->GetPosition ();
       uint32_t DeviceID = object->GetId();
       Plot << "ED " << DeviceID << " " << pos.x << " " << pos.y << " " << sf << " " << 	pkt_send [DeviceID] << " "<< pkt_success_ed [DeviceID] << " " << pkt_loss_ed [DeviceID] << " " << pkt_drop_ed [DeviceID]<< endl;
@@ -716,6 +718,14 @@ int main (int argc, char *argv[])
 
   cmd.Parse (argc, argv);
 
+  // if there is multi_channel, we set the number of jammer on uplink 3 times
+
+  if (multi_channel)
+  {
+	  nJammers_up = nJammers_up * 3;
+  }
+
+
   pkt_success_ed.resize(nDevices + nJammers_up + nJammers_dw, 0);
   pkt_drop_ed.resize(nDevices+ nJammers_up + nJammers_dw, 0);
   pkt_loss_ed.resize(nDevices+ nJammers_up + nJammers_dw, 0);
@@ -771,8 +781,10 @@ int main (int argc, char *argv[])
   if (nGateways == 1) {
 
 	  mobility.SetPositionAllocator ("ns3::RandomRectanglePositionAllocator",
-	                                  "X", StringValue ("ns3::UniformRandomVariable[Min=0.0|Max=500]"),
-									  "Y", StringValue ("ns3::UniformRandomVariable[Min=0.0|Max=500]"));}
+	                                  "X", StringValue ("ns3::UniformRandomVariable[Min=0.0|Max=6000]"),
+									  "Y", StringValue ("ns3::UniformRandomVariable[Min=0.0|Max=6000]"));
+	  }
+
 
   else if (nGateways == 2) {
 
@@ -784,8 +796,8 @@ int main (int argc, char *argv[])
    else{
 
 	  mobility.SetPositionAllocator ("ns3::RandomRectanglePositionAllocator",
-	                                  "X", StringValue ("ns3::UniformRandomVariable[Min=0.0|Max=12600]"),
-									  "Y", StringValue ("ns3::UniformRandomVariable[Min=0.0|Max=12600]"));
+	                                  "X", StringValue ("ns3::UniformRandomVariable[Min=0.0|Max=500]"),
+									  "Y", StringValue ("ns3::UniformRandomVariable[Min=0.0|Max=500]"));
   }
 
   mobility.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
@@ -796,8 +808,8 @@ int main (int argc, char *argv[])
 
   // Create the lora channel object
   Ptr<LogDistancePropagationLossModel> loss = CreateObject<LogDistancePropagationLossModel> ();
-  loss->SetPathLossExponent (1.609); //2.08
-  loss->SetReference (40, 70); //107.41
+  loss->SetPathLossExponent (3.75); //2.08 1.609
+  loss->SetReference (1, 10); //107.41, 70
 
   Ptr<PropagationDelayModel> delay = CreateObject<ConstantSpeedPropagationDelayModel> ();
   Ptr<LoraChannel> channel = CreateObject<LoraChannel> (loss, delay);
@@ -829,6 +841,10 @@ int main (int argc, char *argv[])
 
   macHelper.SetRRX (retransmission, maxtx);
 
+  if (multi_channel){
+	  macHelper.SetMulti(1);
+  }
+
   /************************
   *  Create End Devices  *
   ************************/
@@ -846,7 +862,7 @@ int main (int argc, char *argv[])
     {
       Ptr<MobilityModel> mobility = (*j)->GetObject<MobilityModel> ();
       Vector position = mobility->GetPosition ();
-      position.z = 10;
+      position.z = 2;
       mobility->SetPosition (position);
       //cout << "Position ed " << position.x << " " << position.y << endl;
     }
@@ -904,11 +920,6 @@ int main (int argc, char *argv[])
   ** Create Jammers  Uplink **
   ****************************/
 
-  if (multi_channel)
-  {
-	  nJammers_up = nJammers_up * 3;
-  }
-
   // Create a set of Jammers
   NodeContainer Jammers;
   Jammers.Create (nJammers_up);
@@ -945,10 +956,9 @@ int main (int argc, char *argv[])
     }
 
 
-
-  /************************
-  *  Create Jammers dw*
-  ************************/
+  /**********************
+  *  Create Jammers dw  *
+  ***********************/
 
 	 NodeContainer Jammers_dw;
 	 Jammers_dw.Create (nJammers_dw);
@@ -1014,7 +1024,7 @@ int main (int argc, char *argv[])
       position.x = 0;
       position.y = 0;
       position.z = 2;
-      cout << "Position " << position.x << " " << position.y << endl;
+      cout << "Position GW " << position.x << " " << position.y << endl;
       mobility->SetPosition (position);
     }
 
@@ -1077,7 +1087,8 @@ int main (int argc, char *argv[])
   **********************************************/
 
   if (Specific_SF){
-	  macHelper.SetSpreadingFactors(endDevices,ED_SF);
+	  macHelper.SetSpreadingFactors(endDevices, ED_SF);
+	  cout << "Specific SF " << ED_SF << endl;
   }else
   {
 	  macHelper.SetSpreadingFactorsUp (endDevices, gateways, channel);
@@ -1088,7 +1099,7 @@ int main (int argc, char *argv[])
 
 
   /***********************************
-  *  Set up the jammer's parameters  *
+  *  Set up jammer's parameters uplink *
   ************************************/
 
   // Create the AttackHelper
@@ -1102,9 +1113,9 @@ int main (int argc, char *argv[])
   AttackProfile.SetPacketSize (Jammers,PayloadJamSize_up);
 
 
-  /***********************************
-  *  Set up the jammer's parameters downlink *
-  ************************************/
+  /***************************************
+  *  Set up jammer's parameters downlink *
+  ****************************************/
 
   AttackProfile.SetType (Jammers_dw, JammerType);
   AttackProfile.ConfigureForEuRegionJm (Jammers_dw);
@@ -1114,40 +1125,37 @@ int main (int argc, char *argv[])
   AttackProfile.SetPacketSize (Jammers_dw,PayloadJamSize_dw);
 
 
-  /*********************************************
-  *  Install applications on the Jammer up*
-  *********************************************/
+  /****************************************
+  * Install applications on the Jammer up *
+  *****************************************/
 
 
-  if (JammerType == 3  || JammerType == 4 )
-  {
-	  //Time appJamStopTime = Seconds (simulationTime);
-	  Time appJamStopTime = Seconds (3000);
-	  AppJammerHelper appJamHelper = AppJammerHelper ();
+  Time appJamStopTime_up = Seconds (simulationTime);
+  //Time appJamStopTime = Seconds (3000);
+  AppJammerHelper appJamHelper = AppJammerHelper ();
 
-	  AttackProfile.ConfigureBand (Jammers, JammerDutyCycle_up);
+  AttackProfile.ConfigureBand (Jammers, JammerDutyCycle_up);
+  appJamHelper.SetPacketSize (PayloadJamSize_up);
+  appJamHelper.SetPeriod (Seconds (appPeriodJamSeconds));
+  appJamHelper.SetDC (JammerDutyCycle_up);
+  appJamHelper.SetExp (Exponential);
+  appJamHelper.SetRanSF (Random_SF);
+  appJamHelper.SetSpreadingFactor (JammerSF);
+  appJamHelper.SetFrequency(JammerFrequency_up);
+  appJamHelper.SetSimTime (appJamStopTime_up);
+  appJamHelper.SetLambda (lambda_jam_up);
 
-	  appJamHelper.SetPacketSize (PayloadJamSize_up);
-   	  appJamHelper.SetPeriod (Seconds (appPeriodJamSeconds));
-   	  appJamHelper.SetDC (JammerDutyCycle_up);
-   	  appJamHelper.SetExp (Exponential);
-   	  appJamHelper.SetRanSF (Random_SF);
-   	  appJamHelper.SetSpreadingFactor (JammerSF);
-   	  appJamHelper.SetFrequency(JammerFrequency_up);
-   	  appJamHelper.SetSimTime (appJamStopTime);
-   	  appJamHelper.SetLambda (lambda_jam_up);
+  if (multi_channel){
+  appJamHelper.SetRanChannel(1);}
 
-	  ApplicationContainer appJamContainer_up = appJamHelper.Install (Jammers);
+  ApplicationContainer appJamContainer_up = appJamHelper.Install (Jammers);
 
-	  appJamContainer_up.Start (Seconds (0));
-	  appJamContainer_up.Stop (appJamStopTime);
+  appJamContainer_up.Start (Seconds (0));
+  appJamContainer_up.Stop (appJamStopTime_up);
 
-	  // For time traces
-	  //appJamContainer.Start (Seconds (1000));
-	  //appJamContainer.Stop (Seconds (1200));
-
-
-  }
+  // For time traces
+  //appJamContainer.Start (Seconds (1000));
+  //appJamContainer.Stop (Seconds (1200));
 
 
   /*********************************************
@@ -1155,30 +1163,25 @@ int main (int argc, char *argv[])
   *********************************************/
 
 
-  if (JammerType == 3  || JammerType == 4 )
-  {
-	  Time appJamStopTime = Seconds (simulationTime);
-	  AppJammerHelper appJamHelper_dw = AppJammerHelper ();
+  Time appJamStopTime_dw = Seconds (simulationTime);
+  AppJammerHelper appJamHelper_dw = AppJammerHelper ();
 
-	  AttackProfile.ConfigureBand (Jammers_dw, JammerDutyCycle_dw/4);
+  AttackProfile.ConfigureBand (Jammers_dw, JammerDutyCycle_dw);
 
-	  appJamHelper_dw.SetPacketSize (PayloadJamSize_dw);
-	  appJamHelper_dw.SetPeriod (Seconds (appPeriodJamSeconds));
-	  appJamHelper_dw.SetDC (JammerDutyCycle_dw/4);
-	  appJamHelper_dw.SetExp (Exponential);
-	  appJamHelper_dw.SetRanSF (Random_SF);
-	  appJamHelper_dw.SetSpreadingFactor (JammerSF);
-	  appJamHelper_dw.SetFrequency(JammerFrequency_dw);
-	  appJamHelper_dw.SetSimTime (appJamStopTime);
-	  appJamHelper_dw.SetLambda (lambda_jam_dw);
+  appJamHelper_dw.SetPacketSize (PayloadJamSize_dw);
+  appJamHelper_dw.SetPeriod (Seconds (appPeriodJamSeconds));
+  appJamHelper_dw.SetDC (JammerDutyCycle_dw);
+  appJamHelper_dw.SetExp (Exponential);
+  appJamHelper_dw.SetRanSF (Random_SF);
+  appJamHelper_dw.SetSpreadingFactor (JammerSF);
+  appJamHelper_dw.SetFrequency(JammerFrequency_dw);
+  appJamHelper_dw.SetSimTime (appJamStopTime_dw);
+  appJamHelper_dw.SetLambda (lambda_jam_dw);
 
-	  ApplicationContainer appJamContainer_dw = appJamHelper_dw.Install (Jammers_dw);
+  ApplicationContainer appJamContainer_dw = appJamHelper_dw.Install (Jammers_dw);
 
-	  appJamContainer_dw.Start (Seconds (0));
-	  appJamContainer_dw.Stop (appJamStopTime);
-
-
-  }
+  appJamContainer_dw.Start (Seconds (0));
+  appJamContainer_dw.Stop (appJamStopTime_dw);
 
 
   /*********************************************
@@ -1187,6 +1190,7 @@ int main (int argc, char *argv[])
 
   Time appStopTime = Seconds (simulationTime);
   PeriodicSenderHelper appHelper = PeriodicSenderHelper ();
+
   appHelper.SetPeriod (Seconds (appPeriodSeconds));
   appHelper.SetPacketSize (PayloadSize);
 
@@ -1304,16 +1308,16 @@ int main (int argc, char *argv[])
 
 	  string Result_File = Path + "/" + Filename;
 
-	  double G = edsent * 0.082176 / simulationTime;
-	  double Th_math = G*exp(-2*G);
-	  double Th_sim = gwreceived_ed * 0.082176 / simulationTime;
-	  double Good_sim = nsmessagerx * 0.082176 / simulationTime;
-	  double Good_math = G * msgreceiveProb / (edsent/edsentmsg+1);
+	  double G = edsent / simulationTime; //* 0.082176 / simulationTime
+	  //double Th_math = G*exp(-2*G);
+	  double Th_sim = gwreceived_ed / simulationTime; //* 0.082176 /
+	  double Good_sim = nsmessagerx / simulationTime;
+	  //double Good_math = G * msgreceiveProb / (edsent/edsentmsg+1);
 
 	  cout << "G = " << G << endl;
-	  cout << "Th math = " << Th_math << endl;
+	  //cout << "Th math = " << Th_math << endl;
 	  cout << "Th simulated = " << Th_sim << endl;
-	  cout << "Goodput math = " << Good_math << endl;
+	  //cout << "Goodput math = " << Good_math << endl;
 	  cout << "Goodput sim = " << Good_sim << endl;
 
 
@@ -1322,10 +1326,7 @@ int main (int argc, char *argv[])
 	  cout << "Jammer DutyCycle DW " << JammerDutyCycle_dw << endl;
 	  cout << "Number of Jammers " << nJammers_up << endl;
 	  cout << "Number of Devices " << nDevices << endl;
-	  cout << "Pkt Sent ed " << edsent << endl;
-	  cout << "Msg Sent ed " << edsentmsg << endl;
 	  cout << "Sent jm " << jmsent << endl;
-	  cout << "Success ed " << gwreceived_ed << endl;
       cout << "Success jm " << gwreceived_jm << endl;
 	  cout << "lost ed " << collision_ed + underSensitivity_ed + dropped_ed << endl;
 	//  cout << "collision jm " << collision_jm << endl;
@@ -1338,11 +1339,14 @@ int main (int argc, char *argv[])
 	//  cout << "dropped jm " << dropped_jm << endl;
 	//  cout << "Real mean jam " << simulationTime/jmsent << endl;
 	//  cout << "Real mean ed " << simulationTime/edsent/nDevices << endl;
+	  cout << "Pkt Sent ed " << edsent << endl;
+	  cout << "Success ed " << gwreceived_ed << endl;
+	  cout << "ACK Sent " << gwsent << endl;
 	  cout << "ACK Received " << edreceived << endl;
 	//  cout << "Retransmissions Sent " << edretransmission << endl;
 	//  cout << "Retransmissions Received " << edretransmissionreceived << endl;
+	  cout << "Msg Sent ed " << edsentmsg << endl;
 	  cout << "Message Received at NS " << nsmessagerx << endl;
-	  cout << "ACK Sent " << gwsent << endl;
 	  cout << "msg prov " << msgreceiveProb << endl;
 	  cout << "re-transmissions per message " << edsent/edsentmsg << endl;
 
@@ -1352,6 +1356,12 @@ int main (int argc, char *argv[])
 	//	  cout << "drop GW - " << i <<  " "  << pkt_drop_gw [i] << endl;
 		  cout << "received GW - " << i <<  " " << pkt_success_gw [i] << endl;
 	    }
+
+	  for (uint16_t i = 0; i != 6; i++)
+	   {
+		  cout << "DataRates - " << unsigned(i) <<  " " << double(unsigned(DataRates [i]))/nDevices << endl;
+	    }
+
 
 	//   cout << "success ED - " << accumulate(pkt_success_ed.begin(), pkt_success_ed.end(), 0) << endl;
 	//   for(uint32_t i = 0; i < pkt_success_ed.size(); i++)
