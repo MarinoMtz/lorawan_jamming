@@ -166,6 +166,10 @@ bool authpre = false;
 int Int_Model = 1;
 double delta;
 
+// Multiple channels
+
+bool multi_channel = false;
+
 // Statistics related to packet reception/lost/collision desagregated by GW
 
 vector<uint32_t> pkt_success_ed(nDevices + nJammers_up + nJammers_dw,0);
@@ -685,6 +689,7 @@ int main (int argc, char *argv[])
   cmd.AddValue ("retransmission", " boolean variable indicating if the ED resends packets or not", retransmission);
   cmd.AddValue ("percentage_rtx", " Percentage of re-transmitted packets", percentage_rtx);
   cmd.AddValue ("maxtx", " Maximum number of transmissions for each packets", maxtx);
+  cmd.AddValue ("multi_channel", " Use of multiple channels", multi_channel);
 
   // imput variables related to the NS
 
@@ -895,9 +900,14 @@ int main (int argc, char *argv[])
     }
 
 
-  /************************
-  *  Create Jammers  *
-  ************************/
+  /***************************
+  ** Create Jammers  Uplink **
+  ****************************/
+
+  if (multi_channel)
+  {
+	  nJammers_up = nJammers_up * 3;
+  }
 
   // Create a set of Jammers
   NodeContainer Jammers;
@@ -1127,10 +1137,10 @@ int main (int argc, char *argv[])
    	  appJamHelper.SetSimTime (appJamStopTime);
    	  appJamHelper.SetLambda (lambda_jam_up);
 
-	  ApplicationContainer appJamContainer = appJamHelper.Install (Jammers);
+	  ApplicationContainer appJamContainer_up = appJamHelper.Install (Jammers);
 
-	  appJamContainer.Start (Seconds (0));
-	  appJamContainer.Stop (appJamStopTime);
+	  appJamContainer_up.Start (Seconds (0));
+	  appJamContainer_up.Stop (appJamStopTime);
 
 	  // For time traces
 	  //appJamContainer.Start (Seconds (1000));
@@ -1162,10 +1172,10 @@ int main (int argc, char *argv[])
 	  appJamHelper_dw.SetSimTime (appJamStopTime);
 	  appJamHelper_dw.SetLambda (lambda_jam_dw);
 
-	  ApplicationContainer appJamContainer = appJamHelper_dw.Install (Jammers_dw);
+	  ApplicationContainer appJamContainer_dw = appJamHelper_dw.Install (Jammers_dw);
 
-	  appJamContainer.Start (Seconds (0));
-	  appJamContainer.Stop (appJamStopTime);
+	  appJamContainer_dw.Start (Seconds (0));
+	  appJamContainer_dw.Stop (appJamStopTime);
 
 
   }

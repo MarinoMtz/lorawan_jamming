@@ -314,7 +314,7 @@ EndDeviceLoraMac::Receive (Ptr<Packet const> packet)
 {
   //NS_LOG_FUNCTION (this << packet);
 
-  NS_LOG_DEBUG ("MAC: Ack received");
+  //NS_LOG_DEBUG ("MAC: Ack received");
 
   // Work on a copy of the packet
   Ptr<Packet> packetCopy = packet->Copy ();
@@ -360,7 +360,7 @@ EndDeviceLoraMac::Receive (Ptr<Packet const> packet)
 
 		  //NS_LOG_INFO ("---->> Packet ackited ID " << ID << " address " << m_address);
 		  //NS_LOG_INFO ("---->> Packet length " << unsigned (packet->GetSize()));
-    	  NS_LOG_DEBUG ("MAC: Ack received, ID = " << ID << ", SF = "<< unsigned(SF) << ", Band = " << band);
+    	  //NS_LOG_DEBUG ("MAC: Ack received, ID = " << ID << ", SF = "<< unsigned(SF) << ", Band = " << band);
         }
       else
         {
@@ -555,8 +555,8 @@ EndDeviceLoraMac::TxFinished (Ptr<Packet const> packet)
   if (m_two_rx)
   {
 	  NS_LOG_INFO ("ED MAC -- two rx ? " << m_two_rx);
-	  NS_LOG_INFO ("ED MAC -- m_receiveDelay2 " << m_receiveDelay2.GetSeconds());
-	  NS_LOG_INFO ("ED MAC -- Time " << Simulator::Now ().GetSeconds ());
+	  //NS_LOG_INFO ("ED MAC -- m_receiveDelay2 " << m_receiveDelay2.GetSeconds());
+	  //NS_LOG_INFO ("ED MAC -- Time " << Simulator::Now ().GetSeconds ());
 
 	  m_secondReceiveWindow = Simulator::Schedule (m_receiveDelay2,
 	                                               &EndDeviceLoraMac::OpenSecondReceiveWindow,
@@ -584,7 +584,7 @@ EndDeviceLoraMac::TxFinished (Ptr<Packet const> packet)
   Time ackduration = m_phy->GetOnAirTime (replyPacket, paramsack);
 
 
-  NS_LOG_DEBUG ("MAC: Packet ID " << ID << " Priority? " << unsigned (retx));
+  //NS_LOG_DEBUG ("MAC: Packet ID " << ID << " Priority? " << unsigned (retx));
 
   //NS_LOG_INFO ("---->> retx mac ? " << unsigned(retx));
   //NS_LOG_INFO ("---->> ntx mac? " << unsigned(ntx));
@@ -721,7 +721,7 @@ EndDeviceLoraMac::OpenFirstReceiveWindow (double Frequency, uint8_t SF)
       NS_LOG_INFO ("Won't open first receive window because the end-device is DEAD");
       return;
     }
-  NS_LOG_INFO ("ED MAC -- SF ? " << unsigned(SF));
+  //NS_LOG_INFO ("ED MAC -- SF ? " << unsigned(SF));
 
   // Switch the PHY to the channel so that it will listen here for downlink
   uint8_t replyDataRate = GetFirstReceiveWindowDataRate ();
@@ -731,7 +731,7 @@ EndDeviceLoraMac::OpenFirstReceiveWindow (double Frequency, uint8_t SF)
   if (m_two_rx){
 	  m_phy->GetObject<EndDeviceLoraPhy> ()->SetSpreadingFactor (SF);
 	  m_phy->GetObject<EndDeviceLoraPhy> ()->SetFrequency (Frequency);
-	  NS_LOG_INFO ("Setting Frequency "<< Frequency);
+	  //NS_LOG_INFO ("Setting Frequency "<< Frequency);
 	  NS_LOG_INFO ("Open first receive window - freq " << Frequency << ", SF " << unsigned (SF));
 
 
@@ -798,13 +798,13 @@ EndDeviceLoraMac::OpenSecondReceiveWindow (void)
   // Check for receiver status: if it's discharged, don't open this
   // window at all.
 
-  //NS_LOG_INFO ("Open Second window at "<< Simulator::Now ().GetSeconds ());
+  NS_LOG_INFO ("Open Second window at "<< Simulator::Now ().GetSeconds ());
 
   if (m_phy->GetObject<EndDeviceLoraPhy> ()->GetState () == EndDeviceLoraPhy::DEAD
 	  || m_phy->GetObject<EndDeviceLoraPhy> ()->GetState () == EndDeviceLoraPhy::TX
 	  || m_phy->GetObject<EndDeviceLoraPhy> ()->GetState () == EndDeviceLoraPhy::RX)
     {
-      NS_LOG_INFO ("Won't open second receive window because the end-device is DEAD");
+      //NS_LOG_INFO ("Won't open second receive window because the end-device is DEAD");
       return;
     }
 
@@ -882,7 +882,7 @@ EndDeviceLoraMac::GetChannelForTx (void)
       Ptr<LogicalLoraChannel> logicalChannel = *it;
       double frequency = logicalChannel->GetFrequency ();
 
-      //NS_LOG_DEBUG ("Frequency of the current channel: " << frequency);
+      NS_LOG_DEBUG ("Frequency of the current channel: " << frequency);
 
       // Verify that we can send the packet
       Time waitingTime = m_channelHelper.GetWaitingTime (logicalChannel);
@@ -913,6 +913,8 @@ EndDeviceLoraMac::Shuffle (std::vector<Ptr<LogicalLoraChannel> > vector)
   //NS_LOG_FUNCTION_NOARGS ();
 
   int size = vector.size ();
+
+  //NS_LOG_DEBUG ("Vector size: " << size);
 
   for (int i = 0; i < size; ++i)
     {

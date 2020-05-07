@@ -146,7 +146,7 @@ AppJammer::SetExp (bool Exp)
 {
 
   m_exp = Exp;
-  NS_LOG_DEBUG ("IAT Exp " << m_exp);
+  //NS_LOG_DEBUG ("IAT Exp " << m_exp);
 
 }
 
@@ -162,8 +162,18 @@ AppJammer::SetRanSF (bool ransf)
 {
  // NS_LOG_FUNCTION (this);
 	m_ransf = ransf;
-	NS_LOG_DEBUG ("Random SF " << m_ransf);
+	//NS_LOG_DEBUG ("Random SF " << m_ransf);
 }
+
+void
+AppJammer::SetRanChannel (bool RanCh)
+{
+
+  m_ranch = RanCh;
+  //NS_LOG_DEBUG ("Random Channel " << m_ranch);
+
+}
+
 
 bool
 AppJammer::GetRanSF (void)
@@ -189,7 +199,7 @@ AppJammer::SetLambda (double lambda)
 {
 
   m_lambda = lambda;
-  NS_LOG_DEBUG ("Lambda " << m_lambda);
+  //NS_LOG_DEBUG ("Lambda " << m_lambda);
 
 }
 
@@ -197,7 +207,7 @@ void
 AppJammer::SetFrequency (double Freq)
 {
   m_frequency = Freq;
-  NS_LOG_DEBUG ("Lambda " << m_lambda);
+  //NS_LOG_DEBUG ("Lambda " << m_lambda);
 }
 
 double
@@ -232,9 +242,14 @@ AppJammer::SendPacket (void)
   LoraTxParameters params;
 
 
-  if (RanSF==true)
+  if (RanSF)
   {
-	  SetSpreadingFactor (m_randomsf->GetValue (7,12));
+	  SetSpreadingFactor (m_randomsf->GetValue (7,13));
+  }
+
+  if (m_ranch)
+  {
+	  SetFrequency (868 + double (int (m_randomsf->GetValue (1,4)))/10);
   }
 
   params.sf = GetSpreadingFactor ();
@@ -245,8 +260,8 @@ AppJammer::SendPacket (void)
   lambda = dutycycle/timeonair.GetSeconds();
 
   mean = timeonair.GetSeconds()/dutycycle;
-  NS_LOG_DEBUG ("Mean - jam " << mean);
-  NS_LOG_DEBUG ("duty-cycle " << GetDC ());
+  //NS_LOG_DEBUG ("Mean - jam " << mean);
+  //NS_LOG_DEBUG ("duty-cycle " << GetDC ());
 
 
 cumultime = 0;
@@ -258,8 +273,8 @@ while (cumultime < m_simtime.GetSeconds())
 
   //mean=100*(1-dutycycle)* timeonair.GetSeconds();
     jamtime = m_exprandomdelay->GetValue (mean,mean*100);
-    NS_LOG_DEBUG ("Exponential - mean  " << mean);
-    NS_LOG_DEBUG ("Exponential - jamtime  " << jamtime);
+    //NS_LOG_DEBUG ("Exponential - mean  " << mean);
+    //NS_LOG_DEBUG ("Exponential - jamtime  " << jamtime);
 
 
 	send_times.push_back (jamtime);
@@ -272,8 +287,8 @@ while (cumultime < m_simtime.GetSeconds())
 
 	double sum_of_elems = std::accumulate(send_times.begin(), send_times.end(), 0);
 
-	NS_LOG_DEBUG ("Mean - jam " << mean);
-	NS_LOG_DEBUG ("duty-cycle " << GetDC ());
+	//NS_LOG_DEBUG ("Mean - jam " << mean);
+	//NS_LOG_DEBUG ("duty-cycle " << GetDC ());
 	//NS_LOG_DEBUG ("Mean - jam " << simtime/send_times.size());
 	//NS_LOG_DEBUG ("Jammer sent " << send_times.size());
 }
@@ -301,7 +316,7 @@ AppJammer::SendPacketMac ()
 	tag.SetJammer (uint8_t (1));
 	packet->AddPacketTag (tag);
 
-	NS_LOG_DEBUG ("JAM: Sent a packet (MAC LEVEL) " << " with Freq " << m_frequency);
+	NS_LOG_DEBUG ("JAM: Sent a packet (MAC LEVEL) " << " with Freq " << m_frequency << " and SF " << unsigned (params.sf));
 	m_mac->Send (packet);
 
 	if (Simulator::Now ().GetSeconds () > Seconds(300)) {

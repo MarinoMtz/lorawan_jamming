@@ -94,6 +94,8 @@ public:
 
   void SetRanSF (bool ransf);
 
+  void SetRanChannel (bool RanCh);
+
   bool GetRanSF (void);
 
   /**
@@ -111,7 +113,6 @@ public:
   double GetLambda (void);
 
   void SetLength (double m_length);
-
 
   /**
    * Send a packet using the LoraNetDevice's Send method
@@ -182,6 +183,7 @@ private:
 
   bool m_exp;
   bool m_ransf;
+  bool m_ranch;
   uint8_t m_sf;
 
   Ptr<UniformRandomVariable> m_randomsf;

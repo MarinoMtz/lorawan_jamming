@@ -44,6 +44,7 @@ AppJammerHelper::AppJammerHelper ()
   m_sf = 7;
   m_simtime = Seconds(0);
   m_lambda = 0;
+  m_ranch=false;
 }
 
 AppJammerHelper::~AppJammerHelper ()
@@ -95,6 +96,7 @@ AppJammerHelper::InstallPriv (Ptr<Node> node) const
   app->SetSimTime (m_simtime);
   app->SetLambda(m_lambda);
   app->SetFrequency(m_frequency);
+  app->SetRanChannel (m_ranch);
 
   if (m_exp)
   {
@@ -152,6 +154,15 @@ AppJammerHelper::SetRanSF (bool RanSF)
 
   m_ransf = RanSF;
   NS_LOG_DEBUG ("Random SF " << m_ransf);
+
+}
+
+void
+AppJammerHelper::SetRanChannel (bool RanCh)
+{
+
+  m_ranch = RanCh;
+  NS_LOG_DEBUG ("Random Channel " << m_ranch);
 
 }
 

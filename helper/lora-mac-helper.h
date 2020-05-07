@@ -131,6 +131,8 @@ public:
 
   void SetRRX (bool retransmission, uint32_t rxnumber);
 
+  void SetMulti (bool multi_channel);
+
 
 private:
 
@@ -162,7 +164,7 @@ private:
   int m_ack_sf;
   int m_acklength;
 
-
+  bool m_multi_channel;
   // Retransmission params
   bool m_retransmission;
   uint32_t m_rxnumber;

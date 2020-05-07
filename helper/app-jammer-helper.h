@@ -81,6 +81,10 @@ public:
 
   void SetRanSF (bool RanSF);
 
+  // Set a bool variable to indicate if the jammer will select a random channel on each transmission
+
+  void SetRanChannel (bool RanCh);
+
   // Set the SF
 
   void SetSpreadingFactor (uint8_t sf);
@@ -88,7 +92,6 @@ public:
   void SetFrequency (double Freq);
 
   void SetLambda (double lambda);
-
 
 private:
 
@@ -107,6 +110,8 @@ private:
   bool m_exp;
 
   bool m_ransf;
+
+  bool m_ranch;
 
   uint8_t m_sf;
 

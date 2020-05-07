@@ -337,7 +337,7 @@ PeriodicSender::SendPacketMacConfirmed (uint32_t ID, uint32_t ntx, uint8_t retx)
 	tag.SetRetx(retx);
 	packet->AddPacketTag (tag);
 
-	//NS_LOG_DEBUG ("Sent a packet (MAC LEVEL) at " << Simulator::Now ().GetSeconds ());
+	NS_LOG_DEBUG ("Sent a packet (MAC LEVEL) at " << Simulator::Now ().GetSeconds () << " with SF = " << unsigned (params.sf));
 	//NS_LOG_DEBUG ("APP: Packet ID " << ID << " Priority? " << unsigned (retx));
 
 	bool sent;
