@@ -231,6 +231,10 @@ AppJammer::SendPacket (void)
   double dutycycle = GetDC ();
   double jamtime;
   double simtime = GetSimTime ().GetSeconds();
+  vector<double> Frequencies (3,0);
+  Frequencies[0] = 868.1;
+  Frequencies[1] = 868.2;
+  Frequencies[2] = 868.3;
 
   Ptr<Packet> packet;
 
@@ -241,49 +245,44 @@ AppJammer::SendPacket (void)
   Time timeonair;
   LoraTxParameters params;
 
+  NS_LOG_DEBUG ("Random SF ? " << RanSF);
 
-  if (RanSF)
+  cumultime = 0;
+  //m_simtime.GetSeconds()
+  while (cumultime < m_simtime.GetSeconds())
   {
-	  SetSpreadingFactor (m_randomsf->GetValue (7,13));
-  }
 
-  if (m_ranch)
-  {
-	  SetFrequency (868 + double (int (m_randomsf->GetValue (1,4)))/10);
-  }
+	  if (RanSF)
+	  {
+		  SetSpreadingFactor (m_randomsf->GetValue (7,13));
+		  NS_LOG_DEBUG ("Setting SF " << unsigned(GetSpreadingFactor ()));
+	  }
 
-  params.sf = GetSpreadingFactor ();
+	  if (m_ranch)
+	  {
+		  m_frequency = Frequencies [m_randomsf->GetValue (0,3)];
+		  NS_LOG_DEBUG ("Setting Freq " << m_frequency);
+
+	  }
+
+	  params.sf = GetSpreadingFactor ();
 
   // Compute the time on air as a function of the DC and SF
 
-  timeonair = m_phy->GetOnAirTime (packet,params);
-  lambda = dutycycle/timeonair.GetSeconds();
+	  timeonair = m_phy->GetOnAirTime (packet,params);
+	  lambda = dutycycle/timeonair.GetSeconds();
 
-  mean = timeonair.GetSeconds()/dutycycle;
-  //NS_LOG_DEBUG ("Mean - jam " << mean);
-  //NS_LOG_DEBUG ("duty-cycle " << GetDC ());
+	  mean = timeonair.GetSeconds()/dutycycle;
 
 
-cumultime = 0;
-//m_simtime.GetSeconds()
-while (cumultime < m_simtime.GetSeconds())
-{
-//	if (Exp)
-//   {
+	  jamtime = m_exprandomdelay->GetValue (mean,mean*100);
 
-  //mean=100*(1-dutycycle)* timeonair.GetSeconds();
-    jamtime = m_exprandomdelay->GetValue (mean,mean*100);
-    //NS_LOG_DEBUG ("Exponential - mean  " << mean);
-    //NS_LOG_DEBUG ("Exponential - jamtime  " << jamtime);
-
-
-	send_times.push_back (jamtime);
-	// NS_LOG_DEBUG ("No Exponential - Sent a packet at " << cumultime + jamtime);
-	//NS_LOG_DEBUG ("Packet scheduled at " << cumultime);
-	cumultime = cumultime + jamtime;
-	m_sendEvent = Simulator::Schedule (Seconds(cumultime), &AppJammer::SendPacketMac, this);
-				  //Simulator::Schedule (m_initialDelay, &PeriodicSender::SendPacket, this);
-}
+	  send_times.push_back (jamtime);
+	  //NS_LOG_DEBUG ("No Exponential - Sent a packet at " << cumultime + jamtime);
+	  //NS_LOG_DEBUG ("Packet scheduled at " << cumultime);
+	  cumultime = cumultime + jamtime;
+	  m_sendEvent = Simulator::Schedule (Seconds(cumultime), &AppJammer::SendPacketMac, this , params.sf, m_frequency);
+  	}
 
 	double sum_of_elems = std::accumulate(send_times.begin(), send_times.end(), 0);
 
@@ -295,7 +294,7 @@ while (cumultime < m_simtime.GetSeconds())
 
 
 void
-AppJammer::SendPacketMac ()
+AppJammer::SendPacketMac (uint8_t sf, double freq)
 {
   //NS_LOG_FUNCTION (this);
 
@@ -307,21 +306,17 @@ AppJammer::SendPacketMac ()
 
 	Time timeonair;
 	LoraTxParameters params;
-	params.sf = GetSpreadingFactor ();
+	params.sf = sf;
 
 	LoraTag tag;
 	packet->RemovePacketTag (tag);
 	tag.SetSpreadingFactor (params.sf);
-	tag.SetFrequency(m_frequency);
+	tag.SetFrequency(freq);
 	tag.SetJammer (uint8_t (1));
 	packet->AddPacketTag (tag);
 
-	NS_LOG_DEBUG ("JAM: Sent a packet (MAC LEVEL) " << " with Freq " << m_frequency << " and SF " << unsigned (params.sf));
+	NS_LOG_DEBUG ("JAM: Sent a packet (MAC LEVEL) " << " with Freq " << freq << " and SF " << unsigned (params.sf));
 	m_mac->Send (packet);
-
-	if (Simulator::Now ().GetSeconds () > Seconds(300)) {
-		StopApplication();
-	}
 
   //NS_LOG_DEBUG ("Sent counter " << sent);
 }

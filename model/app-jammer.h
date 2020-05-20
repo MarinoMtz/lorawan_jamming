@@ -119,7 +119,7 @@ public:
    */
   void SendPacket (void);
 
-  void SendPacketMac ();
+  void SendPacketMac (uint8_t sf, double Freq);
 
   /**
    * Start the application by scheduling the first SendPacket event
