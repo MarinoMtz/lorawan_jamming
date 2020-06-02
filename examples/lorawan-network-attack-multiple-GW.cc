@@ -781,8 +781,8 @@ int main (int argc, char *argv[])
   if (nGateways == 1) {
 
 	  mobility.SetPositionAllocator ("ns3::RandomRectanglePositionAllocator",
-	                                  "X", StringValue ("ns3::UniformRandomVariable[Min=0.0|Max=6000]"),
-									  "Y", StringValue ("ns3::UniformRandomVariable[Min=0.0|Max=6000]"));
+	                                  "X", StringValue ("ns3::UniformRandomVariable[Min=0.0|Max=1000]"),
+									  "Y", StringValue ("ns3::UniformRandomVariable[Min=0.0|Max=1000]"));
 	  }
 
 
