@@ -91,10 +91,11 @@ public:
   double m_ucl = 0;
   double m_lcl = 0;
 
-  void SetACKParams (bool two_rx, double ackfrequency, int ack_sf, int acklength);
+  void SetACKParams (bool two_rx, double ackfrequency, int ack_sf, bool acksamesf, int acklength);
 
   // Variables related to ACK
 
+  bool m_acksamesf;
   bool m_two_rx;
   double m_ackfrequency;
   int m_ack_sf;

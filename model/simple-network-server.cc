@@ -98,7 +98,8 @@ SimpleNetworkServer::SimpleNetworkServer():
 		m_ucl(0),
 		m_lcl(0),
 		m_pre_ucl(0),
-		m_pre_lcl(0)
+		m_pre_lcl(0),
+		m_acksamesf(0)
 
 {
   NS_LOG_FUNCTION_NOARGS ();
@@ -170,9 +171,11 @@ SimpleNetworkServer::SetParameters (uint32_t GW, uint32_t ED, uint32_t JM, int b
 }
 
 void
-SimpleNetworkServer::SetACKParams (bool two_rx, double ackfrequency, int ack_sf, int acklength)
+SimpleNetworkServer::SetACKParams (bool two_rx, double ackfrequency, int ack_sf, bool acksamesf, int acklength)
 {
 	NS_LOG_FUNCTION_NOARGS ();
+
+	m_acksamesf = acksamesf;
 	m_two_rx = two_rx;
 	m_ackfrequency = ackfrequency;
 	m_ack_sf = ack_sf;
@@ -354,7 +357,9 @@ SimpleNetworkServer::Receive (Ptr<NetDevice> device, Ptr<const Packet> packet,
 
   // Determine whether the packet requires a reply
 
-  if (macHdr.GetMType () == LoraMacHeader::CONFIRMED_DATA_UP && pri == 0 && AR == false)
+  // if (macHdr.GetMType () == LoraMacHeader::CONFIRMED_DATA_UP && pri == 0 && AR == false)
+
+  if (macHdr.GetMType () == LoraMacHeader::CONFIRMED_DATA_UP && pri == 0 )
 		 // &&      !m_deviceStatuses.at (frameHdr.GetAddress ()).HasReply ()
     {
      NS_LOG_DEBUG ("Scheduling a reply for this device");
@@ -393,7 +398,7 @@ SimpleNetworkServer::Receive (Ptr<NetDevice> device, Ptr<const Packet> packet,
 
      // Schedule a reply on the first receive window
      Simulator::Schedule (Seconds (0), &SimpleNetworkServer::SendOnFirstWindow,
-                           this, frameHdr.GetAddress (), ed_ID, pkt_ID);
+                           this, frameHdr.GetAddress (), ed_ID, pkt_ID, AR);
     }
 
   PacketCounter(pkt_ID,gw_ID,ed_ID);
@@ -401,7 +406,7 @@ SimpleNetworkServer::Receive (Ptr<NetDevice> device, Ptr<const Packet> packet,
 }
 
 void
-SimpleNetworkServer::SendOnFirstWindow (LoraDeviceAddress address, uint32_t ed_ID, uint32_t pkt_ID)
+SimpleNetworkServer::SendOnFirstWindow (LoraDeviceAddress address, uint32_t ed_ID, uint32_t pkt_ID, bool AR)
 {
   NS_LOG_FUNCTION (this << address);
 
@@ -424,7 +429,18 @@ SimpleNetworkServer::SendOnFirstWindow (LoraDeviceAddress address, uint32_t ed_I
 	  firstReceiveWindowDataRate = m_ackdatarate;
   }
 
-  //NS_LOG_DEBUG ("Packet Freq: " << firstReceiveWindowFrequency);
+  if (m_acksamesf && not m_two_rx){
+	  firstReceiveWindowFrequency = m_ackfrequency;
+	  firstReceiveWindowDataRate = m_deviceStatuses.at
+	  	      (address).GetFirstReceiveWindowDataRate ();
+  }
+
+  NS_LOG_DEBUG ("m_acksamesf " << m_acksamesf);
+  NS_LOG_DEBUG ("m_two_rx " << m_two_rx);
+
+  NS_LOG_DEBUG ("firstReceiveWindowFrequency " << firstReceiveWindowFrequency);
+  NS_LOG_DEBUG ("firstReceiveWindowDataRate " << unsigned(firstReceiveWindowDataRate));
+
 
   // Decide on which gateway we'll transmit our reply
 
@@ -450,13 +466,12 @@ SimpleNetworkServer::SendOnFirstWindow (LoraDeviceAddress address, uint32_t ed_I
                                         << unsigned(dataRate));
 
       //replyPacketTag.SetDataRate (dataRate);
+      replyPacketTag.SetAR (AR);
       replyPacketTag.SetFrequency (frequency);
       replyPacketTag.SetPktID(pkt_ID);
       replyPacketTag.SetSpreadingFactor(12 - firstReceiveWindowDataRate);
 
-
       replyPacket->AddPacketTag (replyPacketTag);
-
 
       NS_LOG_INFO ("Sending reply through the gateway with address " << gatewayForReply);
       //NS_LOG_INFO ("ED with address " << address);

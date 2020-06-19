@@ -134,21 +134,27 @@ public:
   uint8_t GetRetx (void);
   void SetRetx (uint8_t retx);
 
+  void SetAR (uint8_t ar);
+  uint8_t GetAR (void);
+
+
 private:
+
   uint8_t m_sf; //!< The Spreading Factor used by the packet.
   uint8_t m_destroyedBy; //!< The Spreading Factor that destroyed the packet.
+
   double m_receivePower; //!< The reception power of this packet.
-                      //!packet.
   double m_frequency; //!< The frequency of this packet
   double m_preamble; //!< The preamble time of this packet
+
   uint32_t m_senderid;
-  uint8_t m_jammer;
   uint32_t m_pktid;
   uint32_t m_gwid;
-
   uint32_t m_ntx;
 
+  uint8_t m_jammer;
   uint8_t m_retx; // Variable indicating if this packet is needed to be ackited
+  uint8_t m_ar;
 
 };
 } // namespace ns3

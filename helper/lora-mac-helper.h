@@ -120,12 +120,15 @@ public:
                                      NodeContainer gateways,
                                      Ptr<LoraChannel> channel);
 
+  void SetSpreadingFactorsUniform (NodeContainer endDevices,
+								   Ptr<LoraChannel> channel);
+
   void SetSpreadingFactors (NodeContainer endDevices,
 		  	  	  	  	  	uint8_t sf);
 
   void SetMType (NodeContainer endDevices,LoraMacHeader::MType mType);
 
-  void SetACKParams (bool two_rx, double ackfrequency, int ack_sf, int acklength);
+  void SetACKParams (bool two_rx, double ackfrequency, int ack_sf, bool acksamesf, int acklength);
 
   // Set Retransmission params
 
@@ -160,6 +163,7 @@ private:
   //ACK Parameters
 
   bool m_two_rx;
+  bool m_acksamesf;
   double m_ReceiveWindowFrequency;
   int m_ack_sf;
   int m_acklength;
@@ -169,6 +173,8 @@ private:
   bool m_retransmission;
   uint32_t m_rxnumber;
 
+  // Uniform variable
+  Ptr<UniformRandomVariable> m_uniform;
 
 
 };

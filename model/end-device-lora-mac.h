@@ -163,7 +163,7 @@ public:
    *
    */
 
-  void SetACKParams (bool two_rx, double ackfrequency, int ack_sf, int acklength);
+  void SetACKParams (bool two_rx, double ackfrequency, int ack_sf, bool acksamesf, int acklength);
   /**
    * Get the Data Rate that will be used in the first receive window.
    *
@@ -409,6 +409,7 @@ private:
 
   bool m_two_rx;
 
+  bool m_acksamesf;
   /**
    * ACK length
    */

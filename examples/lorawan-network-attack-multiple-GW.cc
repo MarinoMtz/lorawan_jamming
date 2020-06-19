@@ -85,7 +85,6 @@ double ce_jm = 0;
 int PayloadSize=41; // Peyload siwe of an ED Packet
 bool Conf_UP = true; // bool variable to set if User message need to be ackited
 bool Random_SF = false;
-bool All_SF = false;
 bool Exponential = true;
 
 // EDs Spreading Factor selection
@@ -120,14 +119,14 @@ uint32_t nJammers_dw = 0; // Number of jammers transmitting on
 
 
 
-//int PayloadSize=41;
-
 // ACK Parameters
 bool two_rx = true; // true if two tx windows are used
+bool acksamesf = false; // true if for the case where only one rx window is used, the ack is sent on the same SF as in uplink
 
 double ackfrequency = 869.525; //869.525 , 868.1
 int ack_sf = 7;
 int acklength = 1;
+
 double percentage_rtx;
 
 /**********************************
@@ -243,18 +242,18 @@ PrintResults(uint32_t nGateways, uint32_t nDevices, uint32_t nJammers, double re
 		double noMoreReceiversProb_jm, double underSensitivityProb_jm, double gwreceived_ed, double gwreceived_jm,
 		double edsent, double jmsent, double cumulative_time_ed, double cumulative_time_jm, double ce_ed,
 		double ce_jm, double edsentmsg, double nsmessagerx, double msgreceiveProb, double edretransmission,
-		double total_conso, string filename)
+		double total_conso, double Pa, double gwsent, double ACKreceived, string filename)
 {
 
 	const char * c = filename.c_str ();
 	ofstream Plot;
 	Plot.open (c, ios::app);
 	Plot << nGateways << " " << nDevices << " " << nJammers << " " << receivedProb_ed << " " << collisionProb_ed
-			<< " " << noMoreReceiversProb_ed << " " << underSensitivityProb_ed << " " << receivedProb_jm
+			<< " " << noMoreReceiversProb_ed << " " << ACKreceived / gwreceived_ed << " " << receivedProb_jm
 			<< " " << collisionProb_jm << " " << noMoreReceiversProb_jm << " " << underSensitivityProb_jm
 			<< " " << gwreceived_ed << " " << gwreceived_jm << " " << edsent << " " << jmsent
 			<< " " << cumulative_time_ed << " " << cumulative_time_jm
-			<< " " << cumulative_time_ed << " " << cumulative_time_jm
+			<< " " << Pa << " " << gwsent
 			<< " " << edsentmsg << " " << nsmessagerx << " " <<  msgreceiveProb << " " << edretransmission
 			<< " " << edsent/edsentmsg << " " << total_conso
 			<< endl;
@@ -622,9 +621,7 @@ PrintEndDevices (NodeContainer endDevices, NodeContainer Jammers, NodeContainer 
       Vector pos = position->GetPosition ();
       uint32_t DeviceID = object->GetId();
       Plot << "JM " << DeviceID << " " << pos.x << " " << pos.y << " " << sf << " " << pkt_send [DeviceID] << " " << pkt_success_ed [DeviceID] << " " << pkt_loss_ed [DeviceID] << " " << pkt_drop_ed [DeviceID]<< endl;
-
     }
-
 
   Plot.close ();
 }
@@ -635,7 +632,6 @@ int main (int argc, char *argv[])
 
   CommandLine cmd;
   cmd.AddValue ("nDevices", "Number of end devices to include in the simulation", nDevices);
-
   cmd.AddValue ("nGateways", "Number of Gateways to include in the simulation", nGateways);
   cmd.AddValue ("Conf_UP", "Confirmed data UP", Conf_UP);
   cmd.AddValue ("radius", "radius of the disc where nodes will be deployed", radius);
@@ -661,7 +657,6 @@ int main (int argc, char *argv[])
   cmd.AddValue ("JammerSF", "Jammer SF, if not random", JammerSF);
   cmd.AddValue ("JammerTxPower", "Jammer TX Poxer in dBm ", JammerTxPower);
   cmd.AddValue ("Random_SF", "Boolean variable to set whether the Jammer select a random SF to transmit", Random_SF);
-  cmd.AddValue ("All_SF", "Boolean variable to set whether the Jammer transmits in all SF at the same time (Jammers 3 and 4)", All_SF);
   cmd.AddValue ("JammerDutyCycle_dw", "Jammer duty cycle", JammerDutyCycle_dw);
   cmd.AddValue ("JammerDutyCycle_up", "Jammer duty cycle", JammerDutyCycle_up);
 
@@ -673,14 +668,14 @@ int main (int argc, char *argv[])
   cmd.AddValue ("Jammer_length_up", "Jammer Packet length uplink", lambda_jam_up);
   cmd.AddValue ("Jammer_length_dw", "Jammer Packet length downlink", lambda_jam_dw);
 
-  cmd.AddValue ("updw", "boolean variable indicating if thre will be uplink and downlink jammers in the simulation", updw);
+  cmd.AddValue ("updw", "boolean variable indicating if there will be uplink and downlink jammers in the simulation", updw);
 
   // imput variables related to ACKs
 
   cmd.AddValue ("two_rx", " boolean variable indicating if there are one or two ack receive windows", two_rx);
   cmd.AddValue ("ack_sf", " sf to be used in the first rx (if only one rx is used) or in the second (if two rx)", ack_sf);
   cmd.AddValue ("acklength", " ACK Packet length", acklength);
-
+  cmd.AddValue ("acksamesf", " boolean variable indicating if the ACK is sent on the same SF", acksamesf);
 
   // imput variables related to ED
   cmd.AddValue ("Specific_SF", " boolean variable indicating if EDs use an specific Spreading Factor", Specific_SF);
@@ -724,7 +719,6 @@ int main (int argc, char *argv[])
   {
 	  nJammers_up = nJammers_up * 3;
   }
-
 
   pkt_success_ed.resize(nDevices + nJammers_up + nJammers_dw, 0);
   pkt_drop_ed.resize(nDevices+ nJammers_up + nJammers_dw, 0);
@@ -832,7 +826,7 @@ int main (int argc, char *argv[])
   *  Set ACK parameters  *
   ************************/
 
-  macHelper.SetACKParams (two_rx, ackfrequency, ack_sf, acklength);
+  macHelper.SetACKParams (two_rx, ackfrequency, ack_sf, acksamesf, acklength);
 
 
   /**********************************
@@ -1091,7 +1085,9 @@ int main (int argc, char *argv[])
 	  cout << "Specific SF " << ED_SF << endl;
   }else
   {
-	  macHelper.SetSpreadingFactorsUp (endDevices, gateways, channel);
+	  //macHelper.SetSpreadingFactorsUp (endDevices, gateways, channel);
+	  //Uniform distribution of SF
+	  macHelper.SetSpreadingFactorsUniform (endDevices, channel);
   }
 
 
@@ -1227,7 +1223,7 @@ int main (int argc, char *argv[])
 	  NetworkServerHelper networkServerHelper;
 
 	  // Set ACK Parameters on the Network Server
-	  networkServerHelper.SetACKParams (two_rx, ackfrequency, ack_sf, acklength);
+	  networkServerHelper.SetACKParams (two_rx, ackfrequency, ack_sf, acksamesf, acklength);
 
 	  if (InterArrival){networkServerHelper.SetInterArrival();}
 	  //Set parameters for EWMA, target = application period, buffer_length
@@ -1313,6 +1309,7 @@ int main (int argc, char *argv[])
 	  double Th_sim = gwreceived_ed / simulationTime; //* 0.082176 /
 	  double Good_sim = nsmessagerx / simulationTime;
 	  //double Good_math = G * msgreceiveProb / (edsent/edsentmsg+1);
+	  double Pa = edreceived / gwsent;
 
 	  cout << "G = " << G << endl;
 	  //cout << "Th math = " << Th_math << endl;
@@ -1343,6 +1340,7 @@ int main (int argc, char *argv[])
 	  cout << "Success ed " << gwreceived_ed << endl;
 	  cout << "ACK Sent " << gwsent << endl;
 	  cout << "ACK Received " << edreceived << endl;
+	  cout << "ACK Success Probability " << Pa << endl;
 	//  cout << "Retransmissions Sent " << edretransmission << endl;
 	//  cout << "Retransmissions Received " << edretransmissionreceived << endl;
 	  cout << "Msg Sent ed " << edsentmsg << endl;
@@ -1373,7 +1371,8 @@ int main (int argc, char *argv[])
 	  PrintResults ( nGateways, nDevices, nJammers_up, receivedProb_ed, collisionProb_ed, noMoreReceiversProb_ed,
 			  underSensitivityProb_ed, receivedProb_jm, collisionProb_jm, noMoreReceiversProb_jm,
 			  underSensitivityProb_jm, gwreceived_ed, gwreceived_jm, edsent, jmsent, cumulative_time_ed,
-			  cumulative_time_jm, ce_ed, ce_jm, edsentmsg, nsmessagerx, msgreceiveProb, edretransmission, total_conso, Result_File);
+			  cumulative_time_jm, ce_ed, ce_jm, edsentmsg, nsmessagerx, msgreceiveProb, edretransmission,
+			  total_conso, Pa, gwsent, edreceived, Result_File);
 
   return 0;
 }

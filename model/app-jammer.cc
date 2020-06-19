@@ -68,7 +68,8 @@ AppJammer::AppJammer () :
   send_times(0),
   cumultime(0),
   m_lambda(0),
-  m_frequency(868.1)
+  m_frequency(868.1),
+  m_ranch(0)
 {
 //  NS_LOG_FUNCTION_NOARGS ();
   m_exprandomdelay = CreateObject<ExponentialRandomVariable> ();
@@ -233,8 +234,8 @@ AppJammer::SendPacket (void)
   double simtime = GetSimTime ().GetSeconds();
   vector<double> Frequencies (3,0);
   Frequencies[0] = 868.1;
-  Frequencies[1] = 868.2;
-  Frequencies[2] = 868.3;
+  Frequencies[1] = 868.3;
+  Frequencies[2] = 868.5;
 
   Ptr<Packet> packet;
 

@@ -29,6 +29,7 @@
 #include <iostream>
 #include <numeric>
 #include <iterator>
+#include <map>
 
 using namespace std;
 namespace ns3 {
@@ -104,7 +105,8 @@ EndDeviceLoraMac::EndDeviceLoraMac ():
   m_mType (LoraMacHeader::UNCONFIRMED_DATA_DOWN),
   m_sf (7),
   m_retransmission(false),
-  m_rxnumber(1)
+  m_rxnumber(1),
+  m_acksamesf(1)
 {
   NS_LOG_FUNCTION (this);
 
@@ -354,7 +356,12 @@ EndDeviceLoraMac::Receive (Ptr<Packet const> packet)
     	  uint32_t ID = tag.GetPktID();
     	  uint8_t SF = tag.GetSpreadingFactor();
     	  double band = tag.GetFrequency();
+    	  uint8_t AR = tag.GetAR();
     	  //packetCopy->AddPacketTag (tag);
+
+    	  if (AR == 1){
+    		  return;
+    	  }
 
     	  PacketTrack (ID, 0, 1);
 
@@ -626,7 +633,7 @@ switch (type)
 	case 0:
 		if (ntx == 1){AddPacketID(ID);}
 		else {AddRetransmission(ID, ntx);}
-	// Call the functionto add the packet to the pkttransmissions vector
+	// Call the function to add the packet to the pkttransmissions vector
 		break;
 	case 1:
 		AddAckPacket (ID);
@@ -636,9 +643,6 @@ switch (type)
 		break;
 	default : break;
 }
-
-	//vector<uint32_t> pktackited;
-	//vector<uint8_t> pkttransmissions;
 
 	return ackited;
 }
@@ -669,12 +673,11 @@ EndDeviceLoraMac::AddAckPacket (uint32_t ID)
 	std::vector<uint32_t>::iterator it = std::find(pkstsentids.begin(), pkstsentids.end(), ID);
 
 	if (it != pkstsentids.end()){
-
 		uint32_t index = std::distance(pkstsentids.begin(), it);
 		pktackited [index] = 1;
 		//NS_LOG_INFO ("Adding ACK track");
-
 	}
+
 	return;
 }
 
@@ -683,12 +686,13 @@ EndDeviceLoraMac::CheckAckPacket (uint32_t ID)
 {
 	std::vector<uint32_t>::iterator it = std::find(pkstsentids.begin(), pkstsentids.end(), ID);
 
+
 	if (it != pkstsentids.end()){
 
 		uint32_t index = std::distance(pkstsentids.begin(), it);
 		if (pktackited [index] == 1){
 			return true;}
-		else {return false;}
+		else {return false;} //false
 	}
 	return false;
 }
@@ -739,6 +743,12 @@ EndDeviceLoraMac::OpenFirstReceiveWindow (double Frequency, uint8_t SF)
 	  m_phy->GetObject<EndDeviceLoraPhy> ()->SetSpreadingFactor (GetSfFromDataRate (m_firstReceiveWindowDataRate));
 	  m_phy->GetObject<EndDeviceLoraPhy> ()->SetFrequency (m_firstReceiveWindowFrequency);
 	  NS_LOG_INFO ("Open first receive window - freq " << m_firstReceiveWindowFrequency << ", SF " << unsigned (GetSfFromDataRate (m_firstReceiveWindowDataRate)));
+  }
+
+  if (m_acksamesf && not m_two_rx){
+	  m_phy->GetObject<EndDeviceLoraPhy> ()->SetSpreadingFactor (GetSfFromDataRate (m_firstReceiveWindowDataRate));
+	  m_phy->GetObject<EndDeviceLoraPhy> ()->SetFrequency (m_firstReceiveWindowFrequency);
+	  NS_LOG_INFO ("Open first receive window ** - freq " << m_firstReceiveWindowFrequency << ", SF " << unsigned (unsigned (GetSfFromDataRate (m_firstReceiveWindowDataRate))));
   }
 
 
@@ -1235,9 +1245,10 @@ uint8_t
 EndDeviceLoraMac::GetFirstReceiveWindowDataRate (void)
 {
 
-  if (m_two_rx){
+  if (m_two_rx || m_acksamesf){
 	  m_firstReceiveWindowDataRate = m_dataRate;
   }
+
 
   //NS_LOG_INFO ("First receive window DR - "<< unsigned (m_firstReceiveWindowDataRate));
   return m_firstReceiveWindowDataRate;
@@ -1251,19 +1262,26 @@ EndDeviceLoraMac::GetSecondReceiveWindowDataRate (void)
 }
 
 void
-EndDeviceLoraMac::SetACKParams (bool two_rx, double ackfrequency, int ack_sf, int acklength)
+EndDeviceLoraMac::SetACKParams (bool two_rx, double ackfrequency, int ack_sf, bool acksamesf, int acklength)
 {
 
   m_two_rx = two_rx;
   m_acklength = acklength;
+  m_acksamesf = acksamesf;
 
   if (m_two_rx){
 	  m_secondReceiveWindowFrequency = ackfrequency;
 	  m_secondReceiveWindowDataRate = 12 - ack_sf;
+
   }else {
 	  m_firstReceiveWindowFrequency = ackfrequency;
 	  m_firstReceiveWindowDataRate = 12 - ack_sf;
   }
+
+  if (m_two_rx){
+
+  }
+
 
   NS_LOG_FUNCTION ("ACK Params: RX2 Freq " << m_firstReceiveWindowFrequency << " SF " << ack_sf << "DR " << 12 - ack_sf);
 

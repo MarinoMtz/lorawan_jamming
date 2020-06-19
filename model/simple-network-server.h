@@ -74,7 +74,7 @@ public:
 
   void SetParameters (uint32_t GW, uint32_t ED, uint32_t JM, int buffer_length);
 
-  void SetACKParams (bool two_rx, double ackfrequency, int ack_sf, int acklength);
+  void SetACKParams (bool two_rx, double ackfrequency, int ack_sf, bool acksamesf,  int acklength);
 
   void SetEWMA(bool ewma, double target, double lambda, double UCL, double LCL);
 
@@ -107,7 +107,7 @@ public:
   /**
    * Send a packet through a gateway to an ED, using the first receive window
    */
-  void SendOnFirstWindow (LoraDeviceAddress address, uint32_t ed_ID, uint32_t pkt_ID);
+  void SendOnFirstWindow (LoraDeviceAddress address, uint32_t ed_ID, uint32_t pkt_ID, bool AR);
 
   /**
    * Send a packet through a gateway to an ED, using the second receive window
@@ -169,6 +169,7 @@ public:
 
   // Variables related to ACK
 
+  bool m_acksamesf;
   bool m_two_rx;
   double m_ackfrequency;
   int m_ack_sf;

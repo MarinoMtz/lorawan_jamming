@@ -76,6 +76,7 @@ EndDeviceLoraPhy::EndDeviceLoraPhy () :
   m_cumulative_stb_conso (0),
   m_cumulative_sleep_conso (0)
 {
+  m_interference.SetInterferenceModel(LoraInterferenceHelper::Pure_ALOHA);
 }
 
 EndDeviceLoraPhy::~EndDeviceLoraPhy ()
@@ -152,7 +153,6 @@ EndDeviceLoraPhy::Send (Ptr<Packet> packet, LoraTxParameters txParams,
                         double frequencyMHz, double txPowerDbm)
 {
 
-
   NS_LOG_FUNCTION (this << packet << txParams << frequencyMHz << txPowerDbm);
   NS_LOG_INFO ("Current state: " << m_state);
 
@@ -203,7 +203,6 @@ EndDeviceLoraPhy::Send (Ptr<Packet> packet, LoraTxParameters txParams,
 
   NS_LOG_INFO ("********* --- re-tx phy "<< unsigned (retx));
 
-
   m_channel->Send (this, PacketCopy, txPowerDbm, txParams, duration, frequencyMHz);
 
   // Schedule the switch back to STANDBY mode.
@@ -225,7 +224,6 @@ EndDeviceLoraPhy::Send (Ptr<Packet> packet, LoraTxParameters txParams,
 						   PacketCopy);
 
     }
-
   // Create the event to calculate the energy consumption of this transmission event
 
   Ptr<LoraEnergyConsumptionHelper::Event> Event;

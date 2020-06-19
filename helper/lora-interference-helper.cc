@@ -185,8 +185,8 @@ LoraInterferenceHelper::Add (Time duration, double rxPower,
                              double frequencyMHz)
 {
 
-  //NS_LOG_FUNCTION (this << duration.GetSeconds () << rxPower << unsigned
-  //                 (spreadingFactor) << packet << frequencyMHz << m_intmodel << Simulator::Now ().GetSeconds ());
+  NS_LOG_FUNCTION (this << duration.GetSeconds () << rxPower << unsigned
+                   (spreadingFactor) << packet << frequencyMHz << m_intmodel << Simulator::Now ().GetSeconds ());
 
   // Create an event based on the parameters
   Ptr<LoraInterferenceHelper::Event> event =
@@ -195,6 +195,11 @@ LoraInterferenceHelper::Add (Time duration, double rxPower,
 
   // Add the event to the list
   m_events.push_back (event);
+
+  NS_LOG_INFO ("Event Frequency " << event->GetFrequency ());
+
+  NS_LOG_INFO ("Packet size " << event->GetPacket()->GetSize());
+
 
   // Clean the event list
   if (m_events.size () > 1100)
@@ -343,8 +348,8 @@ LoraInterferenceHelper::GetSINR
 		     double interfererPower = interferer->GetRxPowerdBm ();
 
 		 	 //NS_LOG_INFO ("Found an interferer: sf = " << unsigned(interfererSf)
-			//			 << ", start time = " << interfererStartTime
-			//			 << ", end time = " << interfererEndTime);
+			//			 << ", start time = " << interfererStartTime.GetSeconds()
+			//			 << ", end time = " << interfererEndTime.GetSeconds());
 
 		 	 // Compute the fraction of time the two events are overlapping
 		 	 Time overlap = GetOverlapTime (event, interferer);
@@ -419,7 +424,7 @@ LoraInterferenceHelper::Aloha
   (Ptr<LoraInterferenceHelper::Event> event)
 {
 
- NS_LOG_FUNCTION (this << event);
+ NS_LOG_FUNCTION (this << event << event->GetFrequency ());
  //NS_LOG_INFO ("Current number of events in LoraInterferenceHelper: " << m_events.size ());
  //NS_LOG_INFO ("Interferece model: " << GetInterferenceModel());
 
@@ -461,13 +466,6 @@ for (it = m_events.begin (); it != m_events.end ();)
 	 		 continue;   // Continues from the first line inside the for cycle
 	 	 }
 
-	 	 //if (!(interferer->GetSpreadingFactor () == sf) || interferer == event)
-	 	 //{
-	 		 //NS_LOG_DEBUG ("Different sf");
-	 	//	 it++;
-	 	//	 continue;   // Continues from the first line inside the for cycle
-	 	 //}
-
 	 	 //NS_LOG_DEBUG ("Interferer on same channel and sf");
 
 	 	 // Gather information about this interferer
@@ -476,8 +474,8 @@ for (it = m_events.begin (); it != m_events.end ();)
 	 	 Time interfererEndTime = interferer->GetEndTime ();
 
 	 	 //NS_LOG_INFO ("Found an interferer: sf = " << unsigned(interfererSf)
-			//		 << ", start time = " << interfererStartTime
-		//			 << ", end time = " << interfererEndTime);
+		//			 << ", start time = " << interfererStartTime.GetSeconds()
+			//		 << ", end time = " << interfererEndTime.GetSeconds());
 
 	 	 // Compute the fraction of time the two events are overlapping
 	 	 Time overlap = GetOverlapTime (event, interferer);
@@ -631,7 +629,7 @@ LoraInterferenceHelper::PowerLevel
   (Ptr<LoraInterferenceHelper::Event> event)
 {
 
-	 NS_LOG_FUNCTION (this << event);
+	NS_LOG_FUNCTION (this << event << event->GetFrequency ());
 	 //NS_LOG_INFO ("Current number of events in LoraInterferenceHelper: " << m_events.size ());
 	 //NS_LOG_INFO ("PowerCE Interferece mode - level: " << GetInterferenceModel());
 
@@ -643,6 +641,8 @@ LoraInterferenceHelper::PowerLevel
 
 	// Gather information about the event
 	uint8_t sf = event->GetSpreadingFactor ();
+
+
 	double frequency = event->GetFrequency ();
 	// Handy information about the time frame when the packet was received
 

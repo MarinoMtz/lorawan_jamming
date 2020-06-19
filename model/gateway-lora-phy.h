@@ -65,7 +65,7 @@ public:
   virtual void Send (Ptr<Packet> packet, LoraTxParameters txParams,
                      double frequencyMHz, double txPowerDbm);
 
-  virtual void TxFinished (Ptr<Packet> packet);
+  virtual void TxFinished (Ptr<Packet> packet, Ptr<LoraInterferenceHelper::Event> event);
 
   bool IsTransmitting (void);
 

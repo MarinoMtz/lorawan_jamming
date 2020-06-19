@@ -32,6 +32,7 @@ NS_LOG_COMPONENT_DEFINE ("LoraMacHelper");
 LoraMacHelper::LoraMacHelper () :
   m_region (LoraMacHelper::EU)
 {
+ m_uniform = CreateObject<UniformRandomVariable> ();
 }
 
 void
@@ -161,7 +162,7 @@ LoraMacHelper::ConfigureForEuRegion (Ptr<EndDeviceLoraMac> edMac) const
 	// ACK Parameters //
 	////////////////////
 
-	edMac-> SetACKParams (m_two_rx, m_ReceiveWindowFrequency, m_ack_sf, m_acklength);
+	edMac-> SetACKParams (m_two_rx, m_ReceiveWindowFrequency, m_ack_sf, m_acksamesf, m_acklength);
 
 	////////////////////////////////
 	// Retransmissions Parameters //
@@ -192,13 +193,13 @@ LoraMacHelper::ConfigureForEuRegion (Ptr<GatewayLoraMac> gwMac) const
 
       std::vector<double> frequencies_downlink;
       frequencies_downlink.push_back (868.1);
-      frequencies_downlink.push_back (868.2);
       frequencies_downlink.push_back (868.3);
+      frequencies_downlink.push_back (868.5);
 
       std::vector<double>::iterator it = frequencies_downlink.begin ();
 
       int receptionPaths = 0;
-      int maxReceptionPaths = 8;
+      int maxReceptionPaths = 1;
       while (receptionPaths < maxReceptionPaths)
         {
           if (it == frequencies_downlink.end ())
@@ -210,12 +211,18 @@ LoraMacHelper::ConfigureForEuRegion (Ptr<GatewayLoraMac> gwMac) const
 
 
       std::vector<double> frequencies_uplink;
-      frequencies_uplink.push_back (869.525);
+      frequencies_uplink.push_back (7); //869.525
+      frequencies_uplink.push_back (8);
+      frequencies_uplink.push_back (9);
+      frequencies_uplink.push_back (10);
+      frequencies_uplink.push_back (11);
+      frequencies_uplink.push_back (12);
+
 
       std::vector<double>::iterator itt = frequencies_uplink.begin ();
 
       int upreceptionPaths = 0;
-      int maxupReceptionPaths = 1;
+      int maxupReceptionPaths = 6;
       while (upreceptionPaths < maxupReceptionPaths)
        {
           if (itt == frequencies_uplink.end ())
@@ -248,8 +255,8 @@ LoraMacHelper::ApplyCommonEuConfigurations (Ptr<LoraMac> loraMac) const
   channelHelper.AddChannel (lc1);
 
   if (m_multi_channel){
-	  Ptr<LogicalLoraChannel> lc2 = CreateObject<LogicalLoraChannel> (868.2, 0, 5);
-	  Ptr<LogicalLoraChannel> lc3 = CreateObject<LogicalLoraChannel> (868.3, 0, 5);
+	  Ptr<LogicalLoraChannel> lc2 = CreateObject<LogicalLoraChannel> (868.3, 0, 5);
+	  Ptr<LogicalLoraChannel> lc3 = CreateObject<LogicalLoraChannel> (868.5, 0, 5);
 	  channelHelper.AddChannel (lc2);
 	  channelHelper.AddChannel (lc3);
   }
@@ -370,6 +377,28 @@ LoraMacHelper::SetSpreadingFactorsUp (NodeContainer endDevices, NodeContainer ga
     }
 }
 
+void
+LoraMacHelper::SetSpreadingFactorsUniform (NodeContainer endDevices, Ptr<LoraChannel> channel)
+{
+  //NS_LOG_FUNCTION_NOARGS ();
+  NS_LOG_DEBUG ("MAC Helper --> Set Spreading Factors Up");
+
+  for (NodeContainer::Iterator j = endDevices.Begin (); j != endDevices.End (); ++j)
+    {
+      Ptr<Node> object = *j;
+      Ptr<MobilityModel> position = object->GetObject<MobilityModel> ();
+      NS_ASSERT (position != 0);
+      Ptr<NetDevice> netDevice = object->GetDevice (0);
+      Ptr<LoraNetDevice> loraNetDevice = netDevice->GetObject<LoraNetDevice> ();
+      NS_ASSERT (loraNetDevice != 0);
+      Ptr<EndDeviceLoraMac> mac = loraNetDevice->GetMac ()->GetObject<EndDeviceLoraMac> ();
+      NS_ASSERT (mac != 0);
+
+      mac->SetDataRate (m_uniform->GetValue (0,6));
+      //mac->SetDataRate (0);
+    }
+
+}
 
 void
 LoraMacHelper::SetSpreadingFactors (NodeContainer endDevices, uint8_t sf)
@@ -425,12 +454,13 @@ LoraMacHelper::SetMType (NodeContainer endDevices, LoraMacHeader::MType mType)
 }
 
 void
-LoraMacHelper::SetACKParams (bool two_rx, double ackfrequency, int ack_sf, int acklength)
+LoraMacHelper::SetACKParams (bool two_rx, double ackfrequency, int ack_sf, bool acksamesf, int acklength)
 {
 	m_two_rx = two_rx;
 	m_ReceiveWindowFrequency = ackfrequency;
 	m_ack_sf = ack_sf;
 	m_acklength = acklength;
+	m_acksamesf = acksamesf;
 }
 
 void

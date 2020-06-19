@@ -89,8 +89,8 @@ LoraPhyHelper::Create (Ptr<Node> node, Ptr<NetDevice> device) const
       // device will operate in a different region
       std::vector<double> frequencies;
       frequencies.push_back (868.1);
-      // frequencies.push_back (868.3);
-      // frequencies.push_back (868.5);
+      frequencies.push_back (868.3);
+      frequencies.push_back (868.5);
 
       std::vector<double>::iterator it = frequencies.begin ();
 
