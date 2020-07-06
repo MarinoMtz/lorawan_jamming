@@ -715,11 +715,6 @@ int main (int argc, char *argv[])
 
   // if there is multi_channel, we set the number of jammer on uplink 3 times
 
-  if (multi_channel)
-  {
-	  nJammers_up = nJammers_up;
-  }
-
   pkt_success_ed.resize(nDevices + nJammers_up + nJammers_dw, 0);
   pkt_drop_ed.resize(nDevices+ nJammers_up + nJammers_dw, 0);
   pkt_loss_ed.resize(nDevices+ nJammers_up + nJammers_dw, 0);
