@@ -92,7 +92,9 @@ public:
    * Set bool to Random SF at each transmission
    */
 
-  void SetRanSF (bool ransf);
+  void SetRanSF (bool ransf); // Set a specific SF
+
+  void SetSF (void); // Set a random frequency if ransf is set to 1
 
   void SetRanChannel (bool RanCh);
 
@@ -125,6 +127,9 @@ public:
    * Start the application by scheduling the first SendPacket event
    */
   void StartApplication (void);
+
+  void SetChannel (void);
+
 
   /**
    * Stop the application

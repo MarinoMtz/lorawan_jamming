@@ -717,7 +717,7 @@ int main (int argc, char *argv[])
 
   if (multi_channel)
   {
-	  nJammers_up = nJammers_up * 3;
+	  nJammers_up = nJammers_up;
   }
 
   pkt_success_ed.resize(nDevices + nJammers_up + nJammers_dw, 0);
@@ -1140,9 +1140,7 @@ int main (int argc, char *argv[])
   appJamHelper.SetFrequency(JammerFrequency_up);
   appJamHelper.SetSimTime (appJamStopTime_up);
   appJamHelper.SetLambda (lambda_jam_up);
-
-  if (multi_channel){
-  appJamHelper.SetRanChannel(1);}
+  appJamHelper.SetRanChannel(multi_channel);
 
   ApplicationContainer appJamContainer_up = appJamHelper.Install (Jammers);
 

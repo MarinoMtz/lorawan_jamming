@@ -45,6 +45,7 @@ AppJammerHelper::AppJammerHelper ()
   m_simtime = Seconds(0);
   m_lambda = 0;
   m_ranch=false;
+  m_frequency = 868.1;
 }
 
 AppJammerHelper::~AppJammerHelper ()
@@ -91,10 +92,13 @@ AppJammerHelper::InstallPriv (Ptr<Node> node) const
   app->SetPktSize (m_size);
   app->SetDC (m_dutycycle);
   app->SetExp (m_exp);
-  app->SetRanSF (m_ransf);
+
   app->SetSpreadingFactor (m_sf);
+  app->SetRanSF (m_ransf);
+
   app->SetSimTime (m_simtime);
   app->SetLambda(m_lambda);
+
   app->SetFrequency(m_frequency);
   app->SetRanChannel (m_ranch);
 

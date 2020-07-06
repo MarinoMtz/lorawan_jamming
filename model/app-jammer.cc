@@ -131,6 +131,13 @@ AppJammer::SetDC (double dutycycle)
 {
 
   m_dutycycle = dutycycle;
+
+  vector<double> Frequencies (3,0);
+  Frequencies[0] = 868.1;
+  Frequencies[1] = 868.3;
+  Frequencies[2] = 868.5;
+  m_frequency = Frequencies [m_randomsf->GetValue (0,3)];
+
   NS_LOG_DEBUG ("Duty-Cycle " << m_dutycycle);
 
 }
@@ -163,7 +170,16 @@ AppJammer::SetRanSF (bool ransf)
 {
  // NS_LOG_FUNCTION (this);
 	m_ransf = ransf;
-	//NS_LOG_DEBUG ("Random SF " << m_ransf);
+	if (m_ransf) {
+		SetSF();
+	}
+
+}
+
+void
+AppJammer:: SetSF ()
+{
+	SetSpreadingFactor (m_randomsf->GetValue (7,13));
 }
 
 void
@@ -171,8 +187,22 @@ AppJammer::SetRanChannel (bool RanCh)
 {
 
   m_ranch = RanCh;
+  if (m_ranch) {
+	  SetChannel ();
+  }
   //NS_LOG_DEBUG ("Random Channel " << m_ranch);
+}
 
+void
+AppJammer::SetChannel (void)
+{
+	vector<double> Frequencies (3,0);
+	Frequencies[0] = 868.1;
+	Frequencies[1] = 868.3;
+	Frequencies[2] = 868.5;
+	m_frequency = Frequencies [m_randomsf->GetValue (0,3)];
+
+  //NS_LOG_DEBUG ("Random Channel " << m_ranch);
 }
 
 
@@ -232,10 +262,6 @@ AppJammer::SendPacket (void)
   double dutycycle = GetDC ();
   double jamtime;
   double simtime = GetSimTime ().GetSeconds();
-  vector<double> Frequencies (3,0);
-  Frequencies[0] = 868.1;
-  Frequencies[1] = 868.3;
-  Frequencies[2] = 868.5;
 
   Ptr<Packet> packet;
 
@@ -255,13 +281,12 @@ AppJammer::SendPacket (void)
 
 	  if (RanSF)
 	  {
-		  SetSpreadingFactor (m_randomsf->GetValue (7,13));
+		  //SetSpreadingFactor (m_randomsf->GetValue (7,13));
 		  NS_LOG_DEBUG ("Setting SF " << unsigned(GetSpreadingFactor ()));
 	  }
 
 	  if (m_ranch)
 	  {
-		  m_frequency = Frequencies [m_randomsf->GetValue (0,3)];
 		  NS_LOG_DEBUG ("Setting Freq " << m_frequency);
 
 	  }
