@@ -715,6 +715,11 @@ int main (int argc, char *argv[])
 
   // if there is multi_channel, we set the number of jammer on uplink 3 times
 
+  if (multi_channel)
+  {
+	  nJammers_up = 60;
+  }
+
   pkt_success_ed.resize(nDevices + nJammers_up + nJammers_dw, 0);
   pkt_drop_ed.resize(nDevices+ nJammers_up + nJammers_dw, 0);
   pkt_loss_ed.resize(nDevices+ nJammers_up + nJammers_dw, 0);
@@ -1125,10 +1130,10 @@ int main (int argc, char *argv[])
   //Time appJamStopTime = Seconds (3000);
   AppJammerHelper appJamHelper = AppJammerHelper ();
 
-  AttackProfile.ConfigureBand (Jammers, JammerDutyCycle_up);
+  AttackProfile.ConfigureBand (Jammers, JammerDutyCycle_up/10);
   appJamHelper.SetPacketSize (PayloadJamSize_up);
   appJamHelper.SetPeriod (Seconds (appPeriodJamSeconds));
-  appJamHelper.SetDC (JammerDutyCycle_up);
+  appJamHelper.SetDC (JammerDutyCycle_up/10);
   appJamHelper.SetExp (Exponential);
   appJamHelper.SetRanSF (Random_SF);
   appJamHelper.SetSpreadingFactor (JammerSF);
