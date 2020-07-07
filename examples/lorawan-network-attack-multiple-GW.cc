@@ -717,7 +717,7 @@ int main (int argc, char *argv[])
 
   if (multi_channel)
   {
-	  nJammers_up = 60;
+	  nJammers_up = 600;
   }
 
   pkt_success_ed.resize(nDevices + nJammers_up + nJammers_dw, 0);
