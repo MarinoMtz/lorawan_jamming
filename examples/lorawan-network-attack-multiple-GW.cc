@@ -1085,9 +1085,9 @@ int main (int argc, char *argv[])
 	  cout << "Specific SF " << ED_SF << endl;
   }else
   {
-	  //macHelper.SetSpreadingFactorsUp (endDevices, gateways, channel);
-	  //Uniform distribution of SF
-	  macHelper.SetSpreadingFactorsUniform (endDevices, channel);
+	  macHelper.SetSpreadingFactorsUp (endDevices, gateways, channel);
+  // Uniform distribution of SF
+	  //macHelper.SetSpreadingFactorsUniform (endDevices, channel);
   }
 
 
