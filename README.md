@@ -9,15 +9,57 @@ This module is a fork of https://github.com/signetlabdei/lorawan
 
 3. To start a simulation we navigate to /ns-3-allinone/ns-3-dev and then:
 ```
-./waf --run "scratch/lorawan-network-attack-example --appPeriod=20 --nJammers=40 --appPeriodJam=10 --nDevices=2 --PayloadSize=30 --PayloadJamSize=10"
+./waf --run "scratch/lorawan-network-attack-multiple-GW --nGateways=2 --nJammers_up=50 --nJammers_dw=0 --JammerType=3 --nDevices=50 --PayloadSize=42 --Specific_SF=1 --ED_SF=7 --simulationTime=3600 --PayloadJamSize_up=42 --JammerTxPower=14 --Random_SF=0 --JammerDutyCycle_up=0.1 --JammerSF=7 --updw=0 --authpre=0 --Exponential=1 --Int_Model=4 --delta=6 --retransmission=1 --maxtx=$h --Conf_UP=1 --Net_Ser=1"
 ```
-Here we have 6 parameters that allow us to set how the simulation will behave :
-   - nbJammers : number of attackers in the network
-   - nbDevices : number of end-devices in the network
-   - appPeriod : period between two messages sent by end-devices
-   - appPeriodJam : period between two messages sent by attackers
-   - PayloadSize : size of the payload of the end-devices in bytes, the total length of the package will be payload size + 9 bytes (header)
-   - PayloadJamSize : size of the payload of the attackers in bytes, the total length of the package will be payload size + 9 bytes (header)
+Here we have several parameters that allow us to set how the simulation will behave :
+Program Arguments:
+    --nDevices:            Number of end devices to include in the simulation [50]
+    --nGateways:           Number of Gateways to include in the simulation [2]
+    --Conf_UP:             Confirmed data UP [true]
+    --radius:              radius of the disc where nodes will be deployed [500]
+    --simulationTime:      The time for which to simulate [3600]
+    --appPeriod:           The period in seconds to be used by periodically transmitting applications [50]
+    --appPeriodJam:        The period in seconds to be used by periodically transmitting applications [1]
+    --printEDs:            Whether or not to print a file containing the ED's positions [true]
+    --PayloadSize:         Payload size of the Packet - Lora Node [42]
+    --nJammers_up:         Number of Uplink Jammers to include in the simulation [50]
+    --nJammers_dw:         Number of Downlink Jammers to include in the simulation [0]
+    --PayloadJamSize_up:   Payload size of the Packet - Jamming Node [42]
+    --PayloadJamSize_dw:   Payload size of the Packet - Jamming Node [50]
+    --JammerType:          Attacker Profile [3]
+    --JammerFrequency_up:  Jammer Frequency in MHz [868.1]
+    --JammerFrequency_dw:  Jammer Frequency in MHz [869.525]
+    --JammerSF:            Jammer SF, if not random [7]
+    --JammerTxPower:       Jammer TX Poxer in dBm  [14]
+    --Random_SF:           Boolean variable to set whether the Jammer select a random SF to transmit [false]
+    --JammerDutyCycle_dw:  Jammer duty cycle [0.5]
+    --JammerDutyCycle_up:  Jammer duty cycle [0.1]
+    --Exponential:         Exponential inter-arrival time [true]
+    --lambda_jam_up:       Lambda to be used by the jammer to jam on the uplink channel [10]
+    --lambda_jam_dw:       Lambda to be used by the jammer to jam on the uplink channel [10]
+    --Jammer_length_up:    Jammer Packet length uplink [10]
+    --Jammer_length_dw:    Jammer Packet length downlink [10]
+    --updw:                boolean variable indicating if there will be uplink and downlink jammers in the simulation [false]
+    --two_rx:               boolean variable indicating if there are one or two ack receive windows [true]
+    --ack_sf:               sf to be used in the first rx (if only one rx is used) or in the second (if two rx) [7]
+    --acklength:            ACK Packet length [1]
+    --acksamesf:            boolean variable indicating if the ACK is sent on the same SF [false]
+    --Specific_SF:          boolean variable indicating if EDs use an specific Spreading Factor [true]
+    --ED_SF:               ED's Spreading Factor [7]
+    --retransmission:       boolean variable indicating if the ED resends packets or not [true]
+    --percentage_rtx:       Percentage of re-transmitted packets [0]
+    --maxtx:                Maximum number of transmissions for each packets [1]
+    --multi_channel:        Use of multiple channels [false]
+    --Net_Ser:             Network Server [true]
+    --EWMA:                Boolean variable to set whether or not the Network implements the EWMA Algorithm [false]
+    --InterArrival:        Boolean variable to set whether or not the Network server computes the IAT [false]
+    --NS_buffer:           Length of Network Server Buffer [10]
+    --lambda:              lambda parameter for the EWMA algorithm btw 0-1  [0]
+    --authpre:             Authenticated preambles  [false]
+    --Int_Model:           1 - ALOHA, 2 - Rx level grater than delta, 3 - Interferer cumulative energy,  4 - Co-channel [4]
+    --delta:               delta in dB [6]
+    --Filename:            Filename []
+    --Path:                Path []
 
 4. Then, the results are shown in this way:
 ```
