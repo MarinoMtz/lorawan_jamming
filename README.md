@@ -9,7 +9,7 @@ This module is a fork of https://github.com/signetlabdei/lorawan
 
 3. To start a simulation we navigate to /ns-3-allinone/ns-3-dev and then:
 ```
-./waf --run "scratch/lorawan-network-attack-multiple-GW --nGateways=2 --nJammers_up=50 --nJammers_dw=0 --JammerType=3 --nDevices=50 --PayloadSize=42 --Specific_SF=1 --ED_SF=7 --simulationTime=3600 --PayloadJamSize_up=42 --JammerTxPower=14 --Random_SF=0 --JammerDutyCycle_up=0.1 --JammerSF=7 --updw=0 --authpre=0 --Exponential=1 --Int_Model=4 --delta=6 --retransmission=1 --maxtx=$h --Conf_UP=1 --Net_Ser=1"
+./waf --run "scratch/lorawan-network-attack-multiple-GW --nGateways=2 --nJammers_up=50 --nJammers_dw=0 --JammerType=3 --nDevices=50 --PayloadSize=42 --Specific_SF=1 --ED_SF=7 --simulationTime=3600 --PayloadJamSize_up=42 --JammerTxPower=14 --Random_SF=0 --JammerDutyCycle_up=0.1 --JammerSF=7 --updw=0 --authpre=0 --Exponential=1 --Int_Model=4 --delta=6 --retransmission=1 --maxtx=1 --Conf_UP=1 --Net_Ser=1"
 ```
 Here we have several parameters that allow us to set how the simulation will behave :
 ```
