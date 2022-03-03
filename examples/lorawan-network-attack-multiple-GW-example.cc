@@ -33,8 +33,6 @@
 #include "ns3/object.h"
 
 #include "ns3/command-line.h"
-#include "ns3/random-variable-stream.h"
-
 #include <vector>
 #include <algorithm>
 #include <ctime>
@@ -50,7 +48,7 @@ NS_LOG_COMPONENT_DEFINE ("LorawanNetworkAttackExample");
 // Network settings
 uint32_t nDevices = 2;
 uint32_t nGateways = 1;
-double radius = 1000;
+double radius = 500;
 
 // Uniform random variable to allocate nodes
 Ptr<UniformRandomVariable> rnd_alloc = CreateObject<UniformRandomVariable> ();
@@ -87,7 +85,6 @@ double ce_jm = 0;
 int PayloadSize=41; // Peyload siwe of an ED Packet
 bool Conf_UP = true; // bool variable to set if User message need to be ackited
 bool Random_SF = false;
-bool All_SF = false;
 bool Exponential = true;
 
 // EDs Spreading Factor selection
@@ -102,11 +99,15 @@ double JammerFrequency_up = 868.1;
 double JammerFrequency_dw = 869.525;
 
 double JammerTxPower = 25;
-double JammerDutyCycle = 0.5;
+double JammerDutyCycle_up = 0.5;
+double JammerDutyCycle_dw = 0.5;
 double JammerSF = 7;
 
 double lambda_jam_dw = 10; // lambda to be used by uplink jammers
 double lambda_jam_up = 10; // lambda to be used by downlink jammers
+
+double Jammer_length_up = 10; // lambda to be used by uplink jammers
+double Jammer_length_dw = 10; // lambda to be used by downlink jammers
 
 bool updw; // Variable indicating if the simulation will consider jammers transmitting on both channels
 
@@ -118,14 +119,15 @@ uint32_t nJammers_dw = 0; // Number of jammers transmitting on
 
 
 
-//int PayloadSize=41;
-
 // ACK Parameters
-bool differentchannel = true;
-bool secondreceivewindow = false;
+bool two_rx = true; // true if two tx windows are used
+bool acksamesf = false; // true if for the case where only one rx window is used, the ack is sent on the same SF as in uplink
+
 double ackfrequency = 869.525; //869.525 , 868.1
-int ackdatarate = 4;
+int ack_sf = 7;
 int acklength = 1;
+
+double percentage_rtx;
 
 /**********************************
 *  Retransmission parameters  *
@@ -135,7 +137,7 @@ bool retransmission = true;
 uint32_t maxtx = 1;
 
 // Output control
-bool printEDs = false;
+bool printEDs = true;
 bool Trans = true;
 bool SimTime = true;
 bool buildingsEnabled = false;
@@ -163,6 +165,11 @@ bool authpre = false;
 int Int_Model = 1;
 double delta;
 
+// Multiple channels
+
+bool multi_channel = false;
+
+// Statistics related to packet reception/lost/collision desagregated by GW
 
 vector<uint32_t> pkt_success_ed(nDevices + nJammers_up + nJammers_dw,0);
 vector<uint32_t> msg_send(nDevices + nJammers_up + nJammers_dw,0);
@@ -174,6 +181,13 @@ vector<uint32_t> pkt_loss_gw(nGateways,0);
 vector<uint32_t> pkt_drop_gw(nGateways,0);
 vector<uint32_t> pkt_success_gw(nGateways,0);
 
+// Statistics related to the energy consumption of nodes.
+
+double tx_conso = 0;
+double rx_conso = 0;
+double stb_conso = 0;
+double sleep_conso = 0;
+double total_conso = 0;
 
 enum PrintType {
 	GR,
@@ -195,15 +209,14 @@ string Path;
  **********************/
 
 void
-PrintTrace (int Type, uint32_t NodeId, uint32_t SenderID, uint32_t Size, double frequencyMHz, uint8_t sf, Time colstart, Time colend, bool onthepreable, string filename)
+PrintTrace (int Type, uint32_t NodeId, uint32_t SenderID, uint32_t Size, double frequencyMHz, uint8_t sf, Time colstart, Time colend, bool onthepreable, double snir, string filename)
 {
-
 	const char * c = filename.c_str ();
 	ofstream Plot;
 	Plot.open (c, ios::app);
 	switch (Type)
 	{
-		case GR : Plot << "GR " << NodeId << " " << SenderID << " " << Size << " " << frequencyMHz << " " << unsigned(sf) << " " << Simulator::Now ().GetSeconds () << endl;
+		case GR : Plot << "GR " << NodeId << " " << SenderID << " " << Size << " " << frequencyMHz << " " << unsigned(sf) << " " << snir << " " << Simulator::Now ().GetSeconds () << endl;
 		break;
 		case ER : Plot << "ER " << NodeId << " " << SenderID << " " << Size << " " << frequencyMHz << " " << unsigned(sf) << " " << Simulator::Now ().GetSeconds () << endl;
 		break;
@@ -228,20 +241,21 @@ PrintResults(uint32_t nGateways, uint32_t nDevices, uint32_t nJammers, double re
 		double noMoreReceiversProb_ed, double underSensitivityProb_ed, double receivedProb_jm, double collisionProb_jm,
 		double noMoreReceiversProb_jm, double underSensitivityProb_jm, double gwreceived_ed, double gwreceived_jm,
 		double edsent, double jmsent, double cumulative_time_ed, double cumulative_time_jm, double ce_ed,
-		double ce_jm, double edsentmsg, double nsmessagerx, double msgreceiveProb, double edretransmission, string filename)
+		double ce_jm, double edsentmsg, double nsmessagerx, double msgreceiveProb, double edretransmission,
+		double total_conso, double Pa, double gwsent, double ACKreceived, string filename)
 {
 
 	const char * c = filename.c_str ();
 	ofstream Plot;
 	Plot.open (c, ios::app);
 	Plot << nGateways << " " << nDevices << " " << nJammers << " " << receivedProb_ed << " " << collisionProb_ed
-			<< " " << noMoreReceiversProb_ed << " " << underSensitivityProb_ed << " " << receivedProb_jm
+			<< " " << noMoreReceiversProb_ed << " " << ACKreceived / gwreceived_ed << " " << receivedProb_jm
 			<< " " << collisionProb_jm << " " << noMoreReceiversProb_jm << " " << underSensitivityProb_jm
 			<< " " << gwreceived_ed << " " << gwreceived_jm << " " << edsent << " " << jmsent
 			<< " " << cumulative_time_ed << " " << cumulative_time_jm
-			<< " " << cumulative_time_ed << " " << cumulative_time_jm
+			<< " " << Pa << " " << gwsent
 			<< " " << edsentmsg << " " << nsmessagerx << " " <<  msgreceiveProb << " " << edretransmission
-			<< " " << edretransmission/nsmessagerx
+			<< " " << edsent/edsentmsg << " " << total_conso
 			<< endl;
     //cumulative_time_ed << " " << cumulative_time_jm << endl;
 	Plot.close ();
@@ -253,9 +267,8 @@ EDTransmissionCallback (Ptr<Packet const> packet, uint32_t systemId, double freq
   //NS_LOG_INFO ("T " << systemId);
 
   NS_LOG_INFO ("T " << systemId << " " << packet->GetSize () << " " << frequencyMHz << " " << unsigned(sf) << " " << Simulator::Now ().GetSeconds ());
-//  PrintTrace (ET, systemId, 0, packet->GetSize (), frequencyMHz, sf, Seconds(0), Seconds(0), 0, "scratch/Trace.dat");
+  PrintTrace (ET, systemId, 0, packet->GetSize (), frequencyMHz, sf, Seconds(0), Seconds(0), 0, 0, "scratch/Trace.dat");
 	  edsent += 1;
-
 	  pkt_send [systemId] += 1;
 }
 
@@ -265,9 +278,8 @@ EDMsgTransmissionCallback (Ptr<Packet const> packet, uint32_t systemId, double f
   //NS_LOG_INFO ("T " << systemId);
 
   NS_LOG_INFO ("T " << systemId << " " << packet->GetSize () << " " << frequencyMHz << " " << unsigned(sf) << " " << Simulator::Now ().GetSeconds ());
-//  PrintTrace (ET, systemId, 0, packet->GetSize (), frequencyMHz, sf, Seconds(0), Seconds(0), 0, "scratch/Trace.dat");
+  PrintTrace (ET, systemId, 0, packet->GetSize (), frequencyMHz, sf, Seconds(0), Seconds(0), 0,  0,  "scratch/Trace.dat");
 	  edsentmsg += 1;
-
 	  msg_send [systemId] += 1;
 }
 
@@ -277,9 +289,8 @@ JMTransmissionCallback (Ptr<Packet const> packet, uint32_t systemId, double freq
 {
 
   NS_LOG_INFO ( "J " << systemId << " " << packet->GetSize () << " " << frequencyMHz << " " << unsigned(sf) << " " << Simulator::Now ().GetSeconds ());
-//  PrintTrace (JT, systemId, 0, packet->GetSize (), frequencyMHz, sf, Seconds(0), Seconds (0), 0, "scratch/Trace.dat");
+  PrintTrace (JT, systemId, 0, packet->GetSize (), frequencyMHz, sf, Seconds(0), Seconds (0), 0, 0, "scratch/Trace.dat");
   jmsent += 1;
-
   pkt_send [systemId] += 1;
 }
 
@@ -288,7 +299,7 @@ GWTransmissionCallback (Ptr<Packet const> packet, uint32_t systemId, double freq
 {
 
   //NS_LOG_INFO ("G " << systemId << " " << packet->GetSize () << " " << frequencyMHz << " " << unsigned(sf) << " " << Simulator::Now ().GetSeconds ());
-  //PrintTrace (GT, systemId, 0, packet->GetSize (), frequencyMHz, sf, Seconds(0), Seconds(0), 0, "scratch/Trace.dat");
+  PrintTrace (GT, systemId, 0, packet->GetSize (), frequencyMHz, sf, Seconds(0), Seconds(0), 0, 0, "scratch/Trace.dat");
   gwsent += 1;
 
 }
@@ -342,13 +353,13 @@ GWCaptureEffectCallback (Ptr<Packet const> packet, uint32_t systemId, uint32_t S
 
 
 void
-GatewayReceiveCallback (Ptr<Packet const> packet, uint32_t systemId, uint32_t SenderID, double frequencyMHz, uint8_t sf)
+GatewayReceiveCallback (Ptr<Packet const> packet, uint32_t systemId, uint32_t SenderID, double frequencyMHz, uint8_t sf, double RxPowerdBm)
 {
   // Remove the successfully received packet from the list of sent ones
   // NS_LOG_INFO ("A packet was successfully received at gateway " << systemId);
 
-  //NS_LOG_INFO ("R " << systemId << " " << SenderID << " " << packet->GetSize () << " " << frequencyMHz << " " << unsigned(sf) << " " << Simulator::Now ().GetSeconds ());
-  //PrintTrace (GR, systemId, SenderID, packet->GetSize (), frequencyMHz, sf, Seconds(0), Seconds(0), 0, "scratch/Trace.dat");
+  NS_LOG_INFO ("R " << systemId << " " << SenderID << " " << packet->GetSize () << " " << frequencyMHz << " " << unsigned(sf) << " " << Simulator::Now ().GetSeconds ());
+  PrintTrace (GR, systemId, SenderID, packet->GetSize (), frequencyMHz, sf, Seconds(0), Seconds(0), 0, RxPowerdBm,"scratch/Trace.dat");
 
   LoraTag tag;
   packet->PeekPacketTag (tag);
@@ -358,6 +369,7 @@ GatewayReceiveCallback (Ptr<Packet const> packet, uint32_t systemId, uint32_t Se
   if (jammer == uint8_t(0))
   {
 	  gwreceived_ed += 1;
+	  PrintTrace (GR, systemId, SenderID, packet->GetSize (), frequencyMHz, sf, Seconds(0), Seconds(0), 0, RxPowerdBm,"scratch/Trace.dat");
   }
 
   else
@@ -375,9 +387,8 @@ EnDeviceReceiveCallback (Ptr<Packet const> packet)
   // NS_LOG_INFO ("A packet was successfully received at gateway " << systemId);
 
   //NS_LOG_INFO ("R " << systemId << " " << SenderID << " " << packet->GetSize () << " " << frequencyMHz << " " << unsigned(sf) << " " << Simulator::Now ().GetSeconds ());
-  //PrintTrace (ER, systemId, SenderID, packet->GetSize (), frequencyMHz, sf, Seconds (0), Seconds(0) ,0 , "scratch/Trace.dat");
+  PrintTrace (ER, 0, 0, packet->GetSize (), 0, 0, Seconds(0), Seconds(0) ,0, 0, "scratch/Trace.dat");
   edreceived += 1;
-
 }
 
 void
@@ -394,7 +405,7 @@ CollisionCallback (Ptr<Packet const> packet, uint32_t systemId, uint32_t SenderI
  //NS_LOG_INFO ("A packet was lost because of interference at gateway " << systemId);
 
  //NS_LOG_INFO( "C " << systemId << " " << SenderID  << " " << packet->GetSize () << " " << frequencyMHz << " " << unsigned(sf) << " " << colstart.GetSeconds() << " " << colend.GetSeconds() << " " << onthepreable);
- //PrintTrace (C, systemId, SenderID, packet->GetSize (), frequencyMHz, sf, colstart, colend, onthepreable, "scratch/Trace.dat");
+ PrintTrace (C, systemId, SenderID, packet->GetSize (), frequencyMHz, sf, colstart, colend, onthepreable, 0, "scratch/Trace.dat");
 
  LoraTag tag_1;
  packet->PeekPacketTag (tag_1);
@@ -421,7 +432,7 @@ NoMoreReceiversCallback (Ptr<Packet const> packet, uint32_t systemId, uint32_t S
   // NS_LOG_INFO ("A packet was lost because there were no more receivers at gateway " << systemId);
 
   //NS_LOG_INFO ( "D " << systemId << " " << SenderID << " " << packet->GetSize () << " " << frequencyMHz << " " << unsigned(sf) << " " << Simulator::Now ().GetSeconds ());
-  //PrintTrace (GD, systemId, SenderID, packet->GetSize (), frequencyMHz, sf, Seconds(0), Seconds(0), 0, "scratch/Trace.dat");
+  PrintTrace (GD, systemId, SenderID, packet->GetSize (), frequencyMHz, sf, Seconds(0), Seconds(0), 0, 0, "scratch/Trace.dat");
 
   LoraTag tag;
   packet->PeekPacketTag (tag);
@@ -447,7 +458,7 @@ UnderSensitivityCallback (Ptr<Packet const> packet, uint32_t systemId, uint32_t 
 {
   NS_LOG_INFO ("A packet arrived at the gateway under sensitivity at gateway " << systemId);
   //NS_LOG_INFO ( "U " << systemId << " " << SenderID << " " << packet->GetSize () << " " << frequencyMHz << " " << unsigned(sf) << " " << Simulator::Now ().GetSeconds ());
-  //PrintTrace (U, systemId, SenderID, packet->GetSize (), frequencyMHz, sf, Seconds(0), Seconds(0), 0, "scratch/Trace.dat");
+  PrintTrace (U, systemId, SenderID, packet->GetSize (), frequencyMHz, sf, Seconds(0), Seconds(0), 0, 0, "scratch/Trace.dat");
 
   LoraTag tag;
   packet->PeekPacketTag (tag);
@@ -466,12 +477,27 @@ UnderSensitivityCallback (Ptr<Packet const> packet, uint32_t systemId, uint32_t 
 }
 
 void
-EnergyConsumptionCallback (uint32_t NodeId, int ConsoType, double event_conso, double battery_level)
+EnergyConsumptionCallback (uint32_t NodeId, int ConsoType, double Cumulative_event_Conso, double event_conso)
 {
-  // NS_LOG_INFO ("The energy consumption of Node " << NodeId << event_conso << "Conso type " << " " << ConsoType << "at " << Simulator::Now ().GetSeconds ());
+  //NS_LOG_INFO ("The energy consumption of Node " << NodeId << event_conso << "Conso type " << " " << ConsoType << "at " << Simulator::Now ().GetSeconds ());
 	//Conso Type: 1 for TX, 2 for RX, 3 for Standby and 4 Sleep
 
-  //cout << "E " << NodeId << " " << ConsoType << " " << event_conso << " " << " " << battery_level << " " << Simulator::Now ().GetSeconds () << endl;
+  switch(ConsoType) {
+
+  	  case 1 : tx_conso  = tx_conso + event_conso;
+  	           break;
+  	  case 2 : rx_conso  = rx_conso + event_conso;
+  	           break;
+  	  case 3 : stb_conso  = stb_conso + event_conso;
+  	           break;
+  	  case 4 : sleep_conso =  sleep_conso + event_conso;
+  	           break;
+  	  default :
+  	           break;
+  	  }
+
+  total_conso = total_conso + event_conso;
+  //cout << "E " << NodeId << " " << ConsoType << " " << event_conso << " " << " " << event_conso << " " << Simulator::Now ().GetSeconds () << endl;
 
 }
 
@@ -541,6 +567,7 @@ NSEWMA(vector<double> ucl, vector<double> lcl)
 
 }
 
+vector<uint16_t> DataRates(6,0);
 
 void
 PrintEndDevices (NodeContainer endDevices, NodeContainer Jammers, NodeContainer gateways, string filename)
@@ -548,6 +575,16 @@ PrintEndDevices (NodeContainer endDevices, NodeContainer Jammers, NodeContainer 
   const char * c = filename.c_str ();
   ofstream Plot;
   Plot.open (c);
+
+  // Also print the gateways
+  //for (NodeContainer::Iterator j = gateways.Begin (); j != gateways.End (); ++j)
+  //  {
+  //    Ptr<MobilityModel> mobility = (*j)->GetObject<MobilityModel> ();
+  //    Vector pos = mobility->GetPosition ();
+  //    uint32_t DeviceID = (*j)->GetId();
+  //    Plot <<"GW " << DeviceID << " " << pos.x << " " << pos.y << endl;
+      //cout <<"GW " << DeviceID << " " << pos.x << " " << pos.y << endl;
+  //  }
 
   for (NodeContainer::Iterator j = endDevices.Begin (); j != endDevices.End (); ++j)
     {
@@ -559,9 +596,11 @@ PrintEndDevices (NodeContainer endDevices, NodeContainer Jammers, NodeContainer 
       NS_ASSERT (loraNetDevice != 0);
       Ptr<EndDeviceLoraMac> mac = loraNetDevice->GetMac ()->GetObject<EndDeviceLoraMac> ();
       int sf = int(mac->GetDataRate ());
+      DataRates[sf]++;
       Vector pos = position->GetPosition ();
       uint32_t DeviceID = object->GetId();
       Plot << "ED " << DeviceID << " " << pos.x << " " << pos.y << " " << sf << " " << 	pkt_send [DeviceID] << " "<< pkt_success_ed [DeviceID] << " " << pkt_loss_ed [DeviceID] << " " << pkt_drop_ed [DeviceID]<< endl;
+      //cout << "ED " << DeviceID << " " << pos.x << " " << pos.y << " " << sf << " " << 	pkt_send [DeviceID] << " "<< pkt_success_ed [DeviceID] << " " << pkt_loss_ed [DeviceID] << " " << pkt_drop_ed [DeviceID]<< endl;
 
     }
 
@@ -578,17 +617,8 @@ PrintEndDevices (NodeContainer endDevices, NodeContainer Jammers, NodeContainer 
       Vector pos = position->GetPosition ();
       uint32_t DeviceID = object->GetId();
       Plot << "JM " << DeviceID << " " << pos.x << " " << pos.y << " " << sf << " " << pkt_send [DeviceID] << " " << pkt_success_ed [DeviceID] << " " << pkt_loss_ed [DeviceID] << " " << pkt_drop_ed [DeviceID]<< endl;
-
     }
 
-  // Also print the gateways
-  for (NodeContainer::Iterator j = gateways.Begin (); j != gateways.End (); ++j)
-    {
-      Ptr<Node> object = *j;
-      Ptr<MobilityModel> position = object->GetObject<MobilityModel> ();
-      Vector pos = position->GetPosition ();
-      //Plot <<"GW " << pos.x << " " << pos.y << endl;
-    }
   Plot.close ();
 }
 
@@ -598,7 +628,6 @@ int main (int argc, char *argv[])
 
   CommandLine cmd;
   cmd.AddValue ("nDevices", "Number of end devices to include in the simulation", nDevices);
-
   cmd.AddValue ("nGateways", "Number of Gateways to include in the simulation", nGateways);
   cmd.AddValue ("Conf_UP", "Confirmed data UP", Conf_UP);
   cmd.AddValue ("radius", "radius of the disc where nodes will be deployed", radius);
@@ -624,19 +653,25 @@ int main (int argc, char *argv[])
   cmd.AddValue ("JammerSF", "Jammer SF, if not random", JammerSF);
   cmd.AddValue ("JammerTxPower", "Jammer TX Poxer in dBm ", JammerTxPower);
   cmd.AddValue ("Random_SF", "Boolean variable to set whether the Jammer select a random SF to transmit", Random_SF);
-  cmd.AddValue ("All_SF", "Boolean variable to set whether the Jammer transmits in all SF at the same time (Jammers 3 and 4)", All_SF);
-  cmd.AddValue ("JammerDutyCycle", "Jammer duty cycle", JammerDutyCycle);
+  cmd.AddValue ("JammerDutyCycle_dw", "Jammer duty cycle", JammerDutyCycle_dw);
+  cmd.AddValue ("JammerDutyCycle_up", "Jammer duty cycle", JammerDutyCycle_up);
+
   cmd.AddValue ("Exponential", "Exponential inter-arrival time", Exponential);
 
   cmd.AddValue ("lambda_jam_up", "Lambda to be used by the jammer to jam on the uplink channel", lambda_jam_up);
   cmd.AddValue ("lambda_jam_dw", "Lambda to be used by the jammer to jam on the uplink channel", lambda_jam_dw);
 
-  cmd.AddValue ("updw", "boolean variable indicating if thre will be uplink and downlink jammers in the simulation", updw);
+  cmd.AddValue ("Jammer_length_up", "Jammer Packet length uplink", lambda_jam_up);
+  cmd.AddValue ("Jammer_length_dw", "Jammer Packet length downlink", lambda_jam_dw);
+
+  cmd.AddValue ("updw", "boolean variable indicating if there will be uplink and downlink jammers in the simulation", updw);
 
   // imput variables related to ACKs
 
-  cmd.AddValue ("Diff_Channel", " boolean variable indicating if ACKs are sent in a different channel", differentchannel);
-  cmd.AddValue ("Second_RX", " boolean variable indicating if the second receive window is used", secondreceivewindow);
+  cmd.AddValue ("two_rx", " boolean variable indicating if there are one or two ack receive windows", two_rx);
+  cmd.AddValue ("ack_sf", " sf to be used in the first rx (if only one rx is used) or in the second (if two rx)", ack_sf);
+  cmd.AddValue ("acklength", " ACK Packet length", acklength);
+  cmd.AddValue ("acksamesf", " boolean variable indicating if the ACK is sent on the same SF", acksamesf);
 
   // imput variables related to ED
   cmd.AddValue ("Specific_SF", " boolean variable indicating if EDs use an specific Spreading Factor", Specific_SF);
@@ -645,7 +680,9 @@ int main (int argc, char *argv[])
   // imput related to retransmissions
 
   cmd.AddValue ("retransmission", " boolean variable indicating if the ED resends packets or not", retransmission);
+  cmd.AddValue ("percentage_rtx", " Percentage of re-transmitted packets", percentage_rtx);
   cmd.AddValue ("maxtx", " Maximum number of transmissions for each packets", maxtx);
+  cmd.AddValue ("multi_channel", " Use of multiple channels", multi_channel);
 
   // imput variables related to the NS
 
@@ -672,6 +709,13 @@ int main (int argc, char *argv[])
 
   cmd.Parse (argc, argv);
 
+  // if there is multi_channel, we set the number of jammer on uplink 3 times
+
+  if (multi_channel)
+  {
+	  nJammers_up = nJammers_up*10;
+  }
+
   pkt_success_ed.resize(nDevices + nJammers_up + nJammers_dw, 0);
   pkt_drop_ed.resize(nDevices+ nJammers_up + nJammers_dw, 0);
   pkt_loss_ed.resize(nDevices+ nJammers_up + nJammers_dw, 0);
@@ -693,7 +737,11 @@ int main (int argc, char *argv[])
 //  LogComponentEnable("AppJammer", LOG_LEVEL_ALL);
 //  LogComponentEnable("LoraInterferenceHelper", LOG_LEVEL_ALL);
 //  LogComponentEnable("LoraMacHelper", LOG_LEVEL_ALL);
+
 //  LogComponentEnable("EndDeviceLoraMac", LOG_LEVEL_ALL);
+//  LogComponentEnable("LoraTag", LOG_LEVEL_ALL);
+//  LogComponentEnable("PacketTagList", LOG_LEVEL_ALL);
+
 //  LogComponentEnable("JammerLoraMac", LOG_LEVEL_ALL);
 //  LogComponentEnable("GatewayLoraMac", LOG_LEVEL_ALL);
 //  LogComponentEnable("LogicalLoraChannelHelper", LOG_LEVEL_ALL);
@@ -702,6 +750,7 @@ int main (int argc, char *argv[])
 //  LogComponentEnable("LoraPhyHelper", LOG_LEVEL_ALL);
 //  LogComponentEnable("LoraMacHelper", LOG_LEVEL_ALL);
 //  LogComponentEnable("PeriodicSenderHelper", LOG_LEVEL_ALL);
+
 //  LogComponentEnable("PeriodicSender", LOG_LEVEL_ALL);
 //  LogComponentEnable("LoraMacHeader", LOG_LEVEL_ALL);
 //  LogComponentEnable("LoraFrameHeader", LOG_LEVEL_ALL);
@@ -719,13 +768,29 @@ int main (int argc, char *argv[])
   // Mobility
   MobilityHelper mobility;
 
-  mobility.SetPositionAllocator ("ns3::UniformDiscPositionAllocator",
-                                 "rho", DoubleValue (radius),
-                                 "X", DoubleValue (0.0),
-                                 "Y", DoubleValue (0.0));
+  if (nGateways == 1) {
+
+	  mobility.SetPositionAllocator ("ns3::RandomRectanglePositionAllocator",
+	                                  "X", StringValue ("ns3::UniformRandomVariable[Min=0.0|Max=6000]"),
+									  "Y", StringValue ("ns3::UniformRandomVariable[Min=0.0|Max=6000]"));
+	  }
+
+
+  else if (nGateways == 2) {
+
+	  mobility.SetPositionAllocator ("ns3::RandomRectanglePositionAllocator",
+		                                  "X", StringValue ("ns3::UniformRandomVariable[Min=0.0|Max=12600]"),
+										  "Y", StringValue ("ns3::UniformRandomVariable[Min=0.0|Max=8200]"));}
+
+
+   else{
+
+	  mobility.SetPositionAllocator ("ns3::RandomRectanglePositionAllocator",
+	                                  "X", StringValue ("ns3::UniformRandomVariable[Min=0.0|Max=500]"),
+									  "Y", StringValue ("ns3::UniformRandomVariable[Min=0.0|Max=500]"));
+  }
 
   mobility.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
-
 
   /************************
   *  Create the channel  *
@@ -733,8 +798,8 @@ int main (int argc, char *argv[])
 
   // Create the lora channel object
   Ptr<LogDistancePropagationLossModel> loss = CreateObject<LogDistancePropagationLossModel> ();
-  loss->SetPathLossExponent (3.76);
-  loss->SetReference (1, 7.7);
+  loss->SetPathLossExponent (3.75); //2.08 1.609
+  loss->SetReference (1, 10); //107.41, 70
 
   Ptr<PropagationDelayModel> delay = CreateObject<ConstantSpeedPropagationDelayModel> ();
   Ptr<LoraChannel> channel = CreateObject<LoraChannel> (loss, delay);
@@ -757,7 +822,7 @@ int main (int argc, char *argv[])
   *  Set ACK parameters  *
   ************************/
 
-  macHelper.SetACKParams (differentchannel, secondreceivewindow, ackfrequency, ackdatarate, acklength);
+  macHelper.SetACKParams (two_rx, ackfrequency, ack_sf, acksamesf, acklength);
 
 
   /**********************************
@@ -765,6 +830,10 @@ int main (int argc, char *argv[])
   ***********************************/
 
   macHelper.SetRRX (retransmission, maxtx);
+
+  if (multi_channel){
+	  macHelper.SetMulti(1);
+  }
 
   /************************
   *  Create End Devices  *
@@ -783,8 +852,9 @@ int main (int argc, char *argv[])
     {
       Ptr<MobilityModel> mobility = (*j)->GetObject<MobilityModel> ();
       Vector position = mobility->GetPosition ();
-      position.z = 10;
+      position.z = 2;
       mobility->SetPosition (position);
+      //cout << "Position ed " << position.x << " " << position.y << endl;
     }
 
   // Set the Address Generator
@@ -836,9 +906,9 @@ int main (int argc, char *argv[])
     }
 
 
-  /************************
-  *  Create Jammers  *
-  ************************/
+  /***************************
+  ** Create Jammers  Uplink **
+  ****************************/
 
   // Create a set of Jammers
   NodeContainer Jammers;
@@ -876,10 +946,9 @@ int main (int argc, char *argv[])
     }
 
 
-
-  /************************
-  *  Create Jammers dw*
-  ************************/
+  /**********************
+  *  Create Jammers dw  *
+  ***********************/
 
 	 NodeContainer Jammers_dw;
 	 Jammers_dw.Create (nJammers_dw);
@@ -930,16 +999,22 @@ int main (int argc, char *argv[])
   allocator->Add (Vector (0.0, 0.0, 0.0));
   mobility.SetPositionAllocator (allocator);
   mobility.Install (gateways);
-
+  int id_gw = 0;
+  cout << "Position " << id_gw<< endl;
   // Make it so that nodes are at a certain height > 0
   for (NodeContainer::Iterator j = gateways.Begin ();
        j != gateways.End (); ++j)
     {
+	  id_gw++;
       Ptr<MobilityModel> mobility = (*j)->GetObject<MobilityModel> ();
       Vector position = mobility->GetPosition ();
+      //position.x = id_gw*radius;
+      //
+      //position.y = radius;
       position.x = 0;
       position.y = 0;
-      position.z = 1;
+      position.z = 2;
+      cout << "Position GW " << position.x << " " << position.y << endl;
       mobility->SetPosition (position);
     }
 
@@ -991,6 +1066,9 @@ int main (int argc, char *argv[])
                                        MakeCallback (&GWReceivedurationCallback));
       gwPhy->TraceConnectWithoutContext ("CaptureEffectCallback",
                                        MakeCallback (&GWCaptureEffectCallback));
+      gwPhy->TraceConnectWithoutContext ("StartSending",
+                                             MakeCallback (&GWTransmissionCallback));
+
     }
 
 
@@ -999,10 +1077,13 @@ int main (int argc, char *argv[])
   **********************************************/
 
   if (Specific_SF){
-	  macHelper.SetSpreadingFactors(endDevices,ED_SF);
+	  macHelper.SetSpreadingFactors(endDevices, ED_SF);
+	  cout << "Specific SF " << ED_SF << endl;
   }else
   {
 	  macHelper.SetSpreadingFactorsUp (endDevices, gateways, channel);
+	  //Uniform distribution of SF
+	  //macHelper.SetSpreadingFactorsUniform (endDevices, channel);
   }
 
 
@@ -1010,13 +1091,12 @@ int main (int argc, char *argv[])
 
 
   /***********************************
-  *  Set up the jammer's parameters  *
+  *  Set up jammer's parameters uplink *
   ************************************/
 
   // Create the AttackHelper
   AttackHelper AttackProfile = AttackHelper ();
 
-  AttackProfile.SetType (Jammers, JammerType);
   AttackProfile.ConfigureForEuRegionJm (Jammers);
   //AttackProfile.ConfigureBand (Jammers, 868, 868.6, JammerDutyCycle, 14, 802.3, 0, 5);
   AttackProfile.SetFrequency(Jammers,JammerFrequency_up);
@@ -1024,9 +1104,9 @@ int main (int argc, char *argv[])
   AttackProfile.SetPacketSize (Jammers,PayloadJamSize_up);
 
 
-  /***********************************
-  *  Set up the jammer's parameters downlink *
-  ************************************/
+  /***************************************
+  *  Set up jammer's parameters downlink *
+  ****************************************/
 
   AttackProfile.SetType (Jammers_dw, JammerType);
   AttackProfile.ConfigureForEuRegionJm (Jammers_dw);
@@ -1036,34 +1116,35 @@ int main (int argc, char *argv[])
   AttackProfile.SetPacketSize (Jammers_dw,PayloadJamSize_dw);
 
 
-  /*********************************************
-  *  Install applications on the Jammer up*
-  *********************************************/
+  /****************************************
+  * Install applications on the Jammer up *
+  *****************************************/
 
 
-  if (JammerType == 3  || JammerType == 4 )
-  {
-	  Time appJamStopTime = Seconds (simulationTime);
-	  AppJammerHelper appJamHelper = AppJammerHelper ();
+  Time appJamStopTime_up = Seconds (simulationTime);
+  //Time appJamStopTime = Seconds (3000);
+  AppJammerHelper appJamHelper = AppJammerHelper ();
 
-	  AttackProfile.ConfigureBand (Jammers, JammerDutyCycle);
+  AttackProfile.ConfigureBand (Jammers, JammerDutyCycle_up/10);
+  appJamHelper.SetPacketSize (PayloadJamSize_up);
+  appJamHelper.SetPeriod (Seconds (appPeriodJamSeconds));
+  appJamHelper.SetDC (JammerDutyCycle_up/10);
+  appJamHelper.SetExp (Exponential);
+  appJamHelper.SetRanSF (Random_SF);
+  appJamHelper.SetSpreadingFactor (JammerSF);
+  appJamHelper.SetFrequency(JammerFrequency_up);
+  appJamHelper.SetSimTime (appJamStopTime_up);
+  appJamHelper.SetLambda (lambda_jam_up);
+  appJamHelper.SetRanChannel(multi_channel);
 
-	  appJamHelper.SetPacketSize (PayloadJamSize_up);
-   	  appJamHelper.SetPeriod (Seconds (appPeriodJamSeconds));
-   	  appJamHelper.SetDC (JammerDutyCycle);
-   	  appJamHelper.SetExp (Exponential);
-   	  appJamHelper.SetRanSF (Random_SF);
-   	  appJamHelper.SetSpreadingFactor (JammerSF);
-   	  appJamHelper.SetSimTime (appJamStopTime);
-   	  appJamHelper.SetLambda (lambda_jam_up);
+  ApplicationContainer appJamContainer_up = appJamHelper.Install (Jammers);
 
-	  ApplicationContainer appJamContainer = appJamHelper.Install (Jammers);
+  appJamContainer_up.Start (Seconds (0));
+  appJamContainer_up.Stop (appJamStopTime_up);
 
-	  appJamContainer.Start (Seconds (0));
-	  appJamContainer.Stop (appJamStopTime);
-
-
-  }
+  // For time traces
+  //appJamContainer.Start (Seconds (1000));
+  //appJamContainer.Stop (Seconds (1200));
 
 
   /*********************************************
@@ -1071,30 +1152,25 @@ int main (int argc, char *argv[])
   *********************************************/
 
 
-  if (JammerType == 3  || JammerType == 4 )
-  {
-	  Time appJamStopTime = Seconds (simulationTime);
-	  AppJammerHelper appJamHelper_dw = AppJammerHelper ();
+  Time appJamStopTime_dw = Seconds (simulationTime);
+  AppJammerHelper appJamHelper_dw = AppJammerHelper ();
 
-	  AttackProfile.ConfigureBand (Jammers_dw, JammerDutyCycle);
+  AttackProfile.ConfigureBand (Jammers_dw, JammerDutyCycle_dw/10);
 
-	  appJamHelper_dw.SetPacketSize (PayloadJamSize_up);
-	  appJamHelper_dw.SetPeriod (Seconds (appPeriodJamSeconds));
-	  appJamHelper_dw.SetDC (JammerDutyCycle);
-	  appJamHelper_dw.SetExp (Exponential);
-	  appJamHelper_dw.SetRanSF (Random_SF);
-	  appJamHelper_dw.SetSpreadingFactor (JammerSF);
-	  appJamHelper_dw.SetSimTime (appJamStopTime);
-	  appJamHelper_dw.SetLambda (lambda_jam_up);
+  appJamHelper_dw.SetPacketSize (PayloadJamSize_dw);
+  appJamHelper_dw.SetPeriod (Seconds (appPeriodJamSeconds));
+  appJamHelper_dw.SetDC (JammerDutyCycle_dw/10);
+  appJamHelper_dw.SetExp (Exponential);
+  appJamHelper_dw.SetRanSF (Random_SF);
+  appJamHelper_dw.SetSpreadingFactor (JammerSF);
+  appJamHelper_dw.SetFrequency(JammerFrequency_dw);
+  appJamHelper_dw.SetSimTime (appJamStopTime_dw);
+  appJamHelper_dw.SetLambda (lambda_jam_dw);
 
-	  ApplicationContainer appJamContainer = appJamHelper_dw.Install (Jammers_dw);
+  ApplicationContainer appJamContainer_dw = appJamHelper_dw.Install (Jammers_dw);
 
-	  appJamContainer.Start (Seconds (0));
-	  appJamContainer.Stop (appJamStopTime);
-
-
-  }
-
+  appJamContainer_dw.Start (Seconds (0));
+  appJamContainer_dw.Stop (appJamStopTime_dw);
 
 
   /*********************************************
@@ -1103,11 +1179,12 @@ int main (int argc, char *argv[])
 
   Time appStopTime = Seconds (simulationTime);
   PeriodicSenderHelper appHelper = PeriodicSenderHelper ();
+
   appHelper.SetPeriod (Seconds (appPeriodSeconds));
   appHelper.SetPacketSize (PayloadSize);
 
   appHelper.SetExp (Exponential);
-  appHelper.SetRetransmissions(retransmission, maxtx);
+  appHelper.SetRetransmissions(retransmission, maxtx, percentage_rtx);
   appHelper.SetSpreadingFactor (ED_SF);
   appHelper.SetSimTime (appStopTime);
 
@@ -1129,7 +1206,6 @@ int main (int argc, char *argv[])
   cout << "Conf_UP " << Conf_UP << endl;
   cout << "maxtx " << maxtx << endl;
 
-
   if (Net_Ser == true)
   {
 
@@ -1140,7 +1216,7 @@ int main (int argc, char *argv[])
 	  NetworkServerHelper networkServerHelper;
 
 	  // Set ACK Parameters on the Network Server
-	  networkServerHelper.SetACKParams (differentchannel, secondreceivewindow, ackfrequency, ackdatarate, acklength);
+	  networkServerHelper.SetACKParams (two_rx, ackfrequency, ack_sf, acksamesf, acklength);
 
 	  if (InterArrival){networkServerHelper.SetInterArrival();}
 	  //Set parameters for EWMA, target = application period, buffer_length
@@ -1181,7 +1257,7 @@ int main (int argc, char *argv[])
   *  Simulation  *
   ****************/
 
-  Simulator::Stop (Seconds (simulationTime*3));
+  Simulator::Stop (Seconds (simulationTime));
 
   // PrintSimulationTime ();
 
@@ -1221,36 +1297,62 @@ int main (int argc, char *argv[])
 
 	  string Result_File = Path + "/" + Filename;
 
+	  double G = edsent / simulationTime; //* 0.082176 / simulationTime
+	  //double Th_math = G*exp(-2*G);
+	  double Th_sim = gwreceived_ed / simulationTime; //* 0.082176 /
+	  double Good_sim = nsmessagerx / simulationTime;
+	  //double Good_math = G * msgreceiveProb / (edsent/edsentmsg+1);
+	  double Pa = edreceived / gwsent;
+
+	  cout << "G = " << G << endl;
+	  //cout << "Th math = " << Th_math << endl;
+	  cout << "Th simulated = " << Th_sim << endl;
+	  //cout << "Goodput math = " << Good_math << endl;
+	  cout << "Goodput sim = " << Good_sim << endl;
+
+
 	 // cout << "Jammer Type " << JammerType << endl;
-	 //cout << "Jammer DutyCycle " << JammerDutyCycle << endl;
-	 // cout << "Number of Jammers " << nJammers << endl;
-	 // cout << "Number of Devices " << nDevices << endl;
-	 cout << "Pkt Sent ed " << edsent << endl;
-	 cout << "Msg Sent ed " << edsentmsg << endl;
-	 cout << "Sent jm " << jmsent << endl;
-	 cout << "Success ed " << gwreceived_ed << endl;
-     // cout << "Success jm " << gwreceived_jm << endl;
-	//  cout << "collision ed " << collision_ed << endl;
+	  cout << "Jammer DutyCycle UP " << JammerDutyCycle_up << endl;
+	  cout << "Jammer DutyCycle DW " << JammerDutyCycle_dw << endl;
+	  cout << "Number of Jammers " << nJammers_up << endl;
+	  cout << "Number of Devices " << nDevices << endl;
+	  cout << "Sent jm " << jmsent << endl;
+      cout << "Success jm " << gwreceived_jm << endl;
+	  cout << "lost ed " << collision_ed + underSensitivity_ed + dropped_ed << endl;
 	//  cout << "collision jm " << collision_jm << endl;
-	//  cout << "underSensitivity ed " << underSensitivity_ed << endl;
+	  cout << "collision ed " << collision_ed << endl;
+	  cout << "underSensitivity ed " << underSensitivity_ed << endl;
 	//  cout << "underSensitivity jm " << underSensitivity_jm << endl;
 	//  cout << "cumulative time ed " << cumulative_time_ed << endl;
 	//  cout << "cumulative time jm " << cumulative_time_jm << endl;
-	//  cout << "dropped ed " << dropped_ed << endl;
+	  cout << "dropped ed " << dropped_ed << endl;
 	//  cout << "dropped jm " << dropped_jm << endl;
 	//  cout << "Real mean jam " << simulationTime/jmsent << endl;
 	//  cout << "Real mean ed " << simulationTime/edsent/nDevices << endl;
+	  cout << "Pkt Sent ed " << edsent << endl;
+	  cout << "Success ed " << gwreceived_ed << endl;
+	  cout << "ACK Sent " << gwsent << endl;
 	  cout << "ACK Received " << edreceived << endl;
+	  cout << "ACK Success Probability " << Pa << endl;
 	//  cout << "Retransmissions Sent " << edretransmission << endl;
 	//  cout << "Retransmissions Received " << edretransmissionreceived << endl;
+	  cout << "Msg Sent ed " << edsentmsg << endl;
 	  cout << "Message Received at NS " << nsmessagerx << endl;
+	  cout << "msg prov " << msgreceiveProb << endl;
+	  cout << "re-transmissions per message " << edsent/edsentmsg << endl;
 
-	//  for (uint32_t i = 0; i != nGateways; i++)
-	//    {
+	  for (uint32_t i = 0; i != nGateways; i++)
+	   {
 	//	  cout << "loss GW - " << i <<  " " << pkt_loss_gw [i] << endl;
 	//	  cout << "drop GW - " << i <<  " "  << pkt_drop_gw [i] << endl;
-	//	  cout << "received GW - " << i <<  " " << pkt_success_gw [i] << endl;
-	//    }
+		  cout << "received GW - " << i <<  " " << pkt_success_gw [i] << endl;
+	    }
+
+	  for (uint16_t i = 0; i != 6; i++)
+	   {
+		  cout << "DataRates - " << unsigned(i) <<  " " << double(unsigned(DataRates [i]))/nDevices << endl;
+	    }
+
 
 	//   cout << "success ED - " << accumulate(pkt_success_ed.begin(), pkt_success_ed.end(), 0) << endl;
 	//   for(uint32_t i = 0; i < pkt_success_ed.size(); i++)
@@ -1262,8 +1364,8 @@ int main (int argc, char *argv[])
 	  PrintResults ( nGateways, nDevices, nJammers_up, receivedProb_ed, collisionProb_ed, noMoreReceiversProb_ed,
 			  underSensitivityProb_ed, receivedProb_jm, collisionProb_jm, noMoreReceiversProb_jm,
 			  underSensitivityProb_jm, gwreceived_ed, gwreceived_jm, edsent, jmsent, cumulative_time_ed,
-			  cumulative_time_jm, ce_ed, ce_jm, edsentmsg, nsmessagerx, msgreceiveProb, edretransmission, Result_File);
+			  cumulative_time_jm, ce_ed, ce_jm, edsentmsg, nsmessagerx, msgreceiveProb, edretransmission,
+			  total_conso, Pa, gwsent, edreceived, Result_File);
 
   return 0;
 }
-
